@@ -14,13 +14,13 @@ Cập nhật bảng này trong cùng PR với thay đổi test case hoặc scrip
 
 | REQ | Tên | Status | Version | Risk | Test cases | Automated | Owner |
 |---|---|---|---|---|---:|---:|---|
-| REQ-001 | Sign in with email and password | Ready for Test | 1.0 | High | 13 | 8 | Auth squad |
+| REQ-001 | Sign in with email and password | Ready for Test | 1.0 | High | 13 | 9 | Auth squad |
 
 ## Độ phủ theo acceptance criterion
 
 | REQ | AC | Mô tả ngắn | Test cases | Automated | Trạng thái phủ |
 |---|---|---|---|---|---|
-| REQ-001 | AC-001 | Đăng nhập thành công | TC-001, TC-013 | TC-001 | Đủ |
+| REQ-001 | AC-001 | Đăng nhập thành công | TC-001, TC-013 | TC-001, TC-013 | Đủ |
 | REQ-001 | AC-002 | Thông báo lỗi chung | TC-002, TC-003, TC-012 | TC-002, TC-003 | Đủ |
 | REQ-001 | AC-003 | Validation email ở client | TC-004 | TC-004 | Đủ |
 | REQ-001 | AC-004 | Session qua reload / hết hạn 24h | TC-005, TC-010 | TC-005 | **Thiếu** - TC-010 chỉ thủ công |
@@ -32,7 +32,6 @@ Cập nhật bảng này trong cùng PR với thay đổi test case hoặc scrip
 
 | TC | REQ/AC | Priority | Lý do chưa có | Hướng xử lý | Owner | Hạn |
 |---|---|---|---|---|---|---|
-| TC-013 | REQ-001 / AC-001 | P1 | Chưa viết | Automate (điểm 22/25) | Auth squad | Sprint tới |
 | TC-009 | REQ-001 / AC-007 | P1 | Không khả thi (Stability 1, Feasibility 2) | Giữ thủ công + monitoring production | QA | - |
 
 ## AC không có test case nào

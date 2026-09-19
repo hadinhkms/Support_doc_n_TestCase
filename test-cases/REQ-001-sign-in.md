@@ -19,7 +19,7 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 | REQ-001 | AC-004 | TC-010 | No | - | P2 |
 | REQ-001 | AC-006 | TC-011 | No | - | P2 |
 | REQ-001 | AC-002 | TC-012 | Candidate | - | P2 |
-| REQ-001 | AC-001 | TC-013 | Candidate | - | P1 |
+| REQ-001 | AC-001 | TC-013 | Yes | `tests/auth/login.spec.ts` | P1 |
 
 ## Test data and environment
 
@@ -167,7 +167,9 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 ### TC-013: Thuộc tính bảo mật của cookie session
 
 - Type: Security | Priority: P1 | Technique: Error guessing
-- **Automation: Candidate** - dễ tự động, xem "Gaps found from automation" của REQ-001
+- Automation: Yes | Tags: `@p1 @security`
+- Preconditions: đăng nhập thành công bằng `TEST_USER_EMAIL`
+- Test data: `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`
 
 | Step | Action | Expected result |
 |---|---|---|

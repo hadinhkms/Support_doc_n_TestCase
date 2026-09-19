@@ -95,6 +95,10 @@
       "reason": "Project có thể thêm mục riêng"
     },
     {
+      "path": ".gitattributes",
+      "reason": "Chuẩn hoá line ending - project có thể thêm rule riêng cho loại file của mình"
+    },
+    {
       "path": "README.md",
       "reason": "Mô tả project cụ thể"
     },

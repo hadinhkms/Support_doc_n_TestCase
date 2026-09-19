@@ -14,7 +14,7 @@ Lập ngày 2026-09-20. Nguồn: Audit đọc trực tiếp 3 repo: D:\_Script_a
 | D-06 | Owner và status của REQ-001? | Script đầu tiên gắn tag @REQ-001 | Chặn | ⬜ chờ xác nhận |
 | D-07 | Nhãn UI trong PRD ghi là đề xuất - có bắt buộc đúng nguyên văn không? | Cách viết assertion cho TC-001, TC-002, TC-003 | Chặn | ⬜ chờ xác nhận |
 | D-08 | 10 spec company/admin: viết REQ hay ghi quyết định để ngoài gate? | Bật CI gate ở CarThings | Chặn | ⬜ chờ xác nhận |
-| D-04 | TC-013: automation, ghi No kèm lý do, hay hạ xuống P2? | CI của repo chuẩn đang đỏ trên main | Gấp | ⬜ chờ xác nhận |
+| D-04 | TC-013: automation, ghi No kèm lý do, hay hạ xuống P2? | CI của repo chuẩn đang đỏ trên main | Gấp | ✅ Viết script automation cho TC-013 |
 | D-09 | Git identity ở hai satellite đang là github-actions[bot] - có sửa không? | Truy vết tác giả của mọi commit sau này | Nên sớm | ⬜ chờ xác nhận |
 | D-10 | Có bao giờ sync .github/workflows xuống satellite không? | Guard ở Hub | Nên sớm | ⬜ chờ xác nhận |
 | D-11 | Vieclam24h có nằm trong đợt triển khai này không? | Phạm vi triển khai và việc viết lại rule AI | Nên sớm | ⬜ chờ xác nhận |
@@ -256,11 +256,9 @@ Người xác nhận:            Ngày:
 **Đề xuất:** Ghi No kèm lý do ở mục Case không automation. Rẻ nhất, xanh gate ngay, và không phải nói dối về priority.
 
 ```
-Chờ xác nhận. Chọn một:
-  [ ] mark-no — Ghi No kèm lý do ở mục Case không automation
-  [ ] automate — Viết script automation cho TC-013
-  [ ] demote-p2 — Hạ xuống P2 kèm giải thích
-Người xác nhận:            Ngày:
+ĐÃ XÁC NHẬN: Viết script automation cho TC-013
+Người xác nhận: Ha Dinh    Ngày: 2026-09-20
+Ghi chú: Chốt ngược với đề xuất ban đầu: chính file test case ghi TC-013 la "de tu dong", nen ghi No se la noi doi. Da viet TC-013 trong playwright/tests/auth/login.spec.ts, qa:check exit 0.
 ```
 
 ---

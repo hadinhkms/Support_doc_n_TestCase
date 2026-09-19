@@ -108,4 +108,27 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
       await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeHidden();
     },
   );
+
+  test(
+    'TC-013 - AC-001 session cookie carries HttpOnly, Secure and SameSite',
+    { tag: ['@p1', '@security'] },
+    async ({ loginPage, dashboardPage, page }) => {
+      const user = standardUser();
+
+      await loginPage.goto();
+      await loginPage.login(user.email, user.password);
+      await expect(dashboardPage.heading).toBeVisible();
+
+      // Cookie session là cookie duy nhất bị ràng buộc bởi ba thuộc tính này.
+      // Nhận diện theo tên chứ không theo thứ tự, vì thứ tự cookie không tất định.
+      const cookies = await page.context().cookies();
+      const session = cookies.find((cookie) => /session|sid|token/i.test(cookie.name));
+
+      expect(session, `không thấy cookie session trong: ${cookies.map((c) => c.name).join(', ')}`)
+        .toBeDefined();
+      expect.soft(session?.httpOnly, 'HttpOnly chặn JavaScript đọc cookie').toBe(true);
+      expect.soft(session?.secure, 'Secure chặn gửi cookie qua HTTP').toBe(true);
+      expect.soft(session?.sameSite, 'SameSite chặn gửi cookie khi bị CSRF').toBe('Lax');
+    },
+  );
 });

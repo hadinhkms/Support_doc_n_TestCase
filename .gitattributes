@@ -1,0 +1,23 @@
+# Chuẩn hoá line ending. Không có file này thì core.autocrlf=true trên Windows sẽ
+# tạo diff giả: người sửa một dòng nhưng Git báo đổi cả file.
+* text=auto eol=lf
+
+# Script chỉ chạy trên Windows thì phải giữ CRLF, nếu không shell sẽ hiểu sai.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Nhị phân: đừng đụng vào, đừng diff.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.docx binary
+*.xlsx binary
+
+# Lockfile: vẫn là text nhưng diff của nó vô nghĩa với người đọc.
+package-lock.json -diff
