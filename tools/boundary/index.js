@@ -168,11 +168,20 @@ function crossCheckHub(manifest) {
     }
   }
   if (!m) return null;
-  const forbidden = new Set((m[1].match(/'([^']+)'/g) || []).map((s) => s.slice(1, -1)));
+  // Đọc cả nháy đơn lẫn nháy kép: một lần Prettier đổi singleQuote ở Hub không được
+  // phép làm CI của mọi satellite đỏ cùng lúc vì hiểu nhầm là Hub chưa cấm gì.
+  const forbidden = new Set(
+    (m[1].match(/['"`]([^'"`]+)['"`]/g) || []).map((x) => x.slice(1, -1)),
+  );
 
   // Chỉ đối chiếu những mục có khai `hubModule`. Suy ra từ đường dẫn sẽ sai:
   // `playwright/tests/pages` có segment đầu là `playwright`, nhưng thứ Hub cấm là `pages`.
   const mapped = (manifest.own || []).filter((i) => i.hubModule);
+  // 0 mục được đối chiếu KHÔNG phải là "đối chiếu đạt". Một vòng lặp không chạy lần nào
+  // mà in ra OK là đúng loại lỗi im lặng nguy hiểm nhất.
+  if (mapped.length === 0) {
+    return { hubScript, forbidden: [...forbidden], mapped: [], missing: [], notCompared: true };
+  }
   const missing = mapped.filter((i) => !forbidden.has(i.hubModule)).map((i) => i.hubModule);
   return {
     hubScript,
@@ -182,8 +191,17 @@ function crossCheckHub(manifest) {
   };
 }
 
+const KNOWN_FLAGS = new Set(['--json', '--strict']);
+
 function main() {
   const args = process.argv.slice(2);
+  // Cờ gõ sai mà bị nuốt im lặng nghĩa là gate tắt vĩnh viễn: `--stict` sẽ luôn exit 0.
+  const unknown = args.filter((a) => a.startsWith('-') && !KNOWN_FLAGS.has(a));
+  if (unknown.length > 0) {
+    console.error(red(`Cờ không hợp lệ: ${unknown.join(', ')}. Chỉ nhận: --json, --strict`));
+    process.exitCode = 2;
+    return;
+  }
   const asJson = args.includes('--json');
   const strict = args.includes('--strict');
 

@@ -13,7 +13,9 @@
     "qa:boundary": "node tools/boundary",
     "decisions": "node tools/decisions",
     "decisions:render": "node tools/decisions render",
-    "decisions:json": "node tools/decisions --json"
+    "decisions:json": "node tools/decisions --json",
+    "test": "node --test tools/",
+    "test:watch": "node --test --watch tools/"
   },
   "engines": {
     "node": ">=18"

@@ -24,6 +24,10 @@ function readText(file) {
 const RE_AC_HEADING = /^###\s+(AC-\d{3})\s*:\s*(.+?)\s*$/;
 const RE_TC_HEADING = /^###\s+(TC-\d{3})\s*:\s*(.+?)\s*$/;
 const RE_TC_AC_TITLE = /^(TC-\d{3})\s*-\s*(AC-\d{3})\b/;
+// File setup là hạ tầng đăng nhập/seed, không phải test case. Phải bắt được cả
+// `auth.setup.ts` lẫn `auth.setup.spec.js` — thiếu biến thể thứ hai thì coverage và
+// drift đếm lệch nhau đúng một test, và không ai biết bên nào đúng.
+const RE_SETUP_FILE = /\.setup\.(spec\.)?[jt]sx?$/;
 
 /** Front-matter phẳng `key: value`. Đủ dùng và không cần thư viện YAML. */
 function parseFrontMatter(text) {
@@ -38,6 +42,32 @@ function parseFrontMatter(text) {
     if (m) data[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
   }
   return { data, body };
+}
+
+/**
+ * Chuẩn hoá cột Automation. So sánh `=== 'Yes'` với ô lấy nguyên văn từ markdown là
+ * fail-open: 'yes', '**Yes**', 'Yes ✅' hay 'Có' đều làm rule quan trọng nhất
+ * (khai automation nhưng không có script) im lặng. Trả về null khi không nhận ra,
+ * để commands.js báo thành finding thay vì bỏ qua.
+ */
+const AUTOMATION_ALIASES = new Map([
+  ['yes', 'Yes'], ['co', 'Yes'], ['có', 'Yes'], ['done', 'Yes'],
+  ['no', 'No'], ['khong', 'No'], ['không', 'No'], ['manual', 'No'],
+  ['thu cong', 'No'], ['thủ công', 'No'], ['n/a', 'No'],
+  ['candidate', 'Candidate'], ['ung vien', 'Candidate'], ['ứng viên', 'Candidate'],
+  ['planned', 'Candidate'], ['todo', 'Candidate'],
+]);
+
+function normalizeAutomation(raw) {
+  const cleaned = String(raw || '')
+    .replace(/[*`_]/g, '')
+    .replace(/[^\p{L}\p{N}\/ ]/gu, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+  if (!cleaned) return { value: '', raw: String(raw || '').trim() };
+  const hit = AUTOMATION_ALIASES.get(cleaned);
+  return { value: hit || null, raw: String(raw || '').trim() };
 }
 
 /** Tách các dòng dữ liệu của bảng markdown nằm dưới một heading. */
@@ -60,7 +90,7 @@ function listMarkdown(dir) {
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir)
-    .filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md')
+    .filter((f) => f.toLowerCase().endsWith('.md') && f.toLowerCase() !== 'readme.md')
     .map((f) => path.join(dir, f));
 }
 
@@ -123,11 +153,13 @@ function loadTestCases(root) {
     for (const cells of tableRowsUnder(lines, /^##\s+Traceability/i)) {
       const [reqId, acId, tcId, automation, spec, priority] = cells;
       if (!/^REQ-\d{3}$/.test(reqId || '')) continue;
+      const auto = normalizeAutomation(automation);
       links.push({
         reqId,
         acId,
         tcId,
-        automation: (automation || '').trim(),
+        automation: auto.value,
+        automationRaw: auto.raw,
         spec: (spec || '').replace(/`/g, '').trim(),
         priority: (priority || '').trim(),
         file: rel,
@@ -168,7 +200,12 @@ function loadAutomatedTests(root, options = {}) {
 
   // Windows: npx là .cmd, spawn thẳng sẽ EINVAL -> phải qua shell.
   const useShell = process.platform === 'win32';
-  const args = ['playwright', 'test', '--list', '--reporter=json', `--project=${project}`];
+  // --pass-with-no-tests: không có nó thì Playwright exit 1 khi 0 test, nên nhánh
+  // "đọc được 0 spec" rơi vào error và finding doc-duoc-0-spec trở thành code chết.
+  const args = [
+    'playwright', 'test', '--list', '--reporter=json',
+    `--project=${project}`, '--pass-with-no-tests',
+  ];
   // shell: true nối args thành MỘT chuỗi, nên giá trị có khoảng trắng
   // (vd project tên "Desktop Chrome") bị tách thành hai tham số. Phải tự bọc ngoặc kép.
   const argv = useShell ? args.map((a) => (/\s/.test(a) ? `"${a}"` : a)) : args;
@@ -224,13 +261,39 @@ function loadAutomatedTests(root, options = {}) {
         file: (spec.file || '').replace(/\\/g, '/'),
         // Đường dẫn tính từ gốc repo — dùng cho mọi thông báo và bảng traceability.
         path: toRepoPath(spec.file),
+        isSetup: RE_SETUP_FILE.test(spec.file || ''),
         line: spec.line || 0,
       });
     }
     for (const child of suite.suites || []) walk(child);
   };
   for (const suite of json.suites || []) walk(suite);
-  return { tests, error: null };
+
+  // Khoanh vùng spec nằm ngoài gate. KHÔNG im lặng: trả về số lượng và danh sách
+  // tiền tố đã dùng để mọi lệnh in ra được.
+  const ignorePrefixes = (options.ignoreSpecs || []).filter(Boolean);
+  const kept = ignorePrefixes.length
+    ? tests.filter((t) => !ignorePrefixes.some((p) => t.path === p || t.path.startsWith(p.endsWith('/') ? p : `${p}/`)))
+    : tests;
+  const ignoredCount = tests.length - kept.length;
+
+  // Đọc được 0 test là chế độ hỏng NGUY HIỂM NHẤT: mọi báo cáo sẽ xanh vì không có
+  // gì để đối chiếu. Phải phân biệt với repo mới tinh chưa có spec nào, nên chỉ
+  // đánh dấu ở đây; commands.js quyết định có thành finding hay không.
+  const emptyResult = tests.length === 0;
+
+  return {
+    tests: kept,
+    error: null,
+    emptyResult,
+    emptyMessage: emptyResult
+      ? `Đọc được 0 test từ "${rel}" với project "${project}". Playwright chạy được nhưng không ` +
+        'thấy spec nào — nhiều khả năng sai "projectDir" hoặc "project" trong qa.config.json. ' +
+        'Mọi báo cáo dưới đây sẽ xanh giả vì không có gì để đối chiếu.'
+      : null,
+    ignoredCount,
+    ignorePrefixes,
+  };
 }
 
 module.exports = { loadRequirements, loadTestCases, loadAutomatedTests, parseFrontMatter };

@@ -82,6 +82,16 @@ function runCoverage(options, flags) {
   if (flags.json) return console.log(JSON.stringify(result, null, 2));
 
   if (result.playwrightError) console.log(yellow(`! ${result.playwrightError}\n`));
+  // Đọc được 0 spec là chế độ hỏng trông giống hệt chế độ sạch -> phải hét lên.
+  if (result.emptySpecs) console.log(red(`!! ${result.emptyMessage}\n`));
+  // Không bao giờ giấu số test bị khoanh vùng: một gate im lặng bỏ qua là gate nói dối.
+  if (result.ignoredSpecs > 0) {
+    console.log(
+      yellow(
+        `! Đã bỏ qua ${result.ignoredSpecs} test theo ignoreSpecs: ${result.ignorePrefixes.join(', ')}\n`,
+      ),
+    );
+  }
   console.log(
     bold(
       `\n${result.requirements} requirement · ${result.acceptanceCriteria} AC · ` +
@@ -163,7 +173,11 @@ function main() {
   const options = {
     project: flags.project || config.project,
     projectDir: flags.projectDir || config.projectDir,
+    ignoreSpecs: config.ignoreSpecs || [],
   };
+  if (options.ignoreSpecs.length > 0 && !flags.json) {
+    console.log(dim(`(ignoreSpecs đang bật: ${options.ignoreSpecs.join(', ')})`));
+  }
 
   let findings = null;
   switch (command) {

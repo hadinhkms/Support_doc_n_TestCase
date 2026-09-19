@@ -22,9 +22,15 @@ const DEFAULTS = {
   projectDir: 'playwright',
   // Tên project trong playwright.config dùng để liệt kê test.
   project: 'chromium',
+  // Tiền tố đường dẫn spec nằm NGOÀI phạm vi gate, tính từ gốc repo.
+  // Dùng khi một repo có sẵn spec cũ chưa kịp gắn mã TC: thay vì để gate đỏ
+  // vĩnh viễn rồi cả đội quen bỏ qua, khoanh vùng chúng lại một cách có ghi chép.
+  // Số test bị bỏ qua LUÔN được in ra, không bao giờ im lặng.
+  ignoreSpecs: [],
 };
 
 const KNOWN_KEYS = new Set(Object.keys(DEFAULTS));
+const ARRAY_KEYS = new Set(['ignoreSpecs']);
 
 /**
  * Đọc qa.config.json nếu có. Ném lỗi khi file sai định dạng hoặc sai khoá —
@@ -52,6 +58,13 @@ function loadConfig(root) {
       throw new Error(
         `${CONFIG_FILE}: khoá không hợp lệ "${key}". Chỉ nhận: ${[...KNOWN_KEYS].join(', ')}`,
       );
+    }
+    if (ARRAY_KEYS.has(key)) {
+      if (!Array.isArray(value) || value.some((v) => typeof v !== 'string' || !v.trim())) {
+        throw new Error(`${CONFIG_FILE}: "${key}" phải là mảng chuỗi không rỗng`);
+      }
+      config[key] = value.map((v) => v.trim().replace(/\\/g, '/').replace(/^\.\//, ''));
+      continue;
     }
     if (typeof value !== 'string' || !value.trim()) {
       throw new Error(`${CONFIG_FILE}: "${key}" phải là chuỗi không rỗng`);

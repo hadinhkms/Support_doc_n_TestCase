@@ -14,11 +14,37 @@ function specPath(options, t) {
   return `${t.path || t.file}:${t.line}`;
 }
 
+/**
+ * Chế độ hỏng nguy hiểm nhất: đọc được 0 spec thì MỌI kiểm tra đều xanh vì không có
+ * gì để đối chiếu — trông y hệt một repo sạch. Chỉ im lặng khi repo thật sự chưa có
+ * test case nào (đang dựng dở), còn đã khai test case mà không thấy spec là báo động.
+ */
+function emptySpecFinding(testCases, automated, options) {
+  if (!automated.emptyResult || automated.error) return null;
+  if (testCases.links.length === 0) return null;
+  return {
+    severity: 'blocker',
+    kind: 'doc-duoc-0-spec',
+    where: (options && options.projectDir) || 'playwright',
+    message: automated.emptyMessage,
+    action: 'Sửa projectDir/project trong qa.config.json, hoặc chạy --project-dir=<đường dẫn>.',
+  };
+}
+
+/**
+ * `loadAutomated` là khe cắm cho test: mặc định chạy `playwright --list` thật, nhưng
+ * unit test truyền vào một hàm trả dữ liệu dựng sẵn để kiểm được phần join mà không
+ * cần cài browser hay dựng app. Code chạy thật không bao giờ truyền tham số này.
+ */
 function collect(root, options) {
+  const loadAutomated = (options && options.loadAutomated) || loadAutomatedTests;
   const requirements = loadRequirements(root);
   const testCases = loadTestCases(root);
-  const automated = loadAutomatedTests(root, options);
-  return { requirements, testCases, automated };
+  const automated = loadAutomated(root, options);
+  // MỘT định nghĩa "test thật" cho cả bốn lệnh. Trước đây mỗi lệnh tự lọc một kiểu
+  // nên coverage, gaps và impact bất đồng ý về việc file setup có phải test không.
+  const realTests = (automated.tests || []).filter((t) => !t.isSetup);
+  return { requirements, testCases, automated, realTests };
 }
 
 /** Sinh danh sách case tối thiểu mà một dòng rule đòi hỏi (EP + BVA). */
@@ -31,14 +57,14 @@ function expectedCasesFromRule(rule) {
 }
 
 function coverage(root, options) {
-  const { requirements, testCases, automated } = collect(root, options);
+  const { requirements, testCases, automated, realTests } = collect(root, options);
   const byAc = new Map();
   for (const link of testCases.links) {
     const key = `${link.reqId}/${link.acId}`;
     if (!byAc.has(key)) byAc.set(key, []);
     byAc.get(key).push(link);
   }
-  const automatedTcIds = new Set(automated.tests.map((t) => t.tcId).filter(Boolean));
+  const automatedTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
 
   const rows = [];
   for (const req of requirements) {
@@ -63,15 +89,19 @@ function coverage(root, options) {
     requirements: requirements.filter((r) => r.id).length,
     acceptanceCriteria: rows.length,
     testCases: testCases.links.length,
-    automatedTests: automated.tests.length,
+    automatedTests: realTests.length,
     playwrightError: automated.error,
+    emptySpecs: Boolean(automated.emptyResult),
+    emptyMessage: automated.emptyMessage || null,
+    ignoredSpecs: automated.ignoredCount || 0,
+    ignorePrefixes: automated.ignorePrefixes || [],
     rows,
   };
 }
 
 function gaps(root, options) {
-  const { requirements, testCases, automated } = collect(root, options);
-  const automatedTcIds = new Set(automated.tests.map((t) => t.tcId).filter(Boolean));
+  const { requirements, testCases, automated, realTests } = collect(root, options);
+  const automatedTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
   const linksByAc = new Map();
   const linksByTc = new Map();
   for (const link of testCases.links) {
@@ -82,6 +112,33 @@ function gaps(root, options) {
   }
 
   const findings = [];
+
+  // Không đọc được requirement nào = gate rỗng: mọi rule dưới đây đều không chạy
+  // và kết quả là "xanh tuyệt đối" ở một repo mà tool không hề đọc được gì.
+  if (requirements.length === 0) {
+    findings.push({
+      severity: 'blocker',
+      kind: 'khong-doc-duoc-requirement',
+      where: 'requirements/',
+      message:
+        'Không đọc được requirement nào. Thư mục requirements/ không tồn tại, rỗng, hoặc ' +
+        'tài liệu để ở chỗ khác. Mọi kiểm tra bên dưới sẽ xanh giả vì không có gì để đối chiếu.',
+      action: 'Tạo requirements/REQ-xxx-<slug>.md theo templates/requirement-template.md.',
+    });
+  }
+
+  // Giá trị cột Automation không nhận ra -> mọi rule so sánh với nó đều fail-open.
+  for (const link of testCases.links) {
+    if (link.automation === null) {
+      findings.push({
+        severity: 'major',
+        kind: 'gia-tri-automation-khong-hop-le',
+        where: link.file,
+        message: `${link.tcId} có cột Automation = "${link.automationRaw}", không hiểu được.`,
+        action: 'Dùng Yes / No / Candidate. Giá trị lạ làm mọi rule về automation im lặng.',
+      });
+    }
+  }
 
   for (const req of requirements) {
     if (!req.id) {
@@ -179,6 +236,9 @@ function gaps(root, options) {
     }
   }
 
+  const empty = emptySpecFinding(testCases, automated, options);
+  if (empty) findings.push(empty);
+
   if (automated.error) {
     findings.push({
       severity: 'blocker',
@@ -192,7 +252,8 @@ function gaps(root, options) {
 }
 
 function impact(root, reqId, options) {
-  const { requirements, testCases, automated } = collect(root, options);
+  const { requirements, testCases, realTests } = collect(root, options);
+  const automated = { tests: realTests };
   const req = requirements.find((r) => r.id === reqId);
   if (!req) return { error: `Không tìm thấy ${reqId} trong requirements/` };
 
@@ -235,8 +296,8 @@ function drift(root, options) {
   const findings = [];
 
   for (const t of automated.tests) {
-    // File *.setup.ts là hạ tầng đăng nhập/seed, không phải test case -> không đòi mã TC.
-    if (/\.setup\.[jt]s$/.test(t.file)) continue;
+    // File setup là hạ tầng đăng nhập/seed, không phải test case -> không đòi mã TC.
+    if (t.isSetup) continue;
     if (!t.tcId) {
       findings.push({
         severity: 'major',
@@ -282,7 +343,7 @@ function drift(root, options) {
   for (const req of requirements) {
     if (!req.id) continue;
     const hasTests = automated.tests.some((t) => t.reqId === req.id);
-    if (hasTests && /^draft$/i.test(req.status)) {
+    if (hasTests && /^draft/i.test(req.status)) {
       findings.push({
         severity: 'major',
         kind: 'requirement-draft-nhung-da-co-script',
@@ -301,6 +362,41 @@ function drift(root, options) {
         });
       }
     }
+  }
+
+  // Chiều ngược: dòng traceability trỏ tới REQ/AC đã bị xoá. Không kiểm chiều này thì
+  // requirement bị refactor sẽ để lại dòng chết, mà coverage vẫn cộng vào tổng test case
+  // nên độ phủ trông CAO HƠN thực tế.
+  for (const link of testCases.links) {
+    if (link.reqId && !knownReq.has(link.reqId)) {
+      findings.push({
+        severity: 'blocker',
+        kind: 'test-case-tro-toi-req-khong-ton-tai',
+        where: link.file,
+        message: `${link.tcId} trỏ tới ${link.reqId} nhưng requirement đó không tồn tại.`,
+        action: 'Sửa mã REQ trong bảng Traceability, hoặc xoá dòng đã chết.',
+      });
+    } else if (link.acId && !knownAc.has(`${link.reqId}/${link.acId}`)) {
+      findings.push({
+        severity: 'blocker',
+        kind: 'test-case-tro-toi-ac-khong-ton-tai',
+        where: link.file,
+        message: `${link.tcId} trỏ tới ${link.reqId}/${link.acId} nhưng AC đó không còn.`,
+        action: 'AC có thể đã bị xoá hoặc đổi số. Rà lại bảng Traceability.',
+      });
+    }
+  }
+
+  const emptyDrift = emptySpecFinding(testCases, automated, options);
+  if (emptyDrift) findings.push(emptyDrift);
+  if (automated.error) {
+    findings.push({
+      severity: 'blocker',
+      kind: 'khong-doc-duoc-playwright',
+      where: (options && options.projectDir) || 'playwright',
+      message: automated.error,
+      action: 'Không đọc được spec thì drift không kết luận được gì.',
+    });
   }
   return findings;
 }

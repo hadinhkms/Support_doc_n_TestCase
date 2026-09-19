@@ -48,7 +48,7 @@ export default tseslint.config(
       'playwright/no-skipped-test': ['warn', { allowConditional: true }],
 
       'no-restricted-syntax': [
-        'warn',
+        'error',
         {
           // Traceability REQ -> AC -> TC -> script.
           selector:
