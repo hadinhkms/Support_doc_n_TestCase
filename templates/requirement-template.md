@@ -1,3 +1,14 @@
+---
+id: REQ-XXX
+title: <Tên feature>
+status: Draft
+version: 1.0
+risk: High
+owner: <team/person>
+slug: <slug>
+test_cases: test-cases/REQ-XXX-<slug>.md
+---
+
 # REQ-XXX: <Tên feature>
 
 - Status: Draft | Ready for Test | In Test | Done

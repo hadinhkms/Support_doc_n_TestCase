@@ -198,6 +198,18 @@ function loadAutomatedTests(root, options = {}) {
     return { tests: [], error: 'Output của playwright --list không phải JSON hợp lệ' };
   }
 
+  // spec.file tương đối với rootDir của Playwright (testDir), không phải gốc repo.
+  // Lấy rootDir thật từ output thay vì đoán, để đường dẫn in ra luôn mở được từ gốc repo.
+  let rootRel = '';
+  if (json.config && json.config.rootDir) {
+    rootRel = path.relative(root, json.config.rootDir).replace(/\\/g, '/');
+    if (rootRel === '.' || rootRel.startsWith('..')) rootRel = '';
+  }
+  const toRepoPath = (file) => {
+    const f = (file || '').replace(/\\/g, '/');
+    return rootRel ? `${rootRel}/${f}` : f;
+  };
+
   const tests = [];
   const walk = (suite) => {
     for (const spec of suite.specs || []) {
@@ -210,6 +222,8 @@ function loadAutomatedTests(root, options = {}) {
         reqId: (tags.find((t) => /^REQ-\d{3}$/.test(t)) || null),
         tags,
         file: (spec.file || '').replace(/\\/g, '/'),
+        // Đường dẫn tính từ gốc repo — dùng cho mọi thông báo và bảng traceability.
+        path: toRepoPath(spec.file),
         line: spec.line || 0,
       });
     }

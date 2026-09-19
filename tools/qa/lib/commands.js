@@ -9,6 +9,11 @@
 
 const { loadRequirements, loadTestCases, loadAutomatedTests } = require('./sources');
 
+/** Đường dẫn hiển thị của một test, đã được sources.js tính sẵn từ gốc repo. */
+function specPath(options, t) {
+  return `${t.path || t.file}:${t.line}`;
+}
+
 function collect(root, options) {
   const requirements = loadRequirements(root);
   const testCases = loadTestCases(root);
@@ -178,9 +183,9 @@ function gaps(root, options) {
     findings.push({
       severity: 'blocker',
       kind: 'khong-doc-duoc-playwright',
-      where: 'playwright/',
+      where: (options && options.projectDir) || 'playwright',
       message: automated.error,
-      action: 'Chạy npm install trong playwright/ rồi thử lại.',
+      action: `Chạy npm install trong ${(options && options.projectDir) || 'playwright'} rồi thử lại.`,
     });
   }
   return findings;
@@ -206,7 +211,7 @@ function impact(root, reqId, options) {
         tcId: l.tcId,
         automation: l.automation,
         priority: l.priority,
-        specs: (testsByTc.get(l.tcId) || []).map((t) => `playwright/tests/${t.file}:${t.line}`),
+        specs: (testsByTc.get(l.tcId) || []).map((t) => specPath(options, t)),
       })),
     };
   });
@@ -236,7 +241,7 @@ function drift(root, options) {
       findings.push({
         severity: 'major',
         kind: 'test-khong-co-ma-tc',
-        where: `playwright/tests/${t.file}:${t.line}`,
+        where: specPath(options, t),
         message: `Test "${t.title}" không mở đầu bằng TC-xxx, không trace được.`,
       });
       continue;
@@ -245,14 +250,14 @@ function drift(root, options) {
       findings.push({
         severity: 'major',
         kind: 'test-thieu-tag-req',
-        where: `playwright/tests/${t.file}:${t.line}`,
+        where: specPath(options, t),
         message: `${t.tcId} thiếu tag @REQ-xxx ở describe.`,
       });
     } else if (!knownReq.has(t.reqId)) {
       findings.push({
         severity: 'blocker',
         kind: 'test-tro-toi-req-khong-ton-tai',
-        where: `playwright/tests/${t.file}:${t.line}`,
+        where: specPath(options, t),
         message: `${t.tcId} gắn tag ${t.reqId} nhưng requirement đó không tồn tại.`,
       });
     }
@@ -260,7 +265,7 @@ function drift(root, options) {
       findings.push({
         severity: 'blocker',
         kind: 'test-tro-toi-ac-khong-ton-tai',
-        where: `playwright/tests/${t.file}:${t.line}`,
+        where: specPath(options, t),
         message: `${t.tcId} trỏ tới ${t.reqId}/${t.acId} nhưng AC đó không còn trong requirement.`,
       });
     }
@@ -268,7 +273,7 @@ function drift(root, options) {
       findings.push({
         severity: 'major',
         kind: 'script-khong-co-trong-test-case',
-        where: `playwright/tests/${t.file}:${t.line}`,
+        where: specPath(options, t),
         message: `${t.tcId} có script nhưng không có trong bảng traceability của test-cases/.`,
       });
     }
