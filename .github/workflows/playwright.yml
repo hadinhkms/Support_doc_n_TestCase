@@ -1,0 +1,160 @@
+name: Playwright
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Nightly 18:00 UTC = 01:00 ICT - chạy full cross-browser.
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: 'Tag cần chạy (vd @smoke, @p0). Bỏ trống = chạy tất cả.'
+        required: false
+        default: ''
+
+defaults:
+  run:
+    working-directory: playwright
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # Kiểm tra tĩnh - không cần môi trường app, luôn chạy được.
+  quality:
+    name: Lint & typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      # Phát hiện sớm spec lỗi cú pháp / test bị trùng mà không cần chạy thật.
+      - run: npm run test:list
+
+  # Gate traceability: requirement <-> test case <-> script phải khớp nhau.
+  # Chạy được mà không cần môi trường app.
+  traceability:
+    name: Traceability gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+      - name: Install Playwright deps (cần cho --list)
+        working-directory: playwright
+        run: npm ci
+      - name: Kiểm tra ranh giới Hub <-> Project
+        run: node tools/boundary
+      - name: Coverage report
+        run: node tools/qa coverage
+      - name: Fail nếu traceability mục hoặc có gap nghiêm trọng
+        run: node tools/boundary --strict && node tools/qa drift --strict && node tools/qa gaps --strict
+
+  e2e:
+    name: E2E (shard ${{ matrix.shard }}/2)
+    needs: [quality, traceability]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+      - run: npm ci
+
+      - name: Cache Playwright browsers
+        id: browser-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-browsers-${{ runner.os }}-${{ hashFiles('playwright/package-lock.json') }}
+
+      - name: Install browsers
+        run: npx playwright install --with-deps ${{ github.event_name == 'schedule' && 'chromium firefox webkit' || 'chromium' }}
+
+      - name: Run tests
+        env:
+          CI: '1'
+          BASE_URL: ${{ vars.BASE_URL }}
+          API_BASE_URL: ${{ vars.API_BASE_URL }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          TEST_VIEWER_EMAIL: ${{ secrets.TEST_VIEWER_EMAIL }}
+          TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+        run: |
+          # PR -> chỉ smoke + P0 cho nhanh, trừ test đang quarantine (@wip)
+          # theo docs/flaky-test-policy.md. Nightly/manual -> đầy đủ, @wip vẫn chạy.
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            GREP="--grep @smoke|@p0 --grep-invert @wip"
+            PROJECTS="--project=chromium"
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            GREP=""
+            PROJECTS="--project=chromium --project=firefox --project=webkit"
+          else
+            GREP="${{ inputs.grep && format('--grep {0}', inputs.grep) || '' }}"
+            PROJECTS="--project=chromium"
+          fi
+          npx playwright test $PROJECTS $GREP \
+            --shard=${{ matrix.shard }}/2 \
+            --reporter=blob
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: playwright/blob-report
+          retention-days: 7
+
+  report:
+    name: Merge report
+    needs: e2e
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: playwright/all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - run: npx playwright merge-reports --reporter=html,github ./all-blob-reports
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-html-report
+          path: playwright/playwright-report
+          retention-days: 14

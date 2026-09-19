@@ -1,0 +1,222 @@
+'use strict';
+/**
+ * Đọc 3 nguồn dữ liệu và chuẩn hoá thành object để join:
+ *   1. requirements/*.md   -> REQ + AC + bảng rules
+ *   2. test-cases/*.md     -> TC, ánh xạ TC->AC, trạng thái automation
+ *   3. playwright --list   -> test thật sự tồn tại trong code
+ *
+ * Không dùng dependency ngoài: file này phải chạy được ở bất kỳ repo nào
+ * chỉ với Node, kể cả repo thuần JavaScript.
+ */
+
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+
+/** Doc file va chuan hoa CRLF + BOM. Repo Windows rat hay co CRLF. */
+function readText(file) {
+  return fs
+    .readFileSync(file, 'utf8')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n?/g, '\n');
+}
+
+const RE_AC_HEADING = /^###\s+(AC-\d{3})\s*:\s*(.+?)\s*$/;
+const RE_TC_HEADING = /^###\s+(TC-\d{3})\s*:\s*(.+?)\s*$/;
+const RE_TC_AC_TITLE = /^(TC-\d{3})\s*-\s*(AC-\d{3})\b/;
+
+/** Front-matter phẳng `key: value`. Đủ dùng và không cần thư viện YAML. */
+function parseFrontMatter(text) {
+  if (!text.startsWith('---')) return { data: {}, body: text };
+  const end = text.indexOf('\n---', 3);
+  if (end === -1) return { data: {}, body: text };
+  const raw = text.slice(3, end);
+  const body = text.slice(end + 4);
+  const data = {};
+  for (const line of raw.split('\n')) {
+    const m = line.match(/^([A-Za-z0-9_]+)\s*:\s*(.*)$/);
+    if (m) data[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+  }
+  return { data, body };
+}
+
+/** Tách các dòng dữ liệu của bảng markdown nằm dưới một heading. */
+function tableRowsUnder(lines, headingRe) {
+  const out = [];
+  let inSection = false;
+  for (const line of lines) {
+    if (/^#{2,3}\s/.test(line)) inSection = headingRe.test(line);
+    if (!inSection) continue;
+    if (!line.trim().startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((c) => c.trim());
+    if (cells.length < 2) continue;
+    if (cells.every((c) => /^:?-{2,}:?$/.test(c))) continue; // dòng phân cách
+    out.push(cells);
+  }
+  return out;
+}
+
+function listMarkdown(dir) {
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md')
+    .map((f) => path.join(dir, f));
+}
+
+/** requirements/*.md -> [{ id, title, status, acs: [...], rules: [...] }] */
+function loadRequirements(root) {
+  const reqs = [];
+  for (const file of listMarkdown(path.join(root, 'requirements'))) {
+    const text = readText(file);
+    const { data, body } = parseFrontMatter(text);
+    const rel = path.relative(root, file).replace(/\\/g, '/');
+    if (!data.id) {
+      reqs.push({ id: null, file: rel, missingFrontMatter: true, acs: [], rules: [] });
+      continue;
+    }
+    const lines = body.split('\n');
+    const acs = [];
+    lines.forEach((line, i) => {
+      const m = line.match(RE_AC_HEADING);
+      if (m) acs.push({ id: m[1], title: m[2], line: i + 1 });
+    });
+    const rules = tableRowsUnder(lines, /Rules and validation/i)
+      .filter((cells) => !/^Field\/rule$/i.test(cells[0]))
+      .map((cells) => ({
+        field: cells[0],
+        valid: cells[1] || '',
+        invalid: cells[2] || '',
+        boundary: cells[3] || '',
+        expected: cells[4] || '',
+        testCases: (cells[5] || '').match(/TC-\d{3}/g) || [],
+      }));
+    reqs.push({
+      id: data.id,
+      title: data.title || '',
+      status: data.status || 'Unknown',
+      version: data.version || '',
+      risk: data.risk || '',
+      owner: data.owner || '',
+      testCaseFile: data.test_cases || '',
+      file: rel,
+      acs,
+      rules,
+    });
+  }
+  return reqs;
+}
+
+/** test-cases/*.md -> [{ reqId, acId, tcId, automation, spec, priority }] + chi tiết TC */
+function loadTestCases(root) {
+  const links = [];
+  const details = [];
+  const noAutomationReasons = new Set();
+
+  for (const file of listMarkdown(path.join(root, 'test-cases'))) {
+    const base = path.basename(file).toLowerCase();
+    if (base === 'traceability.md') continue; // file sinh ra, không phải nguồn
+    const text = readText(file);
+    const rel = path.relative(root, file).replace(/\\/g, '/');
+    const lines = text.split('\n');
+
+    for (const cells of tableRowsUnder(lines, /^##\s+Traceability/i)) {
+      const [reqId, acId, tcId, automation, spec, priority] = cells;
+      if (!/^REQ-\d{3}$/.test(reqId || '')) continue;
+      links.push({
+        reqId,
+        acId,
+        tcId,
+        automation: (automation || '').trim(),
+        spec: (spec || '').replace(/`/g, '').trim(),
+        priority: (priority || '').trim(),
+        file: rel,
+      });
+    }
+
+    for (const cells of tableRowsUnder(lines, /Case không automation/i)) {
+      const m = (cells[0] || '').match(/TC-\d{3}/);
+      if (m && (cells[1] || '').trim()) noAutomationReasons.add(m[0]);
+    }
+
+    lines.forEach((line, i) => {
+      const m = line.match(RE_TC_HEADING);
+      if (m) details.push({ tcId: m[1], title: m[2], file: rel, line: i + 1 });
+    });
+  }
+  return { links, details, noAutomationReasons };
+}
+
+/**
+ * Chạy `playwright test --list --reporter=json` và rút ra test thật.
+ * REQ lấy từ tag (`test.describe(..., { tag: '@REQ-001' })`),
+ * TC/AC lấy từ title (`TC-001 - AC-001 ...`, đã được ESLint ép).
+ */
+function loadAutomatedTests(root, options = {}) {
+  // `.` = gốc repo, cho repo để playwright.config ngay ở root.
+  const rel = options.projectDir || 'playwright';
+  const project = options.project || 'chromium';
+  const projectDir = path.resolve(root, rel);
+  if (!fs.existsSync(projectDir)) {
+    return {
+      tests: [],
+      error:
+        `Không thấy thư mục Playwright "${rel}" — khai "projectDir" trong qa.config.json ` +
+        'hoặc chạy lại với --project-dir=<đường dẫn>',
+    };
+  }
+
+  // Windows: npx là .cmd, spawn thẳng sẽ EINVAL -> phải qua shell.
+  const useShell = process.platform === 'win32';
+  const args = ['playwright', 'test', '--list', '--reporter=json', `--project=${project}`];
+  // shell: true nối args thành MỘT chuỗi, nên giá trị có khoảng trắng
+  // (vd project tên "Desktop Chrome") bị tách thành hai tham số. Phải tự bọc ngoặc kép.
+  const argv = useShell ? args.map((a) => (/\s/.test(a) ? `"${a}"` : a)) : args;
+
+  let raw;
+  try {
+    raw = execFileSync('npx', argv, {
+      cwd: projectDir,
+      encoding: 'utf8',
+      maxBuffer: 32 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: useShell,
+    });
+  } catch (err) {
+    return {
+      tests: [],
+      error:
+        `Không chạy được playwright --list trong "${rel}": ${String(err.message).split(/\r?\n/)[0]} ` +
+        `(project đang dùng: "${project}" — đổi "project" trong qa.config.json nếu tên khác)`,
+    };
+  }
+
+  let json;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    return { tests: [], error: 'Output của playwright --list không phải JSON hợp lệ' };
+  }
+
+  const tests = [];
+  const walk = (suite) => {
+    for (const spec of suite.specs || []) {
+      const m = spec.title.match(RE_TC_AC_TITLE);
+      const tags = spec.tags || [];
+      tests.push({
+        title: spec.title,
+        tcId: m ? m[1] : null,
+        acId: m ? m[2] : null,
+        reqId: (tags.find((t) => /^REQ-\d{3}$/.test(t)) || null),
+        tags,
+        file: (spec.file || '').replace(/\\/g, '/'),
+        line: spec.line || 0,
+      });
+    }
+    for (const child of suite.suites || []) walk(child);
+  };
+  for (const suite of json.suites || []) walk(suite);
+  return { tests, error: null };
+}
+
+module.exports = { loadRequirements, loadTestCases, loadAutomatedTests, parseFrontMatter };

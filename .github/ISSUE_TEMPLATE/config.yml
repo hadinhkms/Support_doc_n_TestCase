@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Requirement chưa rõ / thiếu thông tin
+    url: https://github.com/
+    about: Đừng mở bug. Ghi vào mục "Open questions" của file requirement trong requirements/ và gắn owner.

@@ -1,0 +1,81 @@
+name: Bug report
+description: Báo lỗi phát hiện khi test thủ công hoặc automation
+labels: [bug, needs-triage]
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Tóm tắt
+      description: Một câu, mô tả hành vi sai - không phải mô tả thao tác.
+      placeholder: 'Đăng nhập sai mật khẩu vẫn tạo session và vào được /dashboard'
+    validations: { required: true }
+
+  - type: input
+    id: traceability
+    attributes:
+      label: Traceability
+      description: Mã REQ / AC / TC liên quan. Nếu chưa có, ghi "chưa có" và nêu gap.
+      placeholder: 'REQ-001 / AC-002 / TC-002'
+    validations: { required: true }
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - S1 - Chặn sử dụng, mất dữ liệu hoặc lỗ hổng bảo mật
+        - S2 - Chức năng chính sai, chưa có workaround
+        - S3 - Luồng phụ hoặc có workaround
+        - S4 - Thẩm mỹ, tác động thấp
+    validations: { required: true }
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Các bước tái hiện
+      value: |
+        1.
+        2.
+        3.
+    validations: { required: true }
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Kết quả mong đợi và kết quả thực tế
+      value: |
+        **Mong đợi:**
+
+        **Thực tế:**
+    validations: { required: true }
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Môi trường
+      value: |
+        - URL / môi trường:
+        - Browser + phiên bản:
+        - Tài khoản / role:
+        - Build / commit:
+    validations: { required: true }
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Trace, screenshot, video, log. Với lỗi từ automation, đính kèm trace.zip.
+    validations: { required: true }
+
+  - type: input
+    id: reproducibility
+    attributes:
+      label: Tần suất tái hiện
+      placeholder: '5/5 lần'
+    validations: { required: true }
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Ghi chú thêm
+      description: Phạm vi ảnh hưởng, dữ liệu liên quan, nghi ngờ nguyên nhân.

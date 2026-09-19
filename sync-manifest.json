@@ -1,0 +1,139 @@
+{
+  "$schema": "./tools/boundary/manifest.schema.md",
+  "description": "Ranh giới Hub <-> Project. Hub build dashboard + prompt; mỗi project giữ business riêng.",
+  "version": "1.0.0",
+  "categories": {
+    "ship": "Hub sở hữu. Ghi đè mỗi lần sync. Project KHÔNG được sửa tại chỗ - muốn đổi thì đổi ở Hub.",
+    "seed": "Hub cấp bản khởi tạo. Chỉ copy khi project chưa có. Không bao giờ ghi đè. Project tự do sửa.",
+    "own": "Project sở hữu hoàn toàn. Hub không bao giờ đụng vào. Đây là business."
+  },
+  "ship": [
+    {
+      "path": "templates",
+      "reason": "Mẫu requirement/test case/automation plan - chuẩn chung"
+    },
+    {
+      "path": "docs",
+      "reason": "Chuẩn QA: test design, automation strategy, selector, test data, flaky policy"
+    },
+    {
+      "path": "tools/qa",
+      "reason": "Traceability analyzer - zero dependency, chạy được ở mọi repo"
+    },
+    {
+      "path": "tools/boundary",
+      "reason": "Tool kiểm tra chính ranh giới này"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE",
+      "reason": "Bug + flaky template dùng chung"
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "reason": "Checklist chất lượng dùng chung"
+    },
+    {
+      "path": "playwright/eslint.config.mjs",
+      "reason": "Enforce quy ước test - phải giống nhau mọi project"
+    },
+    {
+      "path": ".github/copilot-instructions.md",
+      "reason": "Rule cho AI agent - phải giống nhau mọi project"
+    },
+    {
+      "path": "CLAUDE.md",
+      "reason": "Entry point cho Claude Code - trỏ sang copilot-instructions, phải giống nhau mọi project"
+    }
+  ],
+  "seed": [
+    {
+      "path": "playwright/playwright.config.ts",
+      "reason": "Project đổi projects/baseURL/timeout theo môi trường của mình"
+    },
+    {
+      "path": "playwright/tsconfig.json",
+      "reason": "Project có thể thêm path alias riêng"
+    },
+    {
+      "path": "playwright/package.json",
+      "reason": "Project thêm script và dependency riêng"
+    },
+    {
+      "path": "qa.config.json",
+      "reason": "Layout Playwright của tools/qa - mỗi project để config và đặt tên project khác nhau"
+    },
+    {
+      "path": "playwright/.env.example",
+      "reason": "Mỗi project có bộ biến môi trường khác nhau"
+    },
+    {
+      "path": "playwright/tests/support",
+      "reason": "Helper đọc env - project có thể thêm biến bắt buộc riêng"
+    },
+    {
+      "path": "playwright/tests/fixtures",
+      "reason": "Phải sửa để khai báo page object của chính project"
+    },
+    {
+      "path": "playwright/tests/api",
+      "reason": "Endpoint seed/cleanup khác nhau theo backend"
+    },
+    {
+      "path": "playwright/tests/auth.setup.ts",
+      "reason": "Luồng đăng nhập khác nhau theo sản phẩm"
+    },
+    {
+      "path": ".github/workflows/playwright.yml",
+      "reason": "Project đổi trigger/secret/shard theo nhu cầu"
+    },
+    {
+      "path": ".gitignore",
+      "reason": "Project có thể thêm mục riêng"
+    },
+    {
+      "path": "README.md",
+      "reason": "Mô tả project cụ thể"
+    },
+    {
+      "path": "playwright/README.md",
+      "reason": "Project bổ sung hướng dẫn riêng"
+    }
+  ],
+  "own": [
+    {
+      "path": "requirements",
+      "reason": "BUSINESS. Requirement của riêng project này.",
+      "hubModule": "requirements"
+    },
+    {
+      "path": "test-cases",
+      "reason": "BUSINESS. Test case và traceability của riêng project này.",
+      "hubModule": "test-cases"
+    },
+    {
+      "path": "playwright/tests/pages",
+      "reason": "BUSINESS. Page object mô tả UI của sản phẩm cụ thể.",
+      "hubModule": "pages"
+    },
+    {
+      "path": "playwright/tests/data",
+      "reason": "BUSINESS. Test data và hằng số nghiệp vụ.",
+      "hubModule": "data"
+    },
+    {
+      "path": "playwright/tests/auth",
+      "reason": "BUSINESS. Spec theo domain.",
+      "hubModule": "tests"
+    },
+    {
+      "path": "playwright/tests/a11y",
+      "reason": "BUSINESS. Spec theo domain.",
+      "hubModule": "tests"
+    }
+  ],
+  "notes": [
+    "Nhóm `own` phải khớp với FORBIDDEN_SYNC_MODULES trong scripts/sync-satellites.js của Hub.",
+    "Lý do có nhóm `seed`: tests/fixtures import từ tests/pages. Ship fixtures mà không ship pages sẽ gãy import, nên fixtures chỉ là bản khởi tạo.",
+    "Thêm thư mục mới thì phải phân loại vào đúng một nhóm, nếu không `npm run qa:boundary` sẽ báo unclassified."
+  ]
+}

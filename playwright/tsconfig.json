@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@fixtures/*": ["./tests/fixtures/*"],
+      "@pages/*": ["./tests/pages/*"],
+      "@api/*": ["./tests/api/*"],
+      "@data/*": ["./tests/data/*"]
+    },
+    "noEmit": true
+  },
+  "include": ["tests/**/*.ts", "playwright.config.ts", "eslint.config.mjs"],
+  "exclude": ["node_modules", "playwright-report", "test-results"]
+}

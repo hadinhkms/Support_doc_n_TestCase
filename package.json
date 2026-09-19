@@ -1,0 +1,18 @@
+{
+  "name": "qa-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QA traceability standard: requirement -> AC -> test case -> automation",
+  "scripts": {
+    "qa:coverage": "node tools/qa coverage",
+    "qa:gaps": "node tools/qa gaps",
+    "qa:drift": "node tools/qa drift",
+    "qa:impact": "node tools/qa impact",
+    "qa:check": "node tools/boundary --strict && node tools/qa drift --strict && node tools/qa gaps --strict",
+    "qa:json": "node tools/qa coverage --json",
+    "qa:boundary": "node tools/boundary"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

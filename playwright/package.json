@@ -1,0 +1,32 @@
+{
+  "name": "qa-playwright-tests",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --project=chromium",
+    "test:all": "playwright test",
+    "test:smoke": "playwright test --project=chromium --grep @smoke",
+    "test:p0": "playwright test --project=chromium --grep @p0",
+    "test:regression": "playwright test --project=chromium --grep-invert @wip",
+    "test:a11y": "playwright test --project=chromium --grep @a11y",
+    "test:cross": "playwright test --project=firefox --project=webkit --project=mobile-chrome",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:list": "playwright test --list",
+    "report": "playwright show-report",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run test:list"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^20.19.43",
+    "dotenv": "^18.0.1",
+    "eslint": "^9.39.5",
+    "eslint-plugin-playwright": "^2.12.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.70.0"
+  }
+}
