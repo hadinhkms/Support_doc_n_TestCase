@@ -1,0 +1,253 @@
+{
+  "$comment": "NGUỒN SỰ THẬT cho các quyết định đang chờ xác nhận. Dashboard đọc file này để render và ghi ngược phần `answer`. DECISIONS.md được SINH RA từ file này bằng `npm run decisions:render` - đừng sửa tay file .md. Mọi decision có cùng bộ trường nên dashboard render generic được.",
+  "version": 1,
+  "createdAt": "2026-09-20",
+  "source": "Audit đọc trực tiếp 3 repo: D:\\_Script_automation, D:\\_CarThings\\Automation_Carthings, D:\\_Automation-Project",
+  "severityOrder": ["blocking", "urgent", "soon"],
+  "decisions": [
+    {
+      "id": "D-01",
+      "title": "Giữ qa-trace của Hub hay tools/qa của repo chuẩn làm analyzer duy nhất?",
+      "severity": "blocking",
+      "blocks": "Lần sync đầu tiên xuống 2 satellite",
+      "repos": ["D:\\_Automation-Project", "D:\\_CarThings\\Automation_Carthings"],
+      "context": "Hai tool cùng làm một việc (REQ -> AC -> TC -> spec) và đọc CÙNG một quy ước: requirements/REQ-xxx-<slug>.md, test-cases/ với TC-zzz - AC-yyy, tag @REQ-xxx. Module `scripts` của Hub chỉ loại trừ sync-satellites.js, sync-from-core.js, pre-sync-drift.js và hai file sync-manifest. qa-trace.js KHÔNG nằm trong danh sách loại trừ, nên lần sync thành công đầu tiên sẽ đẩy nó xuống cả CarThings lẫn Vieclam24h dù chưa ai quyết định. CarThings hiện đã có tools/qa và 5 script qa:* trỏ vào nó.",
+      "table": {
+        "columns": ["Tiêu chí", "qa-trace (Hub)", "tools/qa (repo chuẩn)"],
+        "rows": [
+          ["Quy mô", "452 + 178 dòng, có 378 dòng unit test", "1.066 dòng, không có test nào"],
+          ["Cách đọc spec", "Phân tích tĩnh bằng regex", "Chạy npx playwright test --list (~3s, cần node_modules)"],
+          ["Chỉ soi phần vừa đổi", "Có, --since=origin/main", "Không"],
+          ["Bắt test không có assertion", "Có", "Không"],
+          ["Bắt định danh sai quy ước (TC-0001, tc-003)", "Có", "Không"],
+          ["Lệnh impact REQ-xxx", "Không", "Có"],
+          ["Bắt khai automation nhưng không có script", "Không", "Có"],
+          ["Kiểm tra bảng Rules and validation", "Không", "Có"],
+          ["Đã nằm trong kênh sync xuống satellite", "Có", "Không"]
+        ]
+      },
+      "evidence": [
+        { "claim": "qa-trace không bị loại trừ khỏi sync nên sẽ tự xuống satellite", "source": "D:\\_Automation-Project\\scripts\\lib\\sync-manifest.js - excludes của module scripts" },
+        { "claim": "CarThings đang dùng tools/qa cho 5 script qa:*", "source": "D:\\_CarThings\\Automation_Carthings\\package.json" },
+        { "claim": "tools/qa không có unit test nào", "source": "D:\\_Script_automation\\tools\\qa - chỉ có index.js, README.md, lib/" }
+      ],
+      "options": [
+        { "id": "keep-qa-trace", "label": "Giữ qa-trace, port tính năng thiếu, gỡ tools/qa khỏi CarThings", "consequence": "tools/qa ở lại repo chuẩn như bản tham chiếu. Phải port 4 loại finding + lệnh impact sang qaTrace.js kèm unit test." },
+        { "id": "keep-tools-qa", "label": "Giữ tools/qa, loại qa-trace khỏi sync", "consequence": "Mất --since, mất phát hiện test không assertion, và phải viết unit test từ đầu cho tools/qa." },
+        { "id": "keep-both", "label": "Giữ cả hai, phân vai rõ ràng", "consequence": "Hai tool, hai định nghĩa qa:check. Phải ghi rõ tool nào phụ trách phần nào, nếu không sẽ lệch nhau." }
+      ],
+      "recommended": "keep-qa-trace",
+      "recommendationReason": "qa-trace có unit test, không phụ thuộc Playwright, có --since, và đã nằm sẵn trong kênh sync.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-02",
+      "title": "Ai sở hữu CLAUDE.md, AGENTS.md, GEMINI.md, QA_AI_RULES.md?",
+      "severity": "blocking",
+      "blocks": "Dọn 20 file at-risk ở Hub, và việc viết lại 13 rule QA",
+      "repos": ["D:\\_Automation-Project", "D:\\_CarThings\\Automation_Carthings", "D:\\_Script_automation"],
+      "context": "Bốn file này đang bị ba nơi cùng nhận: nằm trong ROOT_FILES_TO_SYNC của Hub (Hub ghi đè), nằm nhóm ship trong sync-manifest.json của repo chuẩn, và chứa 45 dòng nội dung riêng của satellite. 45 dòng đó đang nằm trong danh sách at-risk của pre-sync-drift. Lần sync thành công đầu tiên sẽ xoá sạch chúng.",
+      "evidence": [
+        { "claim": "45 dòng riêng của CarThings: CLAUDE.md 17, GEMINI.md 11, AGENTS.md 10, QA_AI_RULES.md 7", "source": "node scripts/pre-sync-drift.js tại Hub" },
+        { "claim": "Bốn file nằm trong ROOT_FILES_TO_SYNC", "source": "D:\\_Automation-Project\\scripts\\lib\\sync-manifest.js" }
+      ],
+      "options": [
+        { "id": "hub-owns", "label": "Hub sở hữu hoàn toàn, 45 dòng riêng chuyển sang file không được sync", "consequence": "Cần chọn nơi chứa phần riêng (ví dụ .ai/local/ hoặc core/local/) trước khi dọn drift." },
+        { "id": "project-owns", "label": "Bỏ 4 file khỏi ROOT_FILES_TO_SYNC, mỗi project tự giữ", "consequence": "Rule AI sẽ lệch nhau giữa các project theo thời gian." }
+      ],
+      "recommended": "hub-owns",
+      "recommendationReason": "Giữ được rule chung nhất quán, phần riêng vẫn an toàn nếu để ở vùng không sync.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-03",
+      "title": "8 mục ship mà Hub không hề có: hạ seed hay đưa framework lên Hub?",
+      "severity": "blocking",
+      "blocks": "Tính đúng đắn của sync-manifest.json",
+      "repos": ["D:\\_Script_automation", "D:\\_Automation-Project"],
+      "context": "sync-manifest.json khai 9 mục ship, nhưng Hub chỉ có tools/visual_compare.html. Tám mục sau không tồn tại ở Hub nên không bao giờ được ship: templates, docs, tools/qa, tools/boundary, .github/ISSUE_TEMPLATE, .github/pull_request_template.md, playwright/eslint.config.mjs, .github/copilot-instructions.md. Manifest đang mô tả một thực tế không có.",
+      "evidence": [
+        { "claim": "Hub tools/ chỉ có visual_compare.html; không có templates/ hay qa.config.json", "source": "ls D:\\_Automation-Project\\tools" },
+        { "claim": "MODULES_TO_SYNC = dashboard, core, bin, scripts, ai, tools", "source": "D:\\_Automation-Project\\scripts\\lib\\sync-manifest.js" }
+      ],
+      "options": [
+        { "id": "demote-seed", "label": "Hạ 8 mục xuống seed ngay, đưa lên Hub sau như bước riêng", "consequence": "Manifest nói đúng sự thật ngay hôm nay. Việc đưa lên Hub phụ thuộc D-01, D-02 và việc dọn drift." },
+        { "id": "move-to-hub", "label": "Đưa framework lên Hub trước, giữ nguyên nhóm ship", "consequence": "Phải làm sau khi dọn xong drift và thêm SEED mode, nếu không sync sẽ đè cấu hình riêng của satellite." }
+      ],
+      "recommended": "demote-seed",
+      "recommendationReason": "Rẻ, làm được ngay, và không phụ thuộc quyết định nào khác.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-04",
+      "title": "TC-013: automation, ghi No kèm lý do, hay hạ xuống P2?",
+      "severity": "urgent",
+      "blocks": "CI của repo chuẩn đang đỏ trên main",
+      "repos": ["D:\\_Script_automation"],
+      "context": "npm run qa:check exit 1, finding duy nhất là p0-p1-con-dang-candidate: TC-013 là P1 nhưng còn Candidate. Vì job e2e khai needs [quality, traceability] nên job e2e CHƯA TỪNG CHẠY kể từ khi workflow được thêm. Lối tắt đáng chú ý: rule chỉ bắn vào dòng P0/P1 còn Candidate. TC-009 là P1 với Automation No và không bị bắt. Nên ghi TC-013 thành No kèm lý do sẽ xanh gate ngay mà không phải hạ một P1 thật xuống P2.",
+      "evidence": [
+        { "claim": "qa:check exit 1, một finding duy nhất là TC-013", "source": "node tools/qa gaps --strict tại D:\\_Script_automation" },
+        { "claim": "job e2e phụ thuộc job traceability", "source": ".github/workflows/playwright.yml - needs: [quality, traceability]" },
+        { "claim": "TC-009 là P1 Automation No và không bị flag", "source": "test-cases/REQ-001-sign-in.md" }
+      ],
+      "options": [
+        { "id": "mark-no", "label": "Ghi No kèm lý do ở mục Case không automation", "consequence": "Xanh gate ngay, giữ priority trung thực, vẫn ghi lại quyết định." },
+        { "id": "automate", "label": "Viết script automation cho TC-013", "consequence": "Tốt nhất về chất lượng nhưng CI còn đỏ cho tới khi script xong." },
+        { "id": "demote-p2", "label": "Hạ xuống P2 kèm giải thích", "consequence": "Xanh gate nhưng làm sai lệch mức ưu tiên thật của case." }
+      ],
+      "recommended": "mark-no",
+      "recommendationReason": "Rẻ nhất, xanh gate ngay, và không phải nói dối về priority.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-05",
+      "title": "URL môi trường test của Instructor Portal là gì?",
+      "severity": "blocking",
+      "blocks": "6 script TC-001..TC-006 của REQ-001",
+      "repos": ["D:\\_CarThings\\Automation_Carthings"],
+      "context": "pages/InstructorPortalPage.js:67 hard-code https://instructor-dev.carthings.vn/login. Đây là suy luận từ code, chưa ai xác nhận đó là môi trường QA chính thức. Sai đích thì cả sáu test assert vào nhầm hệ thống, rồi gate sẽ cưỡng chế chính cái sai đó.",
+      "evidence": [
+        { "claim": "URL nằm cứng trong page object", "source": "D:\\_CarThings\\Automation_Carthings\\pages\\InstructorPortalPage.js:67" },
+        { "claim": "Requirement ghi rõ đây là giả định chưa xác nhận", "source": "requirements/REQ-001-entry-points.md - Q-002 và bảng Evidence" }
+      ],
+      "options": [
+        { "id": "confirm-dev", "label": "Đúng là instructor-dev.carthings.vn", "consequence": "Đưa URL ra biến môi trường rồi viết test." },
+        { "id": "other-url", "label": "URL khác (ghi vào ô ghi chú)", "consequence": "Phải sửa page object trước khi viết test mới." }
+      ],
+      "recommended": null,
+      "recommendationReason": "Không đoán thay. Cần người biết hạ tầng xác nhận.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "URL đúng:            | Cần VPN/tài khoản riêng không:", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-06",
+      "title": "Owner và status của REQ-001?",
+      "severity": "blocking",
+      "blocks": "Script đầu tiên gắn tag @REQ-001",
+      "repos": ["D:\\_CarThings\\Automation_Carthings"],
+      "context": "requirements/REQ-001-entry-points.md có owner: chưa gán và status: Draft. Rule requirement-draft-nhung-da-co-script bắn MAJOR ngay khi có script gắn @REQ-001. Nếu lật status SAU khi viết script, gate sẽ đỏ đúng lúc vừa làm xong việc. Phải lật trước.",
+      "evidence": [
+        { "claim": "Front matter đang là owner: chưa gán, status: Draft", "source": "requirements/REQ-001-entry-points.md" },
+        { "claim": "Rule requirement-draft-nhung-da-co-script là mức major", "source": "tools/qa/README.md - bảng finding của drift" }
+      ],
+      "options": [
+        { "id": "ready", "label": "Chuyển sang Ready for Test và gán owner", "consequence": "Viết script được ngay sau đó." },
+        { "id": "keep-draft", "label": "Giữ Draft", "consequence": "Chưa được viết script gắn @REQ-001, nếu không gate sẽ đỏ." }
+      ],
+      "recommended": "ready",
+      "recommendationReason": "PRD baseline đã chốt (§25 ghi rõ không còn open question), nên requirement không có lý do ở Draft.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "Owner REQ-001:", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-07",
+      "title": "Nhãn UI trong PRD ghi là đề xuất - có bắt buộc đúng nguyên văn không?",
+      "severity": "blocking",
+      "blocks": "Cách viết assertion cho TC-001, TC-002, TC-003",
+      "repos": ["D:\\_CarThings\\Automation_Carthings"],
+      "context": "PRD §5 (Confluence 8880213 v13) đặt tên cột là 'Label UI đề xuất' cho ba nhãn: Đăng nhập bằng Carthings, Tham gia Company bằng mã mời, Đăng nhập Instructor Portal. Nếu nhãn là bắt buộc, test assert nguyên văn chuỗi. Nếu chỉ là gợi ý, test phải assert theo vai trò và ngữ nghĩa. Hai cách cho ra hai script khác hẳn nhau, và assert nguyên văn một nhãn chỉ là gợi ý sẽ thành test giòn.",
+      "evidence": [
+        { "claim": "Cột nhãn trong PRD ghi là đề xuất", "source": "Confluence page 8880213 v13, §5 bảng Entry Point" }
+      ],
+      "options": [
+        { "id": "exact", "label": "Nhãn bắt buộc đúng nguyên văn", "consequence": "Test assert chuỗi. Đổi chữ trên UI là test đỏ, đúng ý đồ." },
+        { "id": "semantic", "label": "Nhãn chỉ là gợi ý, test theo vai trò và ngữ nghĩa", "consequence": "Test bền hơn nhưng không bắt được việc đổi nhãn gây hiểu nhầm." }
+      ],
+      "recommended": null,
+      "recommendationReason": "Phụ thuộc ý định của PO, không suy ra được từ tài liệu.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-08",
+      "title": "10 spec company/admin: viết REQ hay ghi quyết định để ngoài gate?",
+      "severity": "blocking",
+      "blocks": "Bật CI gate ở CarThings",
+      "repos": ["D:\\_CarThings\\Automation_Carthings"],
+      "context": "CarThings có 10 test e2e thuộc admin./company./carthings.vn. Không test nào mang mã TC-xxx nên drift báo 11 MAJOR test-khong-co-ma-tc. Bật gate mà chưa xử lý là gate đỏ vĩnh viễn ngay ngày đầu, và một gate luôn đỏ thì sau hai tuần cả đội bỏ qua nó.",
+      "evidence": [
+        { "claim": "11 finding test-khong-co-ma-tc", "source": "node tools/qa drift tại CarThings" },
+        { "claim": "Các spec thuộc luồng company/admin, không thuộc phạm vi PRD Instructor Portal", "source": "tests/e2e/*.spec.js" }
+      ],
+      "options": [
+        { "id": "out-of-scope", "label": "Ghi quyết định thành văn bản để 10 spec ngoài phạm vi gate đợt này, kèm hạn rà lại", "consequence": "Gate bật được ngay cho phần Instructor Portal. Cần cơ chế scope (ignoreSpecs) trong qa.config.json." },
+        { "id": "write-reqs", "label": "Viết REQ cho luồng company/admin trước khi bật gate", "consequence": "Đầy đủ hơn nhưng tốn vài ngày đọc ngược từ script." }
+      ],
+      "recommended": "out-of-scope",
+      "recommendationReason": "Có giá trị ngay mà không tạo ra một núi việc dọn dẹp chặn đường.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "Hạn rà lại:", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-09",
+      "title": "Git identity ở hai satellite đang là github-actions[bot] - có sửa không?",
+      "severity": "soon",
+      "blocks": "Truy vết tác giả của mọi commit sau này",
+      "repos": ["D:\\_CarThings\\Automation_Carthings", "D:\\_SieuVietGroup"],
+      "context": "git config --local --get user.name ở cả hai repo đều trả về github-actions[bot]. 10/10 commit gần nhất của CarThings mang tên bot, kể cả bd65bd0 là commit cài framework QA. Hệ quả: mất dấu vết ai làm gì và git blame vô dụng.",
+      "evidence": [
+        { "claim": "user.name là github-actions[bot] ở cả hai satellite", "source": "git config --local --get user.name" },
+        { "claim": "10/10 commit gần nhất của CarThings mang tên bot", "source": "git log --format=%an -10" }
+      ],
+      "options": [
+        { "id": "fix", "label": "Đổi về người thật ở cả hai repo", "consequence": "Commit sau này truy vết được. Commit cũ giữ nguyên." },
+        { "id": "keep", "label": "Cố ý để bot", "consequence": "Cần ghi rõ lý do, nếu không người sau sẽ tưởng là lỗi cấu hình." }
+      ],
+      "recommended": "fix",
+      "recommendationReason": "Chi phí gần bằng 0, lợi ích là truy vết được trách nhiệm.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "Tên + email dùng:", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-10",
+      "title": "Có bao giờ sync .github/workflows xuống satellite không?",
+      "severity": "soon",
+      "blocks": "Guard ở Hub",
+      "repos": ["D:\\_Automation-Project"],
+      "context": "CarThings đang có 2 workflow riêng (playwright.yml, discord-run-playwright.yml). Thêm .github/workflows vào MODULES_TO_SYNC sẽ ghi đè CI riêng của project. Nguy hơn: sync-satellites.yml mà lọt xuống một satellite sẽ cho satellite đó quyền ghi đè vào satellite còn lại.",
+      "evidence": [
+        { "claim": "CarThings có 2 workflow riêng", "source": "ls D:\\_CarThings\\Automation_Carthings\\.github\\workflows" },
+        { "claim": "Hub có sync-satellites.yml chạy sync tự động", "source": "D:\\_Automation-Project\\.github\\workflows\\sync-satellites.yml" }
+      ],
+      "options": [
+        { "id": "never", "label": "Không bao giờ sync, thêm guard chặn hẳn", "consequence": "Giống cách assertNoForbiddenModules đang chặn requirements/test-cases." },
+        { "id": "selective", "label": "Sync có chọn lọc từng file", "consequence": "Phải ghi rõ file nào, và guard vẫn phải chặn sync-satellites.yml." }
+      ],
+      "recommended": "never",
+      "recommendationReason": "CI là thứ mỗi project tự quyết theo môi trường và secret của mình.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    },
+    {
+      "id": "D-11",
+      "title": "Vieclam24h có nằm trong đợt triển khai này không?",
+      "severity": "soon",
+      "blocks": "Phạm vi triển khai và việc viết lại rule AI",
+      "repos": ["D:\\_SieuVietGroup"],
+      "context": "D:\\_SieuVietGroup là satellite thứ hai trong SATELLITES của Hub. Nó chưa có requirements/, test-cases/, qa.config.json hay script qa:* nào, nhưng nhận mọi thứ trong MODULES_TO_SYNC và ROOT_FILES_TO_SYNC. Nếu viết lại 13 rule QA rồi sync, Vieclam24h sẽ nhận một bộ rule mô tả framework chưa hề được cài ở đó.",
+      "evidence": [
+        { "claim": "Vieclam24h chưa có gì của framework", "source": "ls D:\\_SieuVietGroup - không có requirements/, test-cases/, qa.config.json" },
+        { "claim": "Nó vẫn nằm trong SATELLITES nên vẫn nhận sync", "source": "D:\\_Automation-Project\\scripts\\lib\\sync-manifest.js" }
+      ],
+      "options": [
+        { "id": "carthings-first", "label": "Chỉ CarThings đợt này, Vieclam24h sau", "consequence": "Rule AI phải viết sao cho không gây hiểu nhầm ở repo chưa cài." },
+        { "id": "both", "label": "Cả hai cùng lúc", "consequence": "Phải audit Vieclam24h trước, tốn thêm thời gian." }
+      ],
+      "recommended": "carthings-first",
+      "recommendationReason": "CarThings đã có PRD, có môi trường test và đã cài sẵn. Vieclam24h chưa audit lần nào.",
+      "status": "pending",
+      "answer": { "optionId": null, "note": "", "confirmedBy": "", "confirmedAt": "" }
+    }
+  ],
+  "orderingNotes": [
+    "D-04 xanh lại CI của repo chuẩn - việc rẻ nhất, làm được ngay",
+    "D-02 phải xong TRƯỚC khi dọn 20 file at-risk ở Hub, nếu không sync đầu tiên xoá mất 45 dòng riêng của satellite",
+    "D-01 phải xong TRƯỚC lần sync đầu tiên, nếu không qa-trace.js tự xuống cả hai satellite",
+    "D-06 phải xong TRƯỚC khi viết script @REQ-001 đầu tiên, nếu không gate đỏ ngay khi làm xong",
+    "D-05 và D-07 phải xong TRƯỚC khi viết TC-001..TC-006"
+  ]
+}

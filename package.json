@@ -10,7 +10,10 @@
     "qa:impact": "node tools/qa impact",
     "qa:check": "node tools/boundary --strict && node tools/qa drift --strict && node tools/qa gaps --strict",
     "qa:json": "node tools/qa coverage --json",
-    "qa:boundary": "node tools/boundary"
+    "qa:boundary": "node tools/boundary",
+    "decisions": "node tools/decisions",
+    "decisions:render": "node tools/decisions render",
+    "decisions:json": "node tools/decisions --json"
   },
   "engines": {
     "node": ">=18"

@@ -25,6 +25,10 @@
       "reason": "Tool kiểm tra chính ranh giới này"
     },
     {
+      "path": "tools/decisions",
+      "reason": "Render quyết định chờ xác nhận - zero dependency, dùng chung được cho mọi project"
+    },
+    {
       "path": ".github/ISSUE_TEMPLATE",
       "reason": "Bug + flaky template dùng chung"
     },
@@ -100,6 +104,14 @@
     }
   ],
   "own": [
+    {
+      "path": "DECISIONS.md",
+      "reason": "Sinh ra từ decisions.json - nhật ký quyết định của riêng repo này, Hub không ship"
+    },
+    {
+      "path": "decisions.json",
+      "reason": "Nguồn sự thật cho quyết định chờ xác nhận - dashboard ghi ngược vào đây, mỗi project một bộ khác nhau"
+    },
     {
       "path": "requirements",
       "reason": "BUSINESS. Requirement của riêng project này.",
