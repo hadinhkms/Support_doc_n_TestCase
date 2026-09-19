@@ -22,6 +22,10 @@ const DEFAULTS = {
   projectDir: 'playwright',
   // Tên project trong playwright.config dùng để liệt kê test.
   project: 'chromium',
+  // Thư mục tài liệu. Repo để requirement ở chỗ khác mà không khai được thì tool
+  // chạy một gate RỖNG màu xanh — nguy hiểm hơn hẳn việc báo lỗi.
+  requirementsDir: 'requirements',
+  testCasesDir: 'test-cases',
   // Tiền tố đường dẫn spec nằm NGOÀI phạm vi gate, tính từ gốc repo.
   // Dùng khi một repo có sẵn spec cũ chưa kịp gắn mã TC: thay vì để gate đỏ
   // vĩnh viễn rồi cả đội quen bỏ qua, khoanh vùng chúng lại một cách có ghi chép.
@@ -39,7 +43,9 @@ const ARRAY_KEYS = new Set(['ignoreSpecs']);
  */
 function loadConfig(root) {
   const file = path.join(root, CONFIG_FILE);
-  if (!fs.existsSync(file)) return { ...DEFAULTS, source: null };
+  // Sao chép mảng: trả thẳng DEFAULTS.ignoreSpecs khiến mọi lần gọi dùng CHUNG một
+  // mảng, nên một tiến trình sống lâu (dashboard) lỡ mutate là đầu độc repo khác.
+  if (!fs.existsSync(file)) return { ...DEFAULTS, ignoreSpecs: [...DEFAULTS.ignoreSpecs], source: null };
 
   let raw;
   try {
@@ -51,7 +57,7 @@ function loadConfig(root) {
     throw new Error(`${CONFIG_FILE} phải là một object JSON`);
   }
 
-  const config = { ...DEFAULTS, source: CONFIG_FILE };
+  const config = { ...DEFAULTS, ignoreSpecs: [...DEFAULTS.ignoreSpecs], source: CONFIG_FILE };
   for (const [key, value] of Object.entries(raw)) {
     if (key.startsWith('$') || key.startsWith('_')) continue; // chỗ để ghi chú
     if (!KNOWN_KEYS.has(key)) {

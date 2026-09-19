@@ -38,8 +38,8 @@ function emptySpecFinding(testCases, automated, options) {
  */
 function collect(root, options) {
   const loadAutomated = (options && options.loadAutomated) || loadAutomatedTests;
-  const requirements = loadRequirements(root);
-  const testCases = loadTestCases(root);
+  const requirements = loadRequirements(root, options);
+  const testCases = loadTestCases(root, options);
   const automated = loadAutomated(root, options);
   // MỘT định nghĩa "test thật" cho cả bốn lệnh. Trước đây mỗi lệnh tự lọc một kiểu
   // nên coverage, gaps và impact bất đồng ý về việc file setup có phải test không.
@@ -119,11 +119,22 @@ function gaps(root, options) {
     findings.push({
       severity: 'blocker',
       kind: 'khong-doc-duoc-requirement',
-      where: 'requirements/',
+      where: `${(options && options.requirementsDir) || 'requirements'}/`,
       message:
         'Không đọc được requirement nào. Thư mục requirements/ không tồn tại, rỗng, hoặc ' +
         'tài liệu để ở chỗ khác. Mọi kiểm tra bên dưới sẽ xanh giả vì không có gì để đối chiếu.',
       action: 'Tạo requirements/REQ-xxx-<slug>.md theo templates/requirement-template.md.',
+    });
+  }
+
+  // Dòng traceability bị loại vì mã REQ sai quy ước.
+  for (const nm of testCases.nearMisses || []) {
+    findings.push({
+      severity: 'major',
+      kind: 'dong-traceability-bi-bo-qua',
+      where: nm.file,
+      message: `Dòng "${nm.raw}" có mã REQ sai quy ước nên bị bỏ qua hoàn toàn.`,
+      action: 'Sửa về dạng REQ-001, nếu không TC ở dòng đó vô hình với mọi rule.',
     });
   }
 
@@ -150,6 +161,18 @@ function gaps(root, options) {
         action: 'Thêm front-matter theo templates/requirement-template.md',
       });
       continue;
+    }
+
+    // Mã gần giống mà sai quy ước phải được BÁO. Im lặng bỏ qua nghĩa là một AC
+    // biến mất khỏi mọi báo cáo trong khi coverage vẫn in con số cũ.
+    for (const nm of req.nearMisses || []) {
+      findings.push({
+        severity: 'major',
+        kind: 'dinh-danh-sai-quy-uoc',
+        where: `${req.file}:${nm.line}`,
+        message: `"${nm.raw}" trông giống mã định danh nhưng sai quy ước (đúng: AC-001, TC-001).`,
+        action: 'Sửa về đúng 3 chữ số, nếu không mục này vô hình với mọi báo cáo.',
+      });
     }
 
     for (const ac of req.acs) {

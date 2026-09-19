@@ -21,8 +21,18 @@ function readText(file) {
     .replace(/\r\n?/g, '\n');
 }
 
-const RE_AC_HEADING = /^###\s+(AC-\d{3})\s*:\s*(.+?)\s*$/;
-const RE_TC_HEADING = /^###\s+(TC-\d{3})\s*:\s*(.+?)\s*$/;
+// Nới khuôn heading: chấp nhận ##..#####, và dấu ngăn là `:` `-` `–` `—` hoặc không có.
+// Khuôn quá chặt là fail-open nguy hiểm: `### AC-008 - tiêu đề` làm AC đó VÔ HÌNH,
+// nên blocker `ac-khong-co-test-case` không thể bắn mà coverage vẫn in số AC cũ.
+// `\s{0,3}` và `#{2,6}`: CommonMark cho phép heading thụt lề tới 3 dấu cách và tới cấp 6.
+// Neo cứng vào đầu dòng khiến AC viết kiểu đó vừa không đọc được vừa không vào nearMisses.
+const RE_AC_HEADING = /^\s{0,3}#{2,6}\s*(AC-\d{3})\b\s*[:\-–—]?\s*(.*?)\s*$/;
+const RE_TC_HEADING = /^\s{0,3}#{2,6}\s*(TC-\d{3})\b\s*[:\-–—]?\s*(.*?)\s*$/;
+// Mã gần giống nhưng sai quy ước: AC-8, AC_012, ac-001, AC-0012. Phải BÁO chứ không
+// được im lặng bỏ qua — im lặng nghĩa là một acceptance criterion biến mất khỏi mọi
+// báo cáo mà không ai biết.
+const RE_ID_NEAR_MISS = /^\s{0,3}#{2,6}\s*((?:AC|TC|REQ)[-_]?\d{1,4})\b/i;
+const RE_ID_CANONICAL = /^(AC|TC|REQ)-\d{3}$/;
 const RE_TC_AC_TITLE = /^(TC-\d{3})\s*-\s*(AC-\d{3})\b/;
 // File setup là hạ tầng đăng nhập/seed, không phải test case. Phải bắt được cả
 // `auth.setup.ts` lẫn `auth.setup.spec.js` — thiếu biến thể thứ hai thì coverage và
@@ -31,9 +41,9 @@ const RE_SETUP_FILE = /\.setup\.(spec\.)?[jt]sx?$/;
 
 /** Front-matter phẳng `key: value`. Đủ dùng và không cần thư viện YAML. */
 function parseFrontMatter(text) {
-  if (!text.startsWith('---')) return { data: {}, body: text };
+  if (!text.startsWith('---')) return { data: {}, body: text, offset: 0 };
   const end = text.indexOf('\n---', 3);
-  if (end === -1) return { data: {}, body: text };
+  if (end === -1) return { data: {}, body: text, offset: 0 };
   const raw = text.slice(3, end);
   const body = text.slice(end + 4);
   const data = {};
@@ -41,7 +51,9 @@ function parseFrontMatter(text) {
     const m = line.match(/^([A-Za-z0-9_]+)\s*:\s*(.*)$/);
     if (m) data[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
   }
-  return { data, body };
+  // offset = số dòng front-matter đã ăn mất. Không cộng lại thì mọi finding trỏ vào
+  // AC đều lệch đúng bằng chừng đó, và càng thêm metadata vào front-matter càng lệch xa.
+  return { data, body, offset: text.slice(0, end + 4).split('\n').length - 1 };
 }
 
 /**
@@ -59,15 +71,22 @@ const AUTOMATION_ALIASES = new Map([
 ]);
 
 function normalizeAutomation(raw) {
-  const cleaned = String(raw || '')
-    .replace(/[*`_]/g, '')
+  const original = String(raw || '').trim();
+  // Bóc trang trí markdown trước. `**  **` hay `` `` `` là ô KHÔNG ai điền gì, khác hẳn
+  // một ô có nội dung thật.
+  const undecorated = original.replace(/[*`_~]/g, '').trim();
+  const cleaned = undecorated
     .replace(/[^\p{L}\p{N}\/ ]/gu, ' ')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
-  if (!cleaned) return { value: '', raw: String(raw || '').trim() };
+  // Ô trống thật sự là ''. Nhưng ô CÓ nội dung mà chỉ gồm dấu câu hoặc emoji
+  // (`-`, `✅`, `???`) từng cũng ra '' — và vì commands.js không có rule nào cho '',
+  // chúng lọt qua cả bốn rule automation. `-` lại đúng là cách viết "không có gì"
+  // phổ biến nhất trong chính các bảng của repo này.
+  if (!cleaned) return { value: undecorated ? null : '', raw: original };
   const hit = AUTOMATION_ALIASES.get(cleaned);
-  return { value: hit || null, raw: String(raw || '').trim() };
+  return { value: hit || null, raw: original };
 }
 
 /** Tách các dòng dữ liệu của bảng markdown nằm dưới một heading. */
@@ -95,11 +114,12 @@ function listMarkdown(dir) {
 }
 
 /** requirements/*.md -> [{ id, title, status, acs: [...], rules: [...] }] */
-function loadRequirements(root) {
+function loadRequirements(root, options = {}) {
   const reqs = [];
-  for (const file of listMarkdown(path.join(root, 'requirements'))) {
+  const dir = options.requirementsDir || 'requirements';
+  for (const file of listMarkdown(path.join(root, dir))) {
     const text = readText(file);
-    const { data, body } = parseFrontMatter(text);
+    const { data, body, offset } = parseFrontMatter(text);
     const rel = path.relative(root, file).replace(/\\/g, '/');
     if (!data.id) {
       reqs.push({ id: null, file: rel, missingFrontMatter: true, acs: [], rules: [] });
@@ -107,9 +127,17 @@ function loadRequirements(root) {
     }
     const lines = body.split('\n');
     const acs = [];
+    const nearMisses = [];
     lines.forEach((line, i) => {
       const m = line.match(RE_AC_HEADING);
-      if (m) acs.push({ id: m[1], title: m[2], line: i + 1 });
+      if (m) {
+        acs.push({ id: m[1], title: m[2], line: i + 1 + (offset || 0) });
+        return;
+      }
+      const near = line.match(RE_ID_NEAR_MISS);
+      if (near && !RE_ID_CANONICAL.test(near[1])) {
+        nearMisses.push({ raw: near[1], line: i + 1 + (offset || 0) });
+      }
     });
     const rules = tableRowsUnder(lines, /Rules and validation/i)
       .filter((cells) => !/^Field\/rule$/i.test(cells[0]))
@@ -131,6 +159,7 @@ function loadRequirements(root) {
       testCaseFile: data.test_cases || '',
       file: rel,
       acs,
+      nearMisses,
       rules,
     });
   }
@@ -138,12 +167,14 @@ function loadRequirements(root) {
 }
 
 /** test-cases/*.md -> [{ reqId, acId, tcId, automation, spec, priority }] + chi tiết TC */
-function loadTestCases(root) {
+function loadTestCases(root, options = {}) {
+  const dir = options.testCasesDir || 'test-cases';
   const links = [];
+  const nearMisses = [];
   const details = [];
   const noAutomationReasons = new Set();
 
-  for (const file of listMarkdown(path.join(root, 'test-cases'))) {
+  for (const file of listMarkdown(path.join(root, dir))) {
     const base = path.basename(file).toLowerCase();
     if (base === 'traceability.md') continue; // file sinh ra, không phải nguồn
     const text = readText(file);
@@ -152,7 +183,15 @@ function loadTestCases(root) {
 
     for (const cells of tableRowsUnder(lines, /^##\s+Traceability/i)) {
       const [reqId, acId, tcId, automation, spec, priority] = cells;
-      if (!/^REQ-\d{3}$/.test(reqId || '')) continue;
+      if (!/^REQ-\d{3}$/.test(reqId || '')) {
+        // Mã REQ gõ sai (REQ-1, req-001) từng làm CẢ DÒNG biến mất im lặng, nên mọi rule
+        // automation không chạy cho TC đó. Bỏ qua hàng header là đúng; bỏ qua một dòng
+        // trông như dữ liệu thật thì phải báo.
+        const looksLikeData =
+          /^req[-_ ]?\d+/i.test(reqId || '') || /^tc[-_]?\d+/i.test(tcId || '');
+        if (looksLikeData) nearMisses.push({ raw: `${reqId} | ${tcId}`, file: rel });
+        continue;
+      }
       const auto = normalizeAutomation(automation);
       links.push({
         reqId,
@@ -176,7 +215,7 @@ function loadTestCases(root) {
       if (m) details.push({ tcId: m[1], title: m[2], file: rel, line: i + 1 });
     });
   }
-  return { links, details, noAutomationReasons };
+  return { links, details, noAutomationReasons, nearMisses };
 }
 
 /**

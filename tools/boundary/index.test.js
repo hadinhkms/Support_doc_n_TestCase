@@ -482,3 +482,238 @@ test('manifest rỗng hoàn toàn: báo mọi thứ trên đĩa, không nổ', (
     assert.deepEqual(wheres(report, 'chua-phan-loai').sort(), ['docs', 'requirements', 'tools']);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Loại 6: thư mục business nằm lọt bên trong vùng được sync (ship/seed)
+//
+// Lớp 4 chỉ liệt kê tới mức thư mục ĐÃ KHAI rồi dừng, nên một thư mục business
+// nằm sâu bên trong một path ship hoàn toàn vô hình với nó: công cụ in
+// "OK Manifest khớp với thực tế repo" và exit 0 ngay trước lần sync xoá sạch dữ
+// liệu đó. Cả cụm test dưới đây tồn tại để chặn đúng kịch bản im lặng ấy.
+// ---------------------------------------------------------------------------
+
+const BUSINESS = 'business-nam-trong-vung-sync';
+
+test('thư mục business nằm trong vùng ship -> blocker và --strict phải đỏ', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'docs', reason: 'chuẩn QA' }],
+      seed: [],
+      own: [],
+    }),
+    'docs/test-design.md': '# chuẩn',
+    'docs/requirements/REQ-001.md': '# REQ-001',
+  }, (root) => {
+    const { report } = runJson(root);
+    const found = kinds(report, BUSINESS);
+    assert.equal(found.length, 1);
+    assert.equal(found[0].where, 'docs/requirements', 'phải chỉ vào thư mục con, không phải vùng ship');
+    assert.equal(found[0].severity, 'blocker', 'mất dữ liệu business là blocker, không phải major');
+    assert.ok(found[0].message.includes('requirements'), 'phải gọi tên thư mục để người đọc tìm được');
+    assert.ok(found[0].message.includes('ghi đè'), 'phải nói rõ hậu quả: Hub sẽ ghi đè');
+    // 'docs' đã được khai nên lớp 4 im lặng. Nếu lớp này cũng im thì cả kịch bản
+    // biến mất khỏi báo cáo - đúng chỗ hồi quy cần chặn.
+    assert.deepEqual(kinds(report, 'chua-phan-loai'), []);
+    assert.equal(run(root, ['--strict']).status, 1, 'CI phải chặn được, không chỉ in ra rồi thôi');
+  });
+});
+
+test('đúng path đó nhưng đã khai vào own -> lớp mới im: đó là khai báo có chủ ý', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'docs' }],
+      seed: [],
+      own: [{ path: 'docs/requirements', hubModule: 'requirements' }],
+    }),
+    'docs/test-design.md': '# chuẩn',
+    'docs/requirements/REQ-001.md': '# REQ-001',
+  }, (root) => {
+    const { report } = runJson(root);
+    assert.deepEqual(kinds(report, BUSINESS), [], 'đã khai own thì không phải là thứ bị bỏ quên');
+    // Vẫn phải còn đúng MỘT tiếng nói về path này, của lớp 3 - lớp nói rõ được
+    // thư mục ship nào đang nuốt nó. Hai finding cho cùng một path làm người sửa
+    // tưởng có hai việc phải làm.
+    assert.deepEqual(wheres(report, 'own-nam-trong-ship'), ['docs/requirements']);
+    assert.equal(report.problems.length, 1);
+  });
+});
+
+test('own khai bên trong vùng seed -> sạch hoàn toàn, không báo động giả', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }],
+      seed: [{ path: 'docs' }],
+      own: [{ path: 'docs/requirements', hubModule: 'requirements' }],
+    }),
+    'docs/test-design.md': '# chuẩn',
+    'docs/requirements/REQ-001.md': '# REQ-001',
+  }, (root) => {
+    const { status, report } = runJson(root);
+    // Đây là cách khai HỢP LỆ để giữ business bên trong vùng Hub có đụng tới.
+    // Nếu nó cũng bị báo thì người dùng không còn cách nào làm cho gate xanh.
+    assert.deepEqual(report.problems, []);
+    assert.equal(status, 0);
+  });
+});
+
+test('thư mục business nằm sâu nhiều cấp trong vùng ship vẫn bị bắt', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'docs' }],
+      seed: [],
+      own: [],
+    }),
+    // Quét chỉ một cấp con sẽ bỏ lọt đúng kiểu thư mục hay bị chôn sâu nhất:
+    // tài liệu tách theo thị trường / theo đội rồi mới tới test-cases.
+    'docs/vn/khach-hang/mobile/test-cases/TC-001.md': '# TC-001',
+  }, (root) => {
+    const { report } = runJson(root);
+    assert.deepEqual(wheres(report, BUSINESS), ['docs/vn/khach-hang/mobile/test-cases']);
+    assert.equal(kinds(report, BUSINESS)[0].severity, 'blocker');
+  });
+});
+
+test('vùng seed cũng được quét, không chỉ mỗi ship', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }],
+      seed: [{ path: 'docs' }],
+      own: [],
+    }),
+    'docs/test-design.md': '# chuẩn',
+    'docs/data/nguoi-dung.json': '[]',
+  }, (root) => {
+    const { report } = runJson(root);
+    // seed chỉ copy khi thiếu, nhưng thư mục business chưa khai nằm trong đó vẫn
+    // là quả mìn: chỉ cần Hub đổi seed thành ship là mất. Bỏ qua seed = quét nửa vời.
+    assert.deepEqual(wheres(report, BUSINESS), ['docs/data']);
+    assert.equal(report.problems.length, 1);
+  });
+});
+
+test('thư mục business NGOÀI mọi vùng ship/seed -> rule này không được báo', () => {
+  withRepo({
+    ...CLEAN,
+    // 'requirements' là own: mọi thứ bên trong nó Hub không đụng tới, nên
+    // requirements/data và requirements/tests là chuyện riêng của dự án.
+    'requirements/data/nguoi-dung.json': '[]',
+    'requirements/tests/REQ-001.spec.md': '# ghi chú',
+  }, (root) => {
+    const { status, report } = runJson(root);
+    // Quét cả repo thay vì chỉ quét trong vùng sync sẽ biến gate thành cái loa
+    // báo động giả, và rồi người ta tắt nó đi.
+    assert.deepEqual(report.problems, []);
+    assert.equal(status, 0);
+  });
+});
+
+test('node_modules và .git bên trong vùng ship không bị quét', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'docs' }],
+      seed: [],
+      own: [],
+    }),
+    'docs/node_modules/goi-gia/tests/index.spec.js': 'x',
+    'docs/.git/refs/data/HEAD': 'x',
+    // Một vi phạm thật, để chứng minh vòng quét CÓ chạy chứ không phải chết câm.
+    'docs/pages/login.md': '# login',
+  }, (root) => {
+    const { report } = runJson(root);
+    assert.deepEqual(wheres(report, BUSINESS), ['docs/pages']);
+  });
+});
+
+test('path ship trỏ vào một FILE chứ không phải thư mục -> không nổ', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'README.md' }],
+      seed: [],
+      own: [],
+    }),
+    'README.md': '# repo',
+  }, (root) => {
+    // Hub ship từng file lẻ là chuyện bình thường. readdirSync trên một file ném
+    // ENOTDIR -> công cụ chết kèm stack trace, và CI không phân biệt được với
+    // "có vi phạm ranh giới".
+    const { status, report } = runJson(root);
+    assert.equal(status, 0);
+    assert.deepEqual(report.problems, []);
+    assert.equal(run(root, ['--strict']).status, 0);
+  });
+});
+
+test('vùng ship toàn thư mục/file tên bình thường -> không false positive', () => {
+  withRepo({
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'docs' }],
+      seed: [],
+      own: [],
+    }),
+    'docs/huong-dan/onboarding.md': '# onboarding',
+    'docs/templates/mau-bao-cao.md': '# mẫu',
+    // Trùng TÊN business nhưng là FILE: rule này nói về thư mục bị ghi đè, còn
+    // một file lẻ trong vùng ship là thứ Hub được phép quản.
+    'docs/data.json': '{}',
+    'docs/tests.md': '# ghi chú',
+  }, (root) => {
+    const { status, report } = runJson(root);
+    assert.deepEqual(report.problems, []);
+    assert.equal(status, 0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Đối chiếu Hub: hai sửa đổi vừa vào
+// ---------------------------------------------------------------------------
+
+/** Cùng nội dung hubFile() nhưng viết bằng nháy KÉP (Prettier singleQuote: false). */
+const hubFileNhayKep = (modules) =>
+  `const FORBIDDEN_SYNC_MODULES = [${modules.map((m) => `"${m}"`).join(', ')}];\n`;
+
+test('FORBIDDEN_SYNC_MODULES viết bằng nháy kép vẫn đọc được', () => {
+  withRepo({
+    ...CLEAN,
+    'sync-manifest.json': manifest({ ship: [{ path: 'tools/boundary' }, { path: 'hub-gia' }] }),
+    'hub-gia/sync-manifest.js': hubFileNhayKep(['data', 'requirements']),
+  }, (root) => {
+    const { status, report } = runJson(root, [], { hub: 'hub-gia/sync-manifest.js' });
+    // Chỉ bắt nháy đơn thì một lần Prettier đổi cấu hình ở Hub sẽ làm CI của MỌI
+    // satellite đỏ cùng lúc, vì forbidden đọc ra rỗng -> mọi hubModule đều "thiếu".
+    assert.deepEqual(report.hub.forbidden, ['data', 'requirements']);
+    assert.deepEqual(report.hub.missing, []);
+    assert.deepEqual(kinds(report, 'lech-voi-forbidden-cua-hub'), []);
+    assert.equal(status, 0);
+  });
+});
+
+test('không mục own nào khai hubModule -> JSON phải nói rõ notCompared', () => {
+  withRepo({
+    ...CLEAN,
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'hub-gia' }],
+      own: [{ path: 'requirements', reason: 'business' }],
+    }),
+    'hub-gia/sync-manifest.js': hubFile(['data']),
+  }, (root) => {
+    const { report } = runJson(root, [], { hub: 'hub-gia/sync-manifest.js' });
+    // 0 mục được đối chiếu KHÔNG phải là "đối chiếu đạt". Thiếu cờ này thì
+    // dashboard đọc missing: [] rồi vẽ một gate xanh cho một lần kiểm tra chưa
+    // từng chạy - đúng loại hỏng im lặng mà cả công cụ này sinh ra để chống.
+    assert.equal(report.hub.notCompared, true);
+    assert.deepEqual(report.hub.mapped, []);
+    assert.deepEqual(report.hub.missing, []);
+    assert.ok(report.hub.forbidden.includes('data'), 'vẫn phải cho biết Hub đang cấm những gì');
+  });
+
+  withRepo({
+    ...CLEAN,
+    'sync-manifest.json': manifest({ ship: [{ path: 'tools/boundary' }, { path: 'hub-gia' }] }),
+    'hub-gia/sync-manifest.js': hubFile(['requirements']),
+  }, (root) => {
+    const { report } = runJson(root, [], { hub: 'hub-gia/sync-manifest.js' });
+    // Ngược lại: có đối chiếu thật thì không được gắn cờ, nếu không cờ mất nghĩa.
+    assert.equal(report.hub.notCompared, undefined);
+    assert.deepEqual(report.hub.mapped, ['requirements -> requirements']);
+  });
+});

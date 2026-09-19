@@ -174,6 +174,8 @@ function main() {
     project: flags.project || config.project,
     projectDir: flags.projectDir || config.projectDir,
     ignoreSpecs: config.ignoreSpecs || [],
+    requirementsDir: config.requirementsDir,
+    testCasesDir: config.testCasesDir,
   };
   if (options.ignoreSpecs.length > 0 && !flags.json) {
     console.log(dim(`(ignoreSpecs đang bật: ${options.ignoreSpecs.join(', ')})`));

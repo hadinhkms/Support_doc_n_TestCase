@@ -41,6 +41,8 @@ Mỗi repo để Playwright một kiểu, nên hai giá trị này đọc từ `
 |---|---|---|
 | `projectDir` | Thư mục chứa `playwright.config.*`. Dùng `"."` nếu config nằm ngay gốc repo | `playwright` |
 | `project` | Tên project trong `playwright.config` dùng để liệt kê test | `chromium` |
+| `requirementsDir` | Thư mục chứa requirement | `requirements` |
+| `testCasesDir` | Thư mục chứa test case | `test-cases` |
 | `ignoreSpecs` | Mảng tiền tố đường dẫn spec nằm **ngoài** phạm vi gate | `[]` |
 
 ### `ignoreSpecs` — khoanh vùng thay vì tắt tiếng
@@ -94,6 +96,7 @@ Gõ sai khoá hoặc sai JSON thì tool báo lỗi và dừng, không âm thầm
 | `khong-doc-duoc-requirement` | blocker | Không đọc được requirement nào — gate đang chạy rỗng |
 | `doc-duoc-0-spec` | blocker | Có test case nhưng đọc được 0 spec — sai projectDir/project |
 | `gia-tri-automation-khong-hop-le` | major | Cột Automation có giá trị lạ, làm mọi rule về automation im lặng |
+| `dinh-danh-sai-quy-uoc` | major | Heading kiểu `AC-8`, `AC_012` — trông giống mã nhưng vô hình với tool |
 
 ### `drift` — traceability mục
 
@@ -128,7 +131,7 @@ Tool xử lý như sau:
 2. **Độ phủ từng phần không phát hiện được.** Nếu dòng rule `Email` có boundary `254, 255` và cột Test cases ghi `TC-004`, tool coi là đã phủ — kể cả khi TC-004 chỉ test định dạng sai chứ không test độ dài. Phần này vẫn phải người đọc.
 3. **`gaps` không tự sinh test case.** Nó chỉ ra chỗ trống và đề xuất loại case cần có (hợp lệ / không hợp lệ / biên) từ bảng rule. Viết case vẫn là việc của QA.
 4. **Phụ thuộc vào kỷ luật đặt tên.** Title sai định dạng thì test biến mất khỏi mọi báo cáo. ESLint chặn phần lớn, nhưng không chặn được mã TC gõ nhầm số.
-5. **Heading AC phải đúng khuôn `### AC-xxx: <tiêu đề>`.** Viết `### AC-008 - tiêu đề` hoặc `#### AC-008:` thì AC đó vô hình với tool, và rule `ac-khong-co-test-case` không thể bắn.
+5. **Heading AC nhận nhiều biến thể** (`##`..`#####`, dấu ngăn `:` `-` hoặc không có), nhưng mã vẫn phải đúng 3 chữ số. `AC-8` hay `AC_012` sẽ thành finding `dinh-danh-sai-quy-uoc` chứ không bị bỏ qua im lặng.
 
 ## Kiểm thử
 

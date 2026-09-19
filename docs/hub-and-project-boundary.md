@@ -61,6 +61,7 @@ Guard bắt cả trường hợp lồng nhau (`{ src: 'docs/requirements' }`), k
 | `path-o-nhieu-nhom` | Một path khai ở hai nhóm, mâu thuẫn |
 | `own-nam-trong-ship` | Business nằm trong thư mục bị ghi đè — sẽ mất dữ liệu |
 | `chua-phan-loai` | Có người thêm thư mục mà quên khai |
+| `business-nam-trong-vung-sync` | Thư mục business (`requirements`, `test-cases`, `data`, `tests`, `pages`) nằm lọt bên trong vùng ship/seed — Hub sẽ ghi đè lên nó |
 | `lech-voi-forbidden-cua-hub` | Hai bên đang nói khác nhau |
 
 Mục `own` khai `hubModule` để nói nó tương ứng với module nào bên Hub. Không suy ra từ

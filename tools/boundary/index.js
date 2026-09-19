@@ -123,6 +123,62 @@ function analyse(manifest) {
     }
   }
 
+  // Lớp 4 chỉ liệt kê tới mức thư mục đã khai, không đi sâu vào trong. Nên một thư
+  // mục BUSINESS nằm lọt giữa vùng bị ghi đè sẽ vô hình: không ai báo, exit 0.
+  // Quét riêng đúng những tên mà Hub cấm sync, ở mọi độ sâu bên trong ship/seed.
+  const BUSINESS_DIR_NAMES = new Set(['requirements', 'test-cases', 'data', 'tests', 'pages']);
+  const syncedRoots = [...(manifest.ship || []), ...(manifest.seed || [])].map((i) => norm(i.path));
+  const ownPaths = (manifest.own || []).map((i) => norm(i.path));
+  // Khai `own` là khai có chủ ý cho cả cây bên dưới. So khớp ĐÚNG BẰNG sẽ báo động giả
+  // với mọi thư mục con, buộc người dùng khai thừa từng cái mới dập được.
+  const isDeclaredOwn = (p) => ownPaths.some((o) => isUnder(p, o));
+  const seenBusiness = new Set();
+  const MAX_DEPTH = 8;
+  const scanForBusiness = (rel, depth = 0) => {
+    const abs = path.join(ROOT, rel);
+    let entries;
+    try {
+      entries = fs.readdirSync(abs, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    if (depth >= MAX_DEPTH) {
+      // Cắt im lặng cũng là một chế độ fail-open. Nói ra chỗ đã ngừng.
+      problems.push({
+        kind: 'quet-business-bi-cat-do-qua-sau',
+        severity: 'minor',
+        where: rel,
+        message: `Ngừng quét ở độ sâu ${MAX_DEPTH}; thư mục business sâu hơn sẽ không được kiểm.`,
+      });
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || IGNORED.has(entry.name)) continue;
+      const child = norm(`${rel}/${entry.name}`);
+      if (isDeclaredOwn(child)) continue; // đã khai own -> cả cây bên dưới là có chủ ý
+      if (BUSINESS_DIR_NAMES.has(entry.name) && !seenBusiness.has(child)) {
+        seenBusiness.add(child);
+        problems.push({
+          kind: 'business-nam-trong-vung-sync',
+          severity: 'blocker',
+          where: child,
+          message:
+            `"${child}" mang tên thư mục business (${entry.name}) nhưng nằm trong vùng được ` +
+            'sync -> Hub sẽ ghi đè lên nó.',
+        });
+      }
+      scanForBusiness(child, depth + 1);
+    }
+  };
+  for (const root of syncedRoots) {
+    const abs = path.join(ROOT, root);
+    // `.` (gốc repo) khai là ship thì norm() phải cho ra chuỗi rỗng, nếu không mọi
+    // `where` sinh ra sẽ mang tiền tố "./" và không khớp được với mục own nào.
+    if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
+      scanForBusiness(root === '.' ? '' : root);
+    }
+  }
+
   const classified = (p) => {
     for (const d of declared.keys()) if (isUnder(p, d)) return true;
     return false;
