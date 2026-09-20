@@ -23,7 +23,7 @@ const DATA = path.join(ROOT, 'decisions.json');
 const OUT = path.join(ROOT, 'DECISIONS.md');
 
 const COLOR = process.stdout.isTTY && !process.env.NO_COLOR;
-const c = (code, s) => (COLOR ? `[${code}m${s}[0m` : s);
+const c = (code, s) => (COLOR ? `\u001b[${code}m${s}\u001b[0m` : s);
 const red = (s) => c('31', s);
 const yellow = (s) => c('33', s);
 const green = (s) => c('32', s);

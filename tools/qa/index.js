@@ -34,11 +34,13 @@ const bold = (s) => c('1', s);
 
 function parseArgs(argv) {
   // project/projectDir để null: chưa có cờ thì nhường cho qa.config.json.
-  const flags = { json: false, strict: false, project: null, projectDir: null };
+  const flags = { json: false, strict: false, project: null, projectDir: null, checkBoundaryRules: null };
   const positional = [];
   for (const arg of argv) {
     if (arg === '--json') flags.json = true;
     else if (arg === '--strict') flags.strict = true;
+    else if (arg === '--no-boundary-rules') flags.checkBoundaryRules = false;
+    else if (arg === '--boundary-rules') flags.checkBoundaryRules = true;
     else if (arg.startsWith('--project-dir=')) flags.projectDir = arg.slice('--project-dir='.length);
     else if (arg.startsWith('--project=')) flags.project = arg.slice('--project='.length);
     else if (arg.startsWith('--')) throw new Error(`Cờ không hợp lệ: ${arg}`);
@@ -146,7 +148,8 @@ function runImpact(reqId, options, flags) {
     console.log('');
   }
   console.log(bold('File cần mở:'));
-  for (const f of result.filesToReview) console.log(`  ${f}`);
+  const uniqueFiles = [...new Set(result.filesToReview.map((f) => f.split(':')[0]))];
+  for (const f of uniqueFiles) console.log(`  ${f}`);
   console.log('');
 }
 
@@ -176,6 +179,7 @@ function main() {
     ignoreSpecs: config.ignoreSpecs || [],
     requirementsDir: config.requirementsDir,
     testCasesDir: config.testCasesDir,
+    checkBoundaryRules: flags.checkBoundaryRules !== null ? flags.checkBoundaryRules : config.checkBoundaryRules,
   };
   if (options.ignoreSpecs.length > 0 && !flags.json) {
     console.log(dim(`(ignoreSpecs đang bật: ${options.ignoreSpecs.join(', ')})`));

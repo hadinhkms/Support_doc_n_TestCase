@@ -31,10 +31,13 @@ const DEFAULTS = {
   // vĩnh viễn rồi cả đội quen bỏ qua, khoanh vùng chúng lại một cách có ghi chép.
   // Số test bị bỏ qua LUÔN được in ra, không bao giờ im lặng.
   ignoreSpecs: [],
+  // Bật đối chiếu quy tắc phân tích biên (EP + BVA). Mặc định bật theo Plan 10/11.
+  checkBoundaryRules: true,
 };
 
 const KNOWN_KEYS = new Set(Object.keys(DEFAULTS));
 const ARRAY_KEYS = new Set(['ignoreSpecs']);
+const BOOLEAN_KEYS = new Set(['checkBoundaryRules']);
 
 /**
  * Đọc qa.config.json nếu có. Ném lỗi khi file sai định dạng hoặc sai khoá —
@@ -64,6 +67,13 @@ function loadConfig(root) {
       throw new Error(
         `${CONFIG_FILE}: khoá không hợp lệ "${key}". Chỉ nhận: ${[...KNOWN_KEYS].join(', ')}`,
       );
+    }
+    if (BOOLEAN_KEYS.has(key)) {
+      if (typeof value !== 'boolean') {
+        throw new Error(`${CONFIG_FILE}: "${key}" phải là boolean (true/false)`);
+      }
+      config[key] = value;
+      continue;
     }
     if (ARRAY_KEYS.has(key)) {
       if (!Array.isArray(value) || value.some((v) => typeof v !== 'string' || !v.trim())) {

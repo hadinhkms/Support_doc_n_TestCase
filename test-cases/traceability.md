@@ -1,7 +1,7 @@
 # Ma Trận Truy Vết Kiểm Thử (Traceability Matrix)
 
 <!-- AUTO-GENERATED FILE. DO NOT EDIT MANUALLY. -->
-<!-- Sinh tự động lúc: 2026-09-20T17:17:09.556Z bằng lệnh: npm run qa:matrix -->
+<!-- Sinh tự động bằng lệnh: npm run qa:matrix -->
 
 Bảng tổng hợp sống đối chiếu giữa Requirement, Acceptance Criteria, Test Case và Playwright script.
 
@@ -20,3 +20,5 @@ Bảng tổng hợp sống đối chiếu giữa Requirement, Acceptance Criteri
 | REQ-001 | AC-006 | TC-011 | No | `-` | P2 |
 | REQ-001 | AC-002 | TC-012 | Candidate | `-` | P2 |
 | REQ-001 | AC-001 | TC-013 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:112` | P1 |
+| REQ-001 | AC-003 | TC-014 | Candidate | `-` | P2 |
+| REQ-001 | AC-002 | TC-015 | Candidate | `-` | P2 |

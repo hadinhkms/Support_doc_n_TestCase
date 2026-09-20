@@ -127,8 +127,8 @@ Tool xử lý như sau:
 
 ## Giới hạn — đọc trước khi tin kết quả
 
-1. **Tool chỉ kiểm tra được liên kết, không kiểm tra được chất lượng.** Nó biết AC-001 có script, nhưng không biết script đó assert đúng hay không. Assertion yếu vẫn qua cửa.
-2. **Độ phủ từng phần không phát hiện được.** Nếu dòng rule `Email` có boundary `254, 255` và cột Test cases ghi `TC-004`, tool coi là đã phủ — kể cả khi TC-004 chỉ test định dạng sai chứ không test độ dài. Phần này vẫn phải người đọc.
+1. **Tool chỉ kiểm tra được liên kết, không kiểm tra được chất lượng sâu của assert.** Nó kiểm tra xem script có assertion hay không (chặn assertionCount = 0), nhưng không thay thế được việc review ngữ nghĩa nghiệp vụ của assertion.
+2. **Phân tích biên (BVA + EP) đã được hỗ trợ:** Khi dòng rule có nhiều giá trị biên hoặc nhiều lớp không hợp lệ (phân tách bởi dấu phẩy) mà chỉ gán 1 test case, `qa:gaps` sẽ cảnh báo mức `minor` (`rule-thieu-boundary-test`) kèm gợi ý tách test case độc lập.
 3. **`gaps` không tự sinh test case.** Nó chỉ ra chỗ trống và đề xuất loại case cần có (hợp lệ / không hợp lệ / biên) từ bảng rule. Viết case vẫn là việc của QA.
 4. **Phụ thuộc vào kỷ luật đặt tên.** Title sai định dạng thì test biến mất khỏi mọi báo cáo. ESLint chặn phần lớn, nhưng không chặn được mã TC gõ nhầm số.
 5. **Heading AC nhận nhiều biến thể** (`##`..`#####`, dấu ngăn `:` `-` hoặc không có), nhưng mã vẫn phải đúng 3 chữ số. `AC-8` hay `AC_012` sẽ thành finding `dinh-danh-sai-quy-uoc` chứ không bị bỏ qua im lặng.

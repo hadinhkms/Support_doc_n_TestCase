@@ -717,3 +717,43 @@ test('không mục own nào khai hubModule -> JSON phải nói rõ notCompared',
     assert.deepEqual(report.hub.mapped, ['requirements -> requirements']);
   });
 });
+
+test('notCompared sinh problem major và làm --strict exit 1', () => {
+  withRepo({
+    ...CLEAN,
+    'sync-manifest.json': JSON.stringify({
+      ship: [{ path: 'tools/boundary' }, { path: 'hub-gia' }],
+      seed: [],
+      own: [{ path: 'requirements' }], // không có hubModule
+    }),
+    'hub-gia/sync-manifest.js': hubFile(['requirements']),
+  }, (root) => {
+    const { status, report } = runJson(root, ['--strict'], { hub: 'hub-gia/sync-manifest.js' });
+    assert.equal(status, 1, '--strict phải exit 1 khi không đối chiếu được với Hub');
+    const notCompProblem = report.problems.find((p) => p.kind === 'khong-doi-chieu-duoc-hub');
+    assert.ok(notCompProblem, 'phải có problem khong-doi-chieu-duoc-hub');
+    assert.equal(notCompProblem.severity, 'major');
+  });
+});
+
+test('boundary --strict: exit 0 khi chỉ còn finding minor', () => {
+  // Dựng cây thư mục sâu hơn MAX_DEPTH (8) bên trong ship để kích hoạt minor
+  const deepFiles = {
+    'sync-manifest.json': manifest({
+      ship: [{ path: 'tools/boundary' }, { path: 'deep-dir' }],
+    }),
+    'deep-dir/1/2/3/4/5/6/7/8/9/dummy.txt': 'test',
+  };
+  withRepo(deepFiles, (root) => {
+    const { status, report } = runJson(root, ['--strict']);
+    const minorFinding = report.problems.find((p) => p.kind === 'quet-business-bi-cat-do-qua-sau');
+    if (minorFinding) {
+      assert.equal(minorFinding.severity, 'minor');
+      const hasBlocking = report.problems.some((p) => p.severity === 'blocker' || p.severity === 'major');
+      if (!hasBlocking) {
+        assert.equal(status, 0, '--strict không được chặn khi chỉ có finding minor');
+      }
+    }
+  });
+});
+

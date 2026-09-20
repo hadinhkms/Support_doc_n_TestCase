@@ -14,7 +14,7 @@ Khi người dùng yêu cầu viết test script hoặc test cases trong workspa
 9. Mỗi test phải độc lập, rerunnable, có setup/cleanup theo `docs/test-data-management.md`, và assertion cho kết quả chính cùng side effect quan trọng.
 10. Import `test`/`expect` từ `tests/fixtures/test-fixtures.ts`, không từ `@playwright/test` (trừ file setup). Đặt title `TC-xxx - AC-yyy <mô tả>` và gắn tag priority `@p0`..`@p3`.
 11. Sau khi sửa, chạy validation hẹp nhất có thể: `npm run verify` trong thư mục `playwright/` (typecheck + lint + `--list`), rồi test phù hợp nếu môi trường có sẵn.
-12. Cập nhật `test-cases/traceability.md`, rồi chạy `npm run qa:check` ở thư mục gốc. Còn finding mức `major` trở lên thì chưa xong việc.
+12. Chạy `npm run qa:matrix` để cập nhật ma trận truy vết (không sửa tay), rồi chạy `npm run qa:check` ở thư mục gốc. Còn finding mức `major` trở lên thì chưa xong việc.
     - Test mới phải có tag `@REQ-xxx` ở `test.describe` và title dạng `TC-xxx - AC-xxx <mô tả>`, nếu không tool sẽ không thấy nó.
     - Dòng mới trong bảng `Rules and validation` phải điền cột `Test cases`.
 13. Test không ổn định xử lý theo `docs/flaky-test-policy.md`; không tăng timeout hoặc `test.skip` để chữa cháy.

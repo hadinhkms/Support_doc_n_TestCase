@@ -5,6 +5,7 @@
  *   gaps     - NÊN THÊM script nào
  *   impact   - requirement đổi thì PHẢI SỬA script nào
  *   drift    - traceability đã mục ở đâu
+ *   matrix   - tự động sinh bảng ma trận truy vết
  */
 
 const fs = require('node:fs');
@@ -67,6 +68,9 @@ function coverage(root, options) {
     byAc.get(key).push(link);
   }
   const automatedTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
+  const wipTcIds = new Set(
+    realTests.filter((t) => t.tags && t.tags.includes('@wip')).map((t) => t.tcId).filter(Boolean)
+  );
 
   const rows = [];
   for (const req of requirements) {
@@ -74,7 +78,8 @@ function coverage(root, options) {
     for (const ac of req.acs) {
       const links = byAc.get(`${req.id}/${ac.id}`) || [];
       const tcs = links.map((l) => l.tcId);
-      const done = tcs.filter((tc) => automatedTcIds.has(tc));
+      const done = tcs.filter((tc) => automatedTcIds.has(tc) && !wipTcIds.has(tc));
+      const wipDone = tcs.filter((tc) => automatedTcIds.has(tc) && wipTcIds.has(tc));
       rows.push({
         reqId: req.id,
         status: req.status,
@@ -82,6 +87,7 @@ function coverage(root, options) {
         acTitle: ac.title,
         testCases: tcs,
         automated: done,
+        wip: wipDone,
         manualOnly: links.filter((l) => l.automation === 'No').map((l) => l.tcId),
         candidates: links.filter((l) => l.automation === 'Candidate').map((l) => l.tcId),
       });
@@ -104,6 +110,10 @@ function coverage(root, options) {
 function gaps(root, options) {
   const { requirements, testCases, automated, realTests } = collect(root, options);
   const automatedTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
+  const wipTcIds = new Set(
+    realTests.filter((t) => t.tags && t.tags.includes('@wip')).map((t) => t.tcId).filter(Boolean)
+  );
+
   const linksByAc = new Map();
   const linksByTc = new Map();
   for (const link of testCases.links) {
@@ -127,6 +137,44 @@ function gaps(root, options) {
         'tài liệu để ở chỗ khác. Mọi kiểm tra bên dưới sẽ xanh giả vì không có gì để đối chiếu.',
       action: 'Tạo requirements/REQ-xxx-<slug>.md theo templates/requirement-template.md.',
     });
+  }
+
+  // F-03: Kiểm tra trùng mã REQ giữa các file trong requirements/
+  const reqsById = new Map();
+  for (const r of requirements) {
+    if (!r.id) continue;
+    if (!reqsById.has(r.id)) reqsById.set(r.id, []);
+    reqsById.get(r.id).push(r);
+  }
+  for (const [id, reqList] of reqsById.entries()) {
+    if (reqList.length > 1) {
+      findings.push({
+        severity: 'blocker',
+        kind: 'ma-req-trung',
+        where: reqList.map((r) => r.file).join(', '),
+        message: `Mã requirement "${id}" bị trùng lặp ở ${reqList.length} file: ${reqList.map((r) => r.file).join(', ')}.`,
+        action: 'Đổi mã REQ để mỗi requirement có định danh duy nhất, tránh thổi phồng độ phủ.',
+      });
+    }
+  }
+
+  // F-03: Kiểm tra trùng mã TC trong bảng Traceability
+  const linksByTcId = new Map();
+  for (const link of testCases.links) {
+    if (!link.tcId) continue;
+    if (!linksByTcId.has(link.tcId)) linksByTcId.set(link.tcId, []);
+    linksByTcId.get(link.tcId).push(link);
+  }
+  for (const [tcId, occList] of linksByTcId.entries()) {
+    if (occList.length > 1) {
+      findings.push({
+        severity: 'major',
+        kind: 'ma-tc-trung',
+        where: occList.map((l) => `${l.file} (${l.reqId}/${l.acId})`).join(', '),
+        message: `Mã test case "${tcId}" xuất hiện ${occList.length} lần trong bảng traceability.`,
+        action: 'Đổi mã TC để mỗi test case có định danh duy nhất (không được tái sử dụng mã TC).',
+      });
+    }
   }
 
   // Dòng traceability bị loại vì mã REQ sai quy ước.
@@ -165,6 +213,24 @@ function gaps(root, options) {
       continue;
     }
 
+    // F-03: Kiểm tra trùng mã AC trong cùng một requirement
+    const acCounts = new Map();
+    for (const ac of req.acs) {
+      if (!ac.id) continue;
+      acCounts.set(ac.id, (acCounts.get(ac.id) || 0) + 1);
+    }
+    for (const [acId, count] of acCounts.entries()) {
+      if (count > 1) {
+        findings.push({
+          severity: 'major',
+          kind: 'ma-ac-trung',
+          where: req.file,
+          message: `Mã tiêu chí "${acId}" xuất hiện ${count} lần trong ${req.id}.`,
+          action: 'Đổi mã AC để mỗi tiêu chí chấp nhận có định danh duy nhất trong requirement.',
+        });
+      }
+    }
+
     // Mã gần giống mà sai quy ước phải được BÁO. Im lặng bỏ qua nghĩa là một AC
     // biến mất khỏi mọi báo cáo trong khi coverage vẫn in con số cũ.
     for (const nm of req.nearMisses || []) {
@@ -199,6 +265,19 @@ function gaps(root, options) {
           message: `${req.id}/${ac.id} có test case (${links.map((l) => l.tcId).join(', ')}) nhưng chưa test nào được automation.`,
           action: 'Viết script cho TC có điểm cao nhất trong automation plan.',
         });
+      } else if (hasAutomated) {
+        // F-08/F-09: Kiểm tra nếu toàn bộ script của AC đều là stub @wip
+        const autoLinks = links.filter((l) => automatedTcIds.has(l.tcId));
+        const allWip = autoLinks.length > 0 && autoLinks.every((l) => wipTcIds.has(l.tcId));
+        if (allWip) {
+          findings.push({
+            severity: 'minor',
+            kind: 'ac-chi-co-script-wip',
+            where: `${req.file}:${ac.line}`,
+            message: `${req.id}/${ac.id} có test case (${autoLinks.map((l) => l.tcId).join(', ')}) nhưng toàn bộ script đều mang tag @wip/stub (chưa hoàn thiện).`,
+            action: 'Hoàn thiện script và gỡ tag @wip để được tính vào độ phủ chính thức.',
+          });
+        }
       }
     }
 
@@ -227,14 +306,23 @@ function gaps(root, options) {
           action: 'Sửa mã TC hoặc bổ sung test case.',
         });
       }
-      if (options && options.checkBoundaryRules && rule.boundary && rule.boundary !== '-' && rule.testCases.length === 1 && rule.boundary.includes(',')) {
-        findings.push({
-          severity: 'minor',
-          kind: 'rule-thieu-boundary-test',
-          where: req.file,
-          message: `Dòng rule "${rule.field}" có nhiều giá trị biên (${rule.boundary}) nhưng chỉ gán 1 test case (${rule.testCases[0]}).`,
-          action: 'Khuyến nghị tách thêm test case độc lập cho các giá trị biên (Boundary Value Analysis).',
-        });
+
+      // F-05: Kiểm tra phân tích biên (BVA + EP) trên cả cột Boundary và Invalid
+      if (options && options.checkBoundaryRules && rule.testCases.length === 1) {
+        const hasMultiBoundary = rule.boundary && rule.boundary !== '-' && rule.boundary.includes(',');
+        const hasMultiInvalid = rule.invalid && rule.invalid !== '-' && rule.invalid.includes(',');
+        if (hasMultiBoundary || hasMultiInvalid) {
+          const reason = hasMultiBoundary
+            ? `nhiều giá trị biên (${rule.boundary})`
+            : `nhiều giá trị không hợp lệ (${rule.invalid})`;
+          findings.push({
+            severity: 'minor',
+            kind: 'rule-thieu-boundary-test',
+            where: req.file,
+            message: `Dòng rule "${rule.field}" có ${reason} nhưng chỉ gán 1 test case (${rule.testCases[0]}).`,
+            action: `Khuyến nghị tách thêm test case độc lập (BVA/EP). Cần tối thiểu: ${expectedCasesFromRule(rule).join('; ')}`,
+          });
+        }
       }
     }
   }
@@ -267,6 +355,30 @@ function gaps(root, options) {
         message: `${link.tcId} là ${link.priority} nhưng vẫn ở trạng thái Candidate.`,
         action: 'P0/P1 nên được automation, hoặc hạ priority kèm giải thích.',
       });
+    }
+
+    // Phase 6: Đối chiếu cột Spec với filesystem / automated specs
+    if (link.spec && link.spec !== '-') {
+      const cand1 = path.resolve(root, link.spec);
+      const cand2 = path.resolve(root, (options && options.projectDir) || 'playwright', link.spec);
+      const existsOnDisk = fs.existsSync(cand1) || fs.existsSync(cand2);
+      const existsInAutomated = Boolean(
+        automated.tests &&
+        automated.tests.some((t) => {
+          const f = (t.path || t.file || '').replace(/\\/g, '/');
+          const s = link.spec.replace(/\\/g, '/');
+          return f === s || f.endsWith('/' + s) || s.endsWith('/' + f);
+        })
+      );
+      if (!existsOnDisk && !existsInAutomated) {
+        findings.push({
+          severity: 'major',
+          kind: 'spec-khong-ton-tai',
+          where: link.file,
+          message: `${link.tcId} khai spec "${link.spec}" nhưng file không tồn tại trên filesystem.`,
+          action: 'Kiểm tra lại đường dẫn spec trong bảng Traceability.',
+        });
+      }
     }
   }
 
@@ -334,7 +446,13 @@ function impact(root, reqId, options) {
   });
 
   const files = new Set();
-  for (const ac of acs) for (const tc of ac.testCases) for (const s of tc.specs) files.add(s);
+  for (const ac of acs) {
+    for (const tc of ac.testCases) {
+      for (const s of tc.specs) {
+        files.add(s);
+      }
+    }
+  }
 
   return {
     requirement: { id: req.id, title: req.title, status: req.status, version: req.version, file: req.file },
@@ -398,18 +516,32 @@ function drift(root, options) {
 
   for (const req of requirements) {
     if (!req.id) continue;
-    const hasTests = automated.tests.some((t) => t.reqId === req.id);
+    const reqTests = automated.tests.filter((t) => t.reqId === req.id && !t.isSetup);
+    const hasTests = reqTests.length > 0;
     if (hasTests && /^draft/i.test(req.status)) {
-      findings.push({
-        severity: 'major',
-        kind: 'requirement-draft-nhung-da-co-script',
-        where: req.file,
-        message: `${req.id} đang Draft nhưng đã có script trỏ vào. Script có thể đang test hành vi chưa chốt.`,
-      });
+      // F-08: Nếu mọi script đều mang @wip thì hạ mức xuống minor (scaffold draft)
+      const allWip = reqTests.every((t) => t.tags && t.tags.includes('@wip'));
+      if (allWip) {
+        findings.push({
+          severity: 'minor',
+          kind: 'requirement-moi-scaffold-chua-hoan-thien',
+          where: req.file,
+          message: `${req.id} đang Draft và mọi script trỏ vào đều là @wip/stub vừa scaffold.`,
+          action: 'Hoàn thiện requirement và triển khai test script thật trước khi chuyển status.',
+        });
+      } else {
+        findings.push({
+          severity: 'major',
+          kind: 'requirement-draft-nhung-da-co-script',
+          where: req.file,
+          message: `${req.id} đang Draft nhưng đã có script trỏ vào. Script có thể đang test hành vi chưa chốt.`,
+          action: 'Chuyển status sang Review/Approved hoặc đánh dấu script là @wip.',
+        });
+      }
     }
     if (req.testCaseFile) {
-      const abs = require('node:path').join(root, req.testCaseFile);
-      if (!require('node:fs').existsSync(abs)) {
+      const abs = path.join(root, req.testCaseFile);
+      if (!fs.existsSync(abs)) {
         findings.push({
           severity: 'blocker',
           kind: 'test-case-file-khong-ton-tai',
@@ -420,9 +552,7 @@ function drift(root, options) {
     }
   }
 
-  // Chiều ngược: dòng traceability trỏ tới REQ/AC đã bị xoá. Không kiểm chiều này thì
-  // requirement bị refactor sẽ để lại dòng chết, mà coverage vẫn cộng vào tổng test case
-  // nên độ phủ trông CAO HƠN thực tế.
+  // Chiều ngược: dòng traceability trỏ tới REQ/AC đã bị xoá.
   for (const link of testCases.links) {
     if (link.reqId && !knownReq.has(link.reqId)) {
       findings.push({
@@ -460,6 +590,7 @@ function drift(root, options) {
 /**
  * Tự động tạo ma trận truy vết Markdown từ dữ liệu sống của repo.
  * Chống xung đột Git: file traceability.md là artifact sinh tự động, không sửa tay.
+ * F-07: Loại bỏ timestamp để đảm bảo 100% tất định (Deterministic output).
  */
 function matrix(root, options) {
   const { testCases, realTests } = collect(root, options);
@@ -476,7 +607,7 @@ function matrix(root, options) {
     '# Ma Trận Truy Vết Kiểm Thử (Traceability Matrix)',
     '',
     '<!-- AUTO-GENERATED FILE. DO NOT EDIT MANUALLY. -->',
-    `<!-- Sinh tự động lúc: ${new Date().toISOString()} bằng lệnh: npm run qa:matrix -->`,
+    '<!-- Sinh tự động bằng lệnh: npm run qa:matrix -->',
     '',
     'Bảng tổng hợp sống đối chiếu giữa Requirement, Acceptance Criteria, Test Case và Playwright script.',
     '',
@@ -488,11 +619,24 @@ function matrix(root, options) {
   for (const link of testCases.links) {
     const isAuto = automatedTcIds.has(link.tcId);
     let statusText = link.automation || 'No';
-    if (link.automation === 'Yes') {
+    if (link.automation === null) {
+      statusText = '(KHÔNG ĐỌC ĐƯỢC)';
+    } else if (link.automation === 'Yes') {
       statusText = isAuto ? 'Yes (Automated)' : 'Yes (Thiếu script)';
     }
+
     const specs = specsByTc.get(link.tcId) || [];
-    const specCol = specs.length > 0 ? specs.map((s) => `\`${s}\``).join('<br>') : (link.spec ? `\`${link.spec}\`` : '-');
+    let specCol = '-';
+    if (specs.length > 0) {
+      specCol = specs.map((s) => `\`${s}\``).join('<br>');
+    } else if (link.spec) {
+      // Chuẩn hoá đường dẫn cột Spec về dạng tương đối từ gốc repo
+      let normalizedSpec = link.spec;
+      if (normalizedSpec.startsWith('tests/')) {
+        normalizedSpec = `${(options && options.projectDir) || 'playwright'}/${normalizedSpec}`;
+      }
+      specCol = `\`${normalizedSpec}\``;
+    }
 
     lines.push(
       `| ${link.reqId} | ${link.acId} | ${link.tcId} | ${statusText} | ${specCol} | ${link.priority || '-'} |`

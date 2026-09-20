@@ -278,6 +278,14 @@ function main() {
       message: `Nhóm own có ${hub.missing.join(', ')} nhưng FORBIDDEN_SYNC_MODULES của Hub chưa có -> Hub có thể ghi đè business.`,
     });
   }
+  if (hub && hub.notCompared) {
+    problems.push({
+      kind: 'khong-doi-chieu-duoc-hub',
+      severity: 'major',
+      where: hub.hubScript,
+      message: '0 mục có hubModule để đối chiếu với Hub. sync-manifest.json cần khai hubModule cho các mục own.',
+    });
+  }
 
   if (asJson) {
     console.log(JSON.stringify({ problems, hub, counts: countByCategory(manifest) }, null, 2));
@@ -285,7 +293,8 @@ function main() {
     printHuman(manifest, problems, hub);
   }
 
-  if (strict && problems.length > 0) process.exitCode = 1;
+  const hasBlocking = problems.some((p) => p.severity === 'blocker' || p.severity === 'major');
+  if (strict && hasBlocking) process.exitCode = 1;
 }
 
 function countByCategory(manifest) {
@@ -307,10 +316,14 @@ function printHuman(manifest, problems, hub) {
   }
 
   if (hub) {
-    const ok = hub.missing.length === 0;
-    console.log(
-      `${ok ? green('OK') : red('LỆCH')} Đối chiếu Hub: FORBIDDEN_SYNC_MODULES = [${hub.forbidden.join(', ')}]`,
-    );
+    if (hub.notCompared) {
+      console.log(yellow('CẢNH BÁO') + ' Đối chiếu Hub: 0 mục có hubModule, không đối chiếu được gì.');
+    } else {
+      const ok = hub.missing.length === 0;
+      console.log(
+        `${ok ? green('OK') : red('LỆCH')} Đối chiếu Hub: FORBIDDEN_SYNC_MODULES = [${hub.forbidden.join(', ')}]`,
+      );
+    }
   } else {
     console.log(dim('(Không tìm thấy Hub để đối chiếu — đặt HUB_SYNC_SCRIPT nếu cần)'));
   }
@@ -323,7 +336,10 @@ function printHuman(manifest, problems, hub) {
   console.log(bold(`${problems.length} vấn đề\n`));
   const rank = { blocker: 3, major: 2, minor: 1 };
   for (const p of [...problems].sort((a, b) => rank[b.severity] - rank[a.severity])) {
-    const tag = p.severity === 'blocker' ? red('BLOCKER') : yellow('MAJOR  ');
+    const tag =
+      p.severity === 'blocker' ? red('BLOCKER') :
+      p.severity === 'major' ? yellow('MAJOR  ') :
+      dim('MINOR  ');
     console.log(`${tag} ${bold(p.kind)}`);
     console.log(`        ${p.message}`);
     console.log(`        ${dim(p.where)}\n`);

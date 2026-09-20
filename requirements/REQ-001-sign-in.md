@@ -105,8 +105,8 @@ Session hết hạn sau 24 giờ không hoạt động.
 
 | Field/rule | Valid | Invalid | Boundary | Expected | Test cases |
 |---|---|---|---|---|---|
-| Email | `user@example.com` | `not-an-email`, rỗng | 254 ký tự (max), 255 | Lỗi validation tại trường, không submit | TC-004 |
-| Password | 8-64 ký tự | rỗng, 7 ký tự | 8, 64, 65 | 7 và 65 -> lỗi validation; 8 và 64 -> chấp nhận | TC-012 |
+| Email | `user@example.com` | `not-an-email`, rỗng | 254 ký tự (max), 255 | Lỗi validation tại trường, không submit | TC-004, TC-014 |
+| Password | 8-64 ký tự | rỗng, 7 ký tự | 8, 64, 65 | 7 và 65 -> lỗi validation; 8 và 64 -> chấp nhận | TC-012, TC-015 |
 | Failed attempts | 1-5 | - | 5, 6 | Lần 6 -> khoá 15 phút (AC-007) | TC-009 |
 | Session idle | < 24h | - | 24h, 24h+1m | Quá 24h -> đẩy về `/login` | TC-010 |
 
@@ -140,7 +140,7 @@ Nếu dev chưa thêm, TC-004 chưa chạy được — xem `docs/selector-conve
 ## Gaps found from automation
 
 - Untested behavior: session hết hạn sau 24h (AC-004) — chưa có cách tua thời gian ở môi trường test.
-- Weak or missing assertion: chưa assert thuộc tính cookie (`HttpOnly`, `Secure`, `SameSite`).
+- Weak or missing assertion: đã bổ sung assertion thuộc tính cookie session (`HttpOnly`, `Secure`, `SameSite`) qua `TC-013`.
 - Hard-coded or unsafe test data: không có — toàn bộ credential đi qua `requireEnv()`.
 - Hidden dependency/setup: `tests/auth.setup.ts` giả định login thành công; nếu tài khoản bị khoá
   bởi AC-007 thì toàn bộ suite fail theo. Cần tài khoản riêng cho test AC-007.

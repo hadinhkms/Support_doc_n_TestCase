@@ -7,19 +7,21 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 | Requirement | Acceptance criterion | Test case | Automation | Spec | Priority |
 |---|---|---|---|---|---|
-| REQ-001 | AC-001 | TC-001 | Yes | `tests/auth/login.spec.ts` | P0 |
-| REQ-001 | AC-002 | TC-002 | Yes | `tests/auth/login.spec.ts` | P1 |
-| REQ-001 | AC-002 | TC-003 | Yes | `tests/auth/login.spec.ts` | P1 |
-| REQ-001 | AC-003 | TC-004 | Yes | `tests/auth/login.spec.ts` | P2 |
-| REQ-001 | AC-004 | TC-005 | Yes | `tests/auth/login.spec.ts` | P1 |
-| REQ-001 | AC-005 | TC-006 | Yes | `tests/auth/login.spec.ts` | P0 |
-| REQ-001 | AC-006 | TC-007 | Yes | `tests/a11y/login.a11y.spec.ts` | P2 |
-| REQ-001 | AC-006 | TC-008 | Yes | `tests/a11y/login.a11y.spec.ts` | P2 |
+| REQ-001 | AC-001 | TC-001 | Yes | `playwright/tests/auth/login.spec.ts` | P0 |
+| REQ-001 | AC-002 | TC-002 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-002 | TC-003 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-003 | TC-004 | Yes | `playwright/tests/auth/login.spec.ts` | P2 |
+| REQ-001 | AC-004 | TC-005 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-005 | TC-006 | Yes | `playwright/tests/auth/login.spec.ts` | P0 |
+| REQ-001 | AC-006 | TC-007 | Yes | `playwright/tests/a11y/login.a11y.spec.ts` | P2 |
+| REQ-001 | AC-006 | TC-008 | Yes | `playwright/tests/a11y/login.a11y.spec.ts` | P2 |
 | REQ-001 | AC-007 | TC-009 | No | - | P1 |
 | REQ-001 | AC-004 | TC-010 | No | - | P2 |
 | REQ-001 | AC-006 | TC-011 | No | - | P2 |
 | REQ-001 | AC-002 | TC-012 | Candidate | - | P2 |
-| REQ-001 | AC-001 | TC-013 | Yes | `tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-001 | TC-013 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-003 | TC-014 | Candidate | - | P2 |
+| REQ-001 | AC-002 | TC-015 | Candidate | - | P2 |
 
 ## Test data and environment
 
@@ -174,6 +176,29 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 | Step | Action | Expected result |
 |---|---|---|
 | 1 | Đăng nhập thành công, đọc cookie session | Có `HttpOnly`, `Secure`, `SameSite=Lax` |
+
+### TC-014: Kiểm thử độ dài email tại các điểm biên (254 và 255 ký tự)
+
+- Type: Functional | Priority: P2 | Technique: BVA
+- Automation: Candidate | Tags: `@wip @p2`
+- Preconditions: Form đăng nhập hiển thị
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Nhập email đúng định dạng dài 254 ký tự (max hợp lệ) | Trường hợp lệ, cho phép submit |
+| 2 | Nhập email dài 255 ký tự | Báo lỗi validation độ dài tại trường |
+
+### TC-015: Kiểm thử độ dài mật khẩu tại các điểm biên mở rộng (7, 8, 64, 65 ký tự)
+
+- Type: Functional | Priority: P2 | Technique: BVA
+- Automation: Candidate | Tags: `@wip @p2`
+- Preconditions: Form đăng nhập hiển thị
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Nhập password 7 ký tự | Lỗi validation độ dài |
+| 2 | Nhập password 8 và 64 ký tự | Chấp nhận hợp lệ |
+| 3 | Nhập password 65 ký tự | Lỗi validation độ dài |
 
 ## Case không automation
 

@@ -11,10 +11,16 @@ Chạy ở **thư mục gốc**:
 
 | Lệnh | Dùng khi |
 |---|---|
+| `npm test` | Chạy 100% unit test của toàn bộ `tools/` (Node.js core) |
 | `npm run qa:impact -- REQ-xxx` | Trước khi sửa: biết requirement đó ràng buộc file nào |
-| `npm run qa:gaps` | Biết chỗ nào chưa có script |
+| `npm run qa:gaps` | Biết chỗ nào chưa có script hoặc thiếu test biên |
 | `npm run qa:coverage` | Xem toàn cảnh REQ -> AC -> TC -> script |
+| `npm run qa:matrix` | Tự động sinh/cập nhật ma trận truy vết (`traceability.md`) |
+| `npm run qa:scaffold` | Tự động sinh bộ 3 file REQ/TC/Spec hoặc reverse từ spec |
+| `npm run qa:drift` | Phát hiện liên kết truy vết bị mục/lệch |
+| `npm run qa:boundary` | Kiểm tra ranh giới đồng bộ Hub <-> Project |
 | `npm run qa:check` | Gate cuối: boundary + drift + gaps (giống CI) |
+| `npm run decisions` | Quản lý và render nhật ký quyết định kỹ thuật |
 
 Chạy trong **`playwright/`**:
 

@@ -124,11 +124,13 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
       const cookies = await page.context().cookies();
       const session = cookies.find((cookie) => /session|sid|token/i.test(cookie.name));
 
+      // Lưu ý: Thuộc tính Secure và SameSite có thể không được bật trên môi trường dev http://localhost.
+      // Dùng expect.soft để ghi nhận gap cấu hình mà không làm fail cứng test flow chính.
       expect(session, `không thấy cookie session trong: ${cookies.map((c) => c.name).join(', ')}`)
         .toBeDefined();
       expect.soft(session?.httpOnly, 'HttpOnly chặn JavaScript đọc cookie').toBe(true);
-      expect.soft(session?.secure, 'Secure chặn gửi cookie qua HTTP').toBe(true);
-      expect.soft(session?.sameSite, 'SameSite chặn gửi cookie khi bị CSRF').toBe('Lax');
+      expect.soft(session?.secure, 'Secure chặn gửi cookie qua HTTP (có thể fail trên http://localhost)').toBe(true);
+      expect.soft(session?.sameSite, 'SameSite chặn gửi cookie khi bị CSRF (có thể fail trên http://localhost)').toBe('Lax');
     },
   );
 });

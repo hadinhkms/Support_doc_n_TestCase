@@ -95,17 +95,21 @@ npm run report           # mở HTML report
 npm run verify           # typecheck + lint + test:list (dùng trước khi mở PR)
 ```
 
-## Traceability analyzer
+## Traceability analyzer & Tools
 
-Chạy ở thư mục gốc. Trả lời hai câu hỏi chính của bộ khung này:
+Chạy ở thư mục gốc:
 
 ```powershell
-npm run qa:coverage            # REQ -> AC -> TC -> script, AC nào chưa phủ
-npm run qa:gaps                # NÊN THÊM script nào
-npm run qa:impact -- REQ-001   # requirement đổi thì PHẢI SỬA file nào
-npm run qa:drift               # traceability mục ở đâu
-npm run qa:boundary            # ranh giới Hub <-> project còn khớp không
-npm run qa:check               # boundary + drift + gaps --strict, dùng cho CI gate
+npm test                        # chạy 100% unit tests của tools/ (Node.js core)
+npm run qa:coverage             # REQ -> AC -> TC -> script, AC nào chưa phủ
+npm run qa:gaps                 # NÊN THÊM script nào hoặc thiếu test biên
+npm run qa:impact -- REQ-001    # requirement đổi thì PHẢI SỬA file nào
+npm run qa:drift                # traceability mục ở đâu
+npm run qa:matrix               # tự động tạo/cập nhật ma trận truy vết (traceability.md)
+npm run qa:scaffold             # tự động sinh bộ 3 file REQ/TC/Spec hoặc reverse từ spec
+npm run qa:boundary             # ranh giới Hub <-> project còn khớp không
+npm run qa:check                # boundary + drift + gaps --strict, dùng cho CI gate
+npm run decisions               # quản lý và render nhật ký quyết định kỹ thuật
 ```
 
 Tool đọc front-matter của requirement, bảng `## Traceability` của test case và
@@ -130,8 +134,9 @@ Chi tiết và **giới hạn** ở [tools/qa/README.md](tools/qa/README.md).
 - **Nightly (01:00 ICT)** → chạy đầy đủ trên chromium + firefox + webkit.
 - **Thủ công** → `workflow_dispatch`, nhập tag muốn chạy.
 
-Job `traceability` chạy `qa:check` và chặn merge nếu traceability mục hoặc có gap
-nghiêm trọng. Job này không cần môi trường app.
+Job `traceability` chạy `npm test` cho bộ `tools/`, kiểm tra tính cập nhật của ma trận `traceability.md`, và chạy `qa:check` để chặn merge nếu ranh giới bị phá hoặc traceability có gap nghiêm trọng. Job này hoàn toàn zero-dependency và không cần môi trường app.
+
+Job `e2e` cần biến môi trường `BASE_URL` trỏ tới môi trường thật (staging/test) đang chạy, do `playwright.config.ts` không cấu hình `webServer` cục bộ. Job sẽ fail nếu `BASE_URL` chưa được cung cấp.
 
 Report của các shard được gộp lại và upload dưới dạng artifact `playwright-html-report`.
 

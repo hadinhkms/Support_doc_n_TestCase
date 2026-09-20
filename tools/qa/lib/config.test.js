@@ -166,3 +166,16 @@ test('JSON hợp lệ nhưng không phải object (mảng / null / chuỗi) -> n
     });
   }
 });
+
+test('checkBoundaryRules: mặc định true, ghi đè boolean hợp lệ, từ chối non-boolean', () => {
+  withRepo({}, (root) => {
+    assert.equal(loadConfig(root).checkBoundaryRules, true);
+  });
+  withConfig('{ "checkBoundaryRules": false }', (root) => {
+    assert.equal(loadConfig(root).checkBoundaryRules, false);
+  });
+  withConfig('{ "checkBoundaryRules": "true" }', (root) => {
+    assert.throws(() => loadConfig(root), /phải là boolean/);
+  });
+});
+

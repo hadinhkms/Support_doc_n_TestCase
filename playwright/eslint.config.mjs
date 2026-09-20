@@ -45,7 +45,7 @@ export default tseslint.config(
       'playwright/valid-expect': 'error',
 
       // Chặn test bị tắt âm thầm.
-      'playwright/no-skipped-test': ['warn', { allowConditional: true }],
+      'playwright/no-skipped-test': ['error', { allowConditional: true }],
 
       'no-restricted-syntax': [
         'error',

@@ -13,7 +13,7 @@
     "test:debug": "playwright test --debug",
     "test:list": "playwright test --list",
     "report": "playwright show-report",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "verify": "npm run typecheck && npm run lint && npm run test:list"

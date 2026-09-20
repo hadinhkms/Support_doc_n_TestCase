@@ -672,3 +672,140 @@ test('matrix: sinh file traceability.md với đầy đủ cột và đúng số
     assert.match(content, /TC-002.*Yes \(Automated\)/);
   });
 });
+
+test('matrix: hoàn toàn tất định (không có timestamp, 2 lần sinh cho kết quả byte khớp 100%)', () => {
+  withRepo(DOCS, (root) => {
+    matrix(root, opts(CLEAN_TESTS));
+    const traceFile = path.join(root, 'test-cases/traceability.md');
+    const content1 = fs.readFileSync(traceFile, 'utf8');
+    assert.equal(content1.includes('Sinh tự động lúc:'), false, 'không được chứa timestamp ISO');
+
+    // Chạy lại lần 2
+    matrix(root, opts(CLEAN_TESTS));
+    const content2 = fs.readFileSync(traceFile, 'utf8');
+    assert.equal(content1, content2, 'hai lần sinh phải cho byte giống hệt nhau');
+  });
+});
+
+test('gaps: hai file cùng id REQ -> ma-req-trung mức blocker', () => {
+  const repo = {
+    ...DOCS,
+    'requirements/REQ-001-dup.md': REQ.replace('title: Đăng nhập', 'title: Đăng nhập bản sao'),
+  };
+  withRepo(repo, (root) => {
+    const findings = gaps(root, opts(CLEAN_TESTS));
+    const f = findings.find((x) => x.kind === 'ma-req-trung');
+    assert.ok(f, 'phải có finding ma-req-trung');
+    assert.equal(f.severity, 'blocker');
+    assert.match(f.message, /REQ-001/);
+  });
+});
+
+test('gaps: trùng mã TC trong bảng traceability -> ma-tc-trung mức major', () => {
+  const dupTcDoc = TC.replace('| REQ-001 | AC-002 | TC-002 |', '| REQ-001 | AC-002 | TC-001 |');
+  const repo = {
+    ...DOCS,
+    'test-cases/REQ-001.md': dupTcDoc,
+  };
+  withRepo(repo, (root) => {
+    const findings = gaps(root, opts(CLEAN_TESTS));
+    const f = findings.find((x) => x.kind === 'ma-tc-trung');
+    assert.ok(f, 'phải có finding ma-tc-trung');
+    assert.equal(f.severity, 'major');
+    assert.match(f.message, /TC-001/);
+  });
+});
+
+test('gaps: trùng mã AC trong cùng một requirement -> ma-ac-trung mức major', () => {
+  const dupAcReq = mustReplace(REQ, '### AC-002: Sai mật khẩu bị từ chối', '### AC-001: Sai mật khẩu bị từ chối');
+  const repo = {
+    ...DOCS,
+    'requirements/REQ-001.md': dupAcReq,
+  };
+  withRepo(repo, (root) => {
+    const findings = gaps(root, opts(CLEAN_TESTS));
+    const f = findings.find((x) => x.kind === 'ma-ac-trung');
+    assert.ok(f, 'phải có finding ma-ac-trung');
+    assert.equal(f.severity, 'major');
+    assert.match(f.message, /AC-001/);
+  });
+});
+
+test('gaps: AC chỉ có script mang tag @wip -> ac-chi-co-script-wip mức minor', () => {
+  const wipTests = [
+    { ...spec('TC-001 - AC-001 valid'), tags: ['@REQ-001', '@wip'] },
+    { ...spec('TC-002 - AC-002 invalid'), tags: ['@REQ-001', '@wip'] },
+  ];
+  withRepo(DOCS, (root) => {
+    const findings = gaps(root, opts(wipTests));
+    const f = findings.find((x) => x.kind === 'ac-chi-co-script-wip');
+    assert.ok(f, 'phải có finding ac-chi-co-script-wip');
+    assert.equal(f.severity, 'minor');
+  });
+});
+
+test('drift: requirement Draft có script nhưng toàn bộ mang tag @wip -> requirement-moi-scaffold-chua-hoan-thien mức minor', () => {
+  const draftReq = REQ.replace('status: Ready for Test', 'status: Draft');
+  const wipTests = [
+    { ...spec('TC-001 - AC-001 valid'), tags: ['@REQ-001', '@wip'] },
+    { ...spec('TC-002 - AC-002 invalid'), tags: ['@REQ-001', '@wip'] },
+  ];
+  const repo = {
+    ...DOCS,
+    'requirements/REQ-001.md': draftReq,
+  };
+  withRepo(repo, (root) => {
+    const findings = drift(root, opts(wipTests));
+    const f = findings.find((x) => x.kind === 'requirement-moi-scaffold-chua-hoan-thien');
+    assert.ok(f, 'phải có finding requirement-moi-scaffold-chua-hoan-thien');
+    assert.equal(f.severity, 'minor');
+    const major = findings.find((x) => x.kind === 'requirement-draft-nhung-da-co-script');
+    assert.equal(major, undefined, 'không được báo major khi script toàn @wip');
+  });
+});
+
+test('gaps: rule có nhiều giá trị Invalid (phân tách bởi dấu phẩy) chỉ gán 1 TC -> rule-thieu-boundary-test', () => {
+  const repoWithMultiInvalid = {
+    ...DOCS,
+    'requirements/REQ-001.md': `---
+id: REQ-001
+title: Đăng nhập
+status: Ready for Test
+test_cases: test-cases/REQ-001.md
+---
+# REQ-001
+## Acceptance criteria
+### AC-001: Happy path
+### AC-002: Error
+## Rules and validation
+| Field/rule | Valid | Invalid | Boundary | Expected | Test cases |
+|---|---|---|---|---|---|
+| Email | user@example.com | missing-at, missing-domain, spaces | - | Báo lỗi định dạng | TC-002 |
+`,
+  };
+  withRepo(repoWithMultiInvalid, (root) => {
+    const findings = gaps(root, { ...opts(CLEAN_TESTS), checkBoundaryRules: true });
+    const f = findings.find((x) => x.kind === 'rule-thieu-boundary-test');
+    assert.ok(f, 'phải có finding rule-thieu-boundary-test khi Invalid có nhiều giá trị');
+    assert.equal(f.severity, 'minor');
+    assert.match(f.message, /Email/);
+    assert.match(f.message, /nhiều giá trị không hợp lệ/);
+  });
+});
+
+test('gaps: spec khai đường dẫn không tồn tại -> spec-khong-ton-tai mức major', () => {
+  const ghostSpecTc = mustReplace(TC, '`tests/login.spec.js`', '`tests/ghost-file.spec.js`');
+  const repo = {
+    ...DOCS,
+    'test-cases/REQ-001.md': ghostSpecTc,
+  };
+  withRepo(repo, (root) => {
+    const findings = gaps(root, opts(CLEAN_TESTS));
+    const f = findings.find((x) => x.kind === 'spec-khong-ton-tai');
+    assert.ok(f, 'phải có finding spec-khong-ton-tai');
+    assert.equal(f.severity, 'major');
+    assert.match(f.message, /ghost-file\.spec\.js/);
+  });
+});
+
+
