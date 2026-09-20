@@ -21,7 +21,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const MANIFEST = path.join(ROOT, 'sync-manifest.json');
+// Tên file manifest để riêng: mọi hàm nhận `root` nên không được chốt cứng đường dẫn
+// tuyệt đối, nếu không tool chỉ chạy đúng cho repo chứa chính nó.
+const MANIFEST_FILE = 'sync-manifest.json';
+const manifestPathOf = (root) => path.join(root, MANIFEST_FILE);
 const CATEGORIES = ['ship', 'seed', 'own'];
 
 /** Thư mục/file không thuộc phạm vi phân loại. */
@@ -47,14 +50,15 @@ function isUnder(a, b) {
   return a === b || a.startsWith(b + '/');
 }
 
-function loadManifest() {
-  if (!fs.existsSync(MANIFEST)) {
-    return { error: `Không thấy ${path.relative(ROOT, MANIFEST)}` };
+function loadManifest(root = ROOT) {
+  const manifest = manifestPathOf(root);
+  if (!fs.existsSync(manifest)) {
+    return { error: `Không thấy ${path.relative(root, manifest)}` };
   }
   try {
-    return { manifest: JSON.parse(fs.readFileSync(MANIFEST, 'utf8')) };
+    return { manifest: JSON.parse(fs.readFileSync(manifest, 'utf8').replace(/^﻿/, '')) };
   } catch (err) {
-    return { error: `sync-manifest.json không phải JSON hợp lệ: ${err.message}` };
+    return { error: `${MANIFEST_FILE} không phải JSON hợp lệ: ${err.message}` };
   }
 }
 
@@ -62,11 +66,11 @@ function loadManifest() {
  * Liệt kê các mục cần phân loại. Tự động đi sâu vào thư mục nào có path được khai
  * bên trong nó, thay vì hard-code danh sách thư mục bị chia đôi.
  */
-function inventory(declaredPaths) {
+function inventory(declaredPaths, root = ROOT) {
   const out = [];
   const hasDeclaredInside = (rel) => declaredPaths.some((d) => d !== rel && isUnder(d, rel));
   const walk = (rel) => {
-    const abs = rel ? path.join(ROOT, rel) : ROOT;
+    const abs = rel ? path.join(root, rel) : root;
     for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
       if (IGNORED.has(entry.name)) continue;
       const child = rel ? `${rel}/${entry.name}` : entry.name;
@@ -78,7 +82,7 @@ function inventory(declaredPaths) {
   return out;
 }
 
-function analyse(manifest) {
+function analyse(manifest, root = ROOT) {
   const problems = [];
   const declared = new Map(); // path -> [categories]
 
@@ -87,7 +91,7 @@ function analyse(manifest) {
       const p = norm(item.path);
       if (!declared.has(p)) declared.set(p, []);
       declared.get(p).push(cat);
-      if (!fs.existsSync(path.join(ROOT, p))) {
+      if (!fs.existsSync(path.join(root, p))) {
         problems.push({
           kind: 'path-khong-ton-tai',
           severity: 'major',
@@ -135,7 +139,7 @@ function analyse(manifest) {
   const seenBusiness = new Set();
   const MAX_DEPTH = 8;
   const scanForBusiness = (rel, depth = 0) => {
-    const abs = path.join(ROOT, rel);
+    const abs = path.join(root, rel);
     let entries;
     try {
       entries = fs.readdirSync(abs, { withFileTypes: true });
@@ -170,12 +174,14 @@ function analyse(manifest) {
       scanForBusiness(child, depth + 1);
     }
   };
-  for (const root of syncedRoots) {
-    const abs = path.join(ROOT, root);
+  // Đặt tên `syncedRoot`: dùng lại `root` ở đây sẽ che mất tham số `root` của hàm,
+  // và mọi path bên trong vòng lặp sẽ tính từ nhầm gốc.
+  for (const syncedRoot of syncedRoots) {
+    const abs = path.join(root, syncedRoot);
     // `.` (gốc repo) khai là ship thì norm() phải cho ra chuỗi rỗng, nếu không mọi
     // `where` sinh ra sẽ mang tiền tố "./" và không khớp được với mục own nào.
     if (fs.existsSync(abs) && fs.statSync(abs).isDirectory()) {
-      scanForBusiness(root === '.' ? '' : root);
+      scanForBusiness(syncedRoot === '.' ? '' : syncedRoot);
     }
   }
 
@@ -183,7 +189,7 @@ function analyse(manifest) {
     for (const d of declared.keys()) if (isUnder(p, d)) return true;
     return false;
   };
-  const unclassified = inventory([...declared.keys()]).filter((p) => !classified(p));
+  const unclassified = inventory([...declared.keys()], root).filter((p) => !classified(p));
   for (const p of unclassified) {
     problems.push({
       kind: 'chua-phan-loai',
@@ -202,12 +208,12 @@ function analyse(manifest) {
  * Dò cả hai nơi: chỉ tìm đúng một file rồi bỏ cuộc sẽ khiến lớp kiểm tra này im lặng
  * không chạy, đúng lúc nó cần báo động nhất.
  */
-function crossCheckHub(manifest) {
+function crossCheckHub(manifest, root = ROOT) {
   const candidates = process.env.HUB_SYNC_SCRIPT
     ? [process.env.HUB_SYNC_SCRIPT]
     : [
-        path.resolve(ROOT, '..', '_Automation-Project', 'scripts', 'lib', 'sync-manifest.js'),
-        path.resolve(ROOT, '..', '_Automation-Project', 'scripts', 'sync-satellites.js'),
+        path.resolve(root, '..', '_Automation-Project', 'scripts', 'lib', 'sync-manifest.js'),
+        path.resolve(root, '..', '_Automation-Project', 'scripts', 'sync-satellites.js'),
       ];
 
   let hubScript = null;
@@ -346,4 +352,16 @@ function printHuman(manifest, problems, hub) {
   }
 }
 
-main();
+// Chỉ chạy khi gọi trực tiếp. Không có guard này thì mọi `require('tools/boundary')`
+// đều in cả báo cáo ra stdout và set exit code — nên `summary` từng phải tự đoán lại
+// trạng thái ranh giới thay vì gọi `analyse()` thật.
+if (require.main === module) main();
+
+module.exports = {
+  analyse,
+  loadManifest,
+  crossCheckHub,
+  countByCategory,
+  MANIFEST_FILE,
+  CATEGORIES,
+};

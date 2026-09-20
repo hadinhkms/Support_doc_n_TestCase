@@ -10,6 +10,9 @@ const crypto = require('node:crypto');
 const {
   slugify,
   parseArgs,
+  suggestNextReqId,
+  listExistingDomains,
+  runWizard,
   generateScaffold,
   inferFromSpec,
   generateRequirementContent,
@@ -334,3 +337,108 @@ test('inferFromSpec: ném lỗi khi spec không có cặp TC-AC', () => {
     fs.rmSync(tmpRoot, { recursive: true, force: true });
   }
 });
+
+test('suggestNextReqId: trả về REQ-001 khi thư mục trống hoặc không tồn tại', () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-suggest-empty-'));
+  try {
+    assert.equal(suggestNextReqId(path.join(tmpRoot, 'requirements')), 'REQ-001');
+    fs.mkdirSync(path.join(tmpRoot, 'requirements'));
+    assert.equal(suggestNextReqId(path.join(tmpRoot, 'requirements')), 'REQ-001');
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('suggestNextReqId: tự động tìm mã lớn nhất và cộng thêm 1', () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-suggest-seq-'));
+  try {
+    const reqDir = path.join(tmpRoot, 'requirements');
+    fs.mkdirSync(reqDir);
+    fs.writeFileSync(path.join(reqDir, 'REQ-001-sign-in.md'), '---\nid: REQ-001\n---\n');
+    fs.writeFileSync(path.join(reqDir, 'REQ-005-checkout.md'), '---\nid: REQ-005\n---\n');
+    assert.equal(suggestNextReqId(reqDir), 'REQ-006');
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('listExistingDomains: lọc đúng thư mục domain và loại bỏ thư mục hạ tầng', () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-domains-'));
+  try {
+    const testsDir = path.join(tmpRoot, 'playwright', 'tests');
+    fs.mkdirSync(path.join(testsDir, 'auth'), { recursive: true });
+    fs.mkdirSync(path.join(testsDir, 'billing'), { recursive: true });
+    fs.mkdirSync(path.join(testsDir, 'pages'), { recursive: true });
+    fs.mkdirSync(path.join(testsDir, 'fixtures'), { recursive: true });
+
+    const domains = listExistingDomains(path.join(tmpRoot, 'playwright'));
+    assert.deepEqual(domains.sort(), ['auth', 'billing']);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('runWizard: hoàn tất sinh 3 file khi người dùng nhập thông tin và xác nhận', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-wizard-ok-'));
+
+  try {
+    const reqDir = path.join(tmpRoot, 'requirements');
+    fs.mkdirSync(reqDir, { recursive: true });
+    fs.writeFileSync(path.join(reqDir, 'REQ-001-sign-in.md'), '---\nid: REQ-001\n---\n');
+
+    const answers = [
+      '', // 1. REQ ID (Enter -> chọn mặc định REQ-002)
+      'Đổi mật khẩu', // 2. Tiêu đề
+      '', // 3. Slug (Enter -> chọn mặc định doi-mat-khau)
+      '1', // 4. Domain
+      '3', // 5. AC count
+      'y', // 6. Confirm
+    ];
+    const promptFn = async () => answers.shift();
+
+    const res = await runWizard({
+      root: tmpRoot,
+      config: { requirementsDir: 'requirements', testCasesDir: 'test-cases', projectDir: 'playwright' },
+      promptFn,
+      output: { write() {} },
+    });
+
+    assert.ok(res);
+    assert.equal(res.ok, true);
+    assert.equal(res.created.length, 3);
+    assert.ok(fs.existsSync(path.join(tmpRoot, 'requirements/REQ-002-doi-mat-khau.md')));
+    assert.ok(fs.existsSync(path.join(tmpRoot, 'test-cases/REQ-002-doi-mat-khau.md')));
+    assert.ok(fs.existsSync(path.join(tmpRoot, 'playwright/tests/auth/doi-mat-khau.spec.ts')));
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+
+test('runWizard: hủy và không tạo file khi người dùng từ chối', async () => {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-wizard-cancel-'));
+
+  try {
+    const answers = [
+      'REQ-002',
+      'Đổi mật khẩu',
+      '',
+      '1',
+      '2',
+      'n',
+    ];
+    const promptFn = async () => answers.shift();
+
+    const res = await runWizard({
+      root: tmpRoot,
+      config: { requirementsDir: 'requirements', testCasesDir: 'test-cases', projectDir: 'playwright' },
+      promptFn,
+      output: { write() {} },
+    });
+
+    assert.equal(res, null);
+    assert.equal(fs.existsSync(path.join(tmpRoot, 'requirements/REQ-002-doi-mat-khau.md')), false);
+  } finally {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  }
+});
+

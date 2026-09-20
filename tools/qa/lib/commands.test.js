@@ -13,7 +13,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { coverage, gaps, impact, drift, matrix } = require('./commands');
+const { coverage, gaps, impact, drift, matrix, summary } = require('./commands');
 
 function makeRepo(files) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-commands-'));
@@ -52,13 +52,14 @@ function spec(title, opts = {}) {
     tcId: m ? m[1] : null,
     acId: m ? m[2] : null,
     reqId,
-    tags: reqId ? [reqId] : [],
+    tags: 'tags' in opts ? opts.tags : (reqId ? [reqId] : []),
     file,
     path: file,
     isSetup: Boolean(opts.isSetup),
     line: opts.line || 7,
     assertionCount: 'assertionCount' in opts ? opts.assertionCount : 1,
     isSkipped: Boolean(opts.isSkipped),
+    missingAwaits: opts.missingAwaits || [],
   };
 }
 
@@ -808,4 +809,187 @@ test('gaps: spec khai đường dẫn không tồn tại -> spec-khong-ton-tai m
   });
 });
 
+test('summary: trả về đúng cấu trúc schema và các metrics cơ bản', () => {
+  withRepo(DOCS, (root) => {
+    const res = summary(root, opts(CLEAN_TESTS));
+    assert.equal(res.schemaVersion, '1.0.0');
+    assert.ok(res.timestamp);
+    assert.equal(typeof res.metrics.coveragePercent, 'number');
+    assert.equal(res.metrics.requirements, 1);
+    assert.equal(res.metrics.acceptanceCriteria, 2);
+    assert.ok(res.health);
+    assert.ok(res.boundary);
+    assert.ok(res.decisions);
+    assert.ok(Array.isArray(res.findings));
+  });
+});
 
+test('summary: phân loại HEALTHY khi không có blocker/major và decisions sạch', () => {
+  // Manifest phải khai đúng những gì DOCS tạo ra. Trước đây test dùng manifest RỖNG
+  // và vẫn xanh, vì summary() không hề chạy analyse() — chính là lỗi đang sửa.
+  const cleanManifest = JSON.stringify({
+    ship: [],
+    seed: [],
+    own: [
+      { path: 'requirements', reason: 'x' },
+      { path: 'test-cases', reason: 'x' },
+      { path: 'decisions.json', reason: 'x' },
+    ],
+  });
+  const repo = {
+    ...DOCS,
+    'sync-manifest.json': cleanManifest,
+    'decisions.json': JSON.stringify({ decisions: [{ id: 'D-1', severity: 'soon', answer: { optionId: 'opt-1' } }] }),
+  };
+  withRepo(repo, (root) => {
+    const res = summary(root, opts(CLEAN_TESTS));
+    assert.equal(res.health.status, 'HEALTHY');
+    assert.equal(res.systemHealth, 'HEALTHY');
+  });
+});
+
+test('summary: phân loại WARNING khi có major finding hoặc blocking decision chờ duyệt', () => {
+  const repo = {
+    ...DOCS,
+    'sync-manifest.json': JSON.stringify({
+      ship: [],
+      seed: [],
+      own: [
+      { path: 'requirements', reason: 'x' },
+      { path: 'test-cases', reason: 'x' },
+      { path: 'decisions.json', reason: 'x' },
+    ],
+    }),
+    'decisions.json': JSON.stringify({ decisions: [{ id: 'D-1', severity: 'blocking', answer: null }] }),
+  };
+  withRepo(repo, (root) => {
+    const res = summary(root, opts(CLEAN_TESTS));
+    assert.equal(res.health.status, 'WARNING');
+    assert.equal(res.systemHealth, 'WARNING');
+    assert.equal(res.decisions.blocking, 1);
+  });
+});
+
+test('gaps: phát hiện finding assertion-thieu-await khi matcher async thiếu await', () => {
+  withRepo(DOCS, (root) => {
+    const testsWithMissingAwait = [
+      ...CLEAN_TESTS,
+      spec('TC-004 - AC-001 kiểm tra thiếu await', {
+        missingAwaits: [{ line: 20, text: "expect(page.locator('#btn')).toBeVisible();" }],
+      }),
+    ];
+    const findings = gaps(root, opts(testsWithMissingAwait));
+    const f = findings.find((x) => x.kind === 'assertion-thieu-await');
+    assert.ok(f, 'phải có finding assertion-thieu-await');
+    assert.equal(f.severity, 'major');
+    assert.match(f.message, /thiếu "await"/);
+  });
+});
+
+test('collect/coverage: bộ lọc filterReq chỉ tính requirement được chỉ định', () => {
+  const repoWithTwoReqs = {
+    ...DOCS,
+    'requirements/REQ-002.md': '---\nid: REQ-002\ntitle: Hai\nstatus: Approved\n---\n\n### AC-001\n',
+    'test-cases/REQ-002.md': '# TC 2\n\n## Traceability\n| Req | AC | TC | Status | Spec | Priority |\n| :--- | :--- | :--- | :--- | :--- | :--- |\n| REQ-002 | AC-001 | TC-020 | Yes | `tests/two.spec.js` | P1 |\n',
+  };
+  withRepo(repoWithTwoReqs, (root) => {
+    const res = coverage(root, { ...opts(CLEAN_TESTS), filterReq: 'REQ-002' });
+    assert.equal(res.requirements, 1);
+    assert.equal(res.rows[0].reqId, 'REQ-002');
+  });
+});
+
+test('collect/coverage: bộ lọc filterDomain chỉ tính các test thuộc domain', () => {
+  const tests = [
+    spec('TC-001 - AC-001 login', { file: 'playwright/tests/auth/login.spec.js' }),
+    spec('TC-002 - AC-002 cart', { file: 'playwright/tests/cart/cart.spec.js' }),
+  ];
+  withRepo(DOCS, (root) => {
+    const res = coverage(root, { ...opts(tests), filterDomain: 'auth' });
+    const tcIds = res.rows.flatMap((r) => r.testCases);
+    assert.ok(tcIds.includes('TC-001'));
+  });
+});
+
+test('collect/coverage: bộ lọc filterTag chỉ tính các test có tag chỉ định', () => {
+  const tests = [
+    spec('TC-001 - AC-001 login', { tags: ['@smoke', 'REQ-001'] }),
+    spec('TC-002 - AC-002 other', { tags: ['@regression', 'REQ-001'] }),
+  ];
+  withRepo(DOCS, (root) => {
+    const res = coverage(root, { ...opts(tests), filterTag: '@smoke' });
+    const automatedIds = res.rows.flatMap((r) => r.automated);
+    assert.ok(automatedIds.includes('TC-001'));
+    assert.equal(automatedIds.includes('TC-002'), false);
+  });
+});
+
+
+
+
+// --- Plan 13 / fix 1: summary phải CHẠY kiểm tra ranh giới, không được mặc định ---
+// Bản cũ chỉ đếm số mục ship/seed/own rồi luôn báo 'ALIGNED', nên `boundary --strict`
+// exit 1 mà dashboard vẫn in đèn xanh.
+
+const MANIFEST_OK = JSON.stringify({
+  ship: [{ path: 'templates', reason: 'x' }],
+  seed: [{ path: 'qa.config.json', reason: 'x' }],
+  own: [{ path: 'requirements', reason: 'x' }, { path: 'test-cases', reason: 'x' }],
+});
+
+test('summary: manifest khớp thực tế -> boundary ALIGNED, không có problem', () => {
+  withRepo(
+    {
+      'sync-manifest.json': MANIFEST_OK,
+      'templates/a.md': 'x',
+      'qa.config.json': '{}',
+      'requirements/REQ-001-x.md': '---\nid: REQ-001\n---\n\n## AC-001: a\n',
+      'test-cases/REQ-001-x.md': '# t\n\n## Traceability\n\n| R | A | T | Au | S | P |\n|---|---|---|---|---|---|\n| REQ-001 | AC-001 | TC-001 | Yes | `x` | P0 |\n',
+    },
+    (root) => {
+      const res = summary(root, opts([
+        { tcId: 'TC-001', acId: 'AC-001', reqId: 'REQ-001', tags: ['@REQ-001'], path: 'x.spec.ts', line: 1, assertionCount: 1 },
+      ]));
+      assert.equal(res.boundary.status, 'ALIGNED');
+      assert.deepEqual(res.boundary.problems, []);
+      assert.equal(res.boundary.ownCount, 2);
+    },
+  );
+});
+
+test('summary: có thư mục business nằm trong vùng sync -> DRIFTED kèm lý do', () => {
+  withRepo(
+    {
+      'sync-manifest.json': MANIFEST_OK,
+      // `templates` là ship; nhét một thư mục business vào trong -> Hub sẽ ghi đè.
+      'templates/requirements/leak.md': 'x',
+      'qa.config.json': '{}',
+      'requirements/REQ-001-x.md': '---\nid: REQ-001\n---\n\n## AC-001: a\n',
+      'test-cases/REQ-001-x.md': '# t\n\n## Traceability\n\n| R | A | T | Au | S | P |\n|---|---|---|---|---|---|\n| REQ-001 | AC-001 | TC-001 | Yes | `x` | P0 |\n',
+    },
+    (root) => {
+      const res = summary(root, opts([
+        { tcId: 'TC-001', acId: 'AC-001', reqId: 'REQ-001', tags: ['@REQ-001'], path: 'x.spec.ts', line: 1, assertionCount: 1 },
+      ]));
+      assert.equal(res.boundary.status, 'DRIFTED');
+      assert.ok(res.boundary.problems.some((p) => p.kind === 'business-nam-trong-vung-sync'));
+      // Ranh giới hỏng phải kéo sức khoẻ hệ thống xuống, không chỉ đổi một nhãn.
+      assert.equal(res.health.status, 'CRITICAL');
+    },
+  );
+});
+
+test('summary: thiếu sync-manifest.json -> MISSING, không phải ALIGNED', () => {
+  withRepo(
+    {
+      'requirements/REQ-001-x.md': '---\nid: REQ-001\n---\n\n## AC-001: a\n',
+      'test-cases/REQ-001-x.md': '# t\n\n## Traceability\n\n| R | A | T | Au | S | P |\n|---|---|---|---|---|---|\n| REQ-001 | AC-001 | TC-001 | Yes | `x` | P0 |\n',
+    },
+    (root) => {
+      const res = summary(root, opts([
+        { tcId: 'TC-001', acId: 'AC-001', reqId: 'REQ-001', tags: ['@REQ-001'], path: 'x.spec.ts', line: 1, assertionCount: 1 },
+      ]));
+      assert.equal(res.boundary.status, 'MISSING');
+    },
+  );
+});

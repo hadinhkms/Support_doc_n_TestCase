@@ -16,6 +16,8 @@
     "decisions:json": "node tools/decisions --json",
     "qa:matrix": "node tools/qa matrix",
     "qa:scaffold": "node tools/scaffold",
+    "qa:summary": "node tools/qa summary",
+    "qa:fix": "node tools/qa fix",
     "test": "node --test tools/",
     "test:watch": "node --test --watch tools/"
   },

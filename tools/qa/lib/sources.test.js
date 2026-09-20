@@ -18,7 +18,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { loadRequirements, loadTestCases, parseFrontMatter } = require('./sources');
+const { loadRequirements, loadTestCases, parseFrontMatter, findMissingAwaits } = require('./sources');
 
 function makeRepo(files) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-sources-'));
@@ -719,3 +719,50 @@ test('loadTestCases: file lưu kèm BOM + CRLF vẫn rút đủ links, details v
 // 4. listMarkdown không đệ quy: requirements/<thư mục con>/REQ-xxx.md bị bỏ qua.
 // 5. parseFrontMatter gọi trực tiếp trên text CRLF chưa chuẩn hoá trả data rỗng
 //    (readText mới là chỗ chuẩn hoá, nhưng hàm này được export ra ngoài).
+
+// --- Plan 13 / fix 2: bộ bắt thiếu await phải thấy cả locator viết inline ---------
+// Bản cũ dùng regex `expect\([^)]*\)` nên dừng ở `)` ĐẦU TIÊN, khiến
+// `expect(page.getByRole('button'))` không bao giờ khớp — đúng dạng phổ biến nhất.
+
+test('findMissingAwaits: bắt được expect có locator viết inline (ca từng bị bỏ sót)', () => {
+  const hits = findMissingAwaits(["expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();"], 1);
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].matcher, 'toBeVisible');
+  assert.equal(hits[0].line, 1);
+});
+
+test('findMissingAwaits: không báo khi đã có await hoặc return', () => {
+  assert.equal(findMissingAwaits(["await expect(page.getByRole('x')).toBeVisible();"], 1).length, 0);
+  assert.equal(findMissingAwaits(['return expect(page.locator("#a")).toHaveText("x");'], 1).length, 0);
+});
+
+test('findMissingAwaits: bỏ qua matcher đồng bộ, bắt matcher có .not', () => {
+  assert.equal(findMissingAwaits(['expect(cookies.length).toBeGreaterThan(0);'], 1).length, 0);
+  assert.equal(findMissingAwaits(['await expect.soft(s?.secure).toBe(true);'], 1).length, 0);
+  assert.equal(findMissingAwaits(['expect(page.getByTestId("x")).not.toBeVisible();'], 1).length, 1);
+});
+
+test('findMissingAwaits: dấu ngoặc nằm trong chuỗi không làm lệch bộ đếm', () => {
+  const hits = findMissingAwaits(['expect(page.getByRole("link", { name: "a(b)" })).toBeVisible();'], 1);
+  assert.equal(hits.length, 1);
+});
+
+test('findMissingAwaits: expect trải nhiều dòng — báo đúng dòng, không báo cái có await', () => {
+  const body = [
+    'await expect(page.getByRole("heading", {',
+    '  name: "Dashboard",',
+    '})).toBeVisible();',
+    'expect(page.getByRole("alert", {',
+    '  name: "Error",',
+    '})).toBeVisible();',
+  ];
+  const hits = findMissingAwaits(body, 10);
+  assert.equal(hits.length, 1);
+  assert.equal(hits[0].line, 13);
+});
+
+test('findMissingAwaits: danh sách matcher ghi đè được qua tham số', () => {
+  const custom = new Set(['toBeSomethingNew']);
+  assert.equal(findMissingAwaits(['expect(x).toBeSomethingNew();'], 1, custom).length, 1);
+  assert.equal(findMissingAwaits(['expect(x).toBeVisible();'], 1, custom).length, 0);
+});

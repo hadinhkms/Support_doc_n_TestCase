@@ -13,6 +13,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const readline = require('node:readline');
 
 let loadConfig;
 try {
@@ -46,6 +47,7 @@ function parseArgs(argv) {
     infer: null,
     force: false,
     json: false,
+    wizard: false,
   };
 
   for (let i = 0; i < argv.length; i++) {
@@ -62,13 +64,139 @@ function parseArgs(argv) {
     else if (arg === '--acs' && argv[i + 1]) flags.acs = parseInt(argv[++i], 10);
     else if (arg.startsWith('--domain=')) flags.domain = arg.slice(9);
     else if (arg === '--domain' && argv[i + 1]) flags.domain = argv[++i];
-    else if (arg.startsWith('--infer=')) flags.infer = arg.slice(8);
+    else if (arg === '--infer=' || arg.startsWith('--infer=')) flags.infer = arg.slice(8);
     else if (arg === '--infer' && argv[i + 1]) flags.infer = argv[++i];
+    else if (arg === '--wizard' || arg === '-w') flags.wizard = true;
     else {
       throw new Error(`Tùy chọn không hợp lệ: "${arg}". Chạy không cờ để xem hướng dẫn.`);
     }
   }
   return flags;
+}
+
+function suggestNextReqId(reqDir) {
+  if (!fs.existsSync(reqDir)) return 'REQ-001';
+  const files = fs.readdirSync(reqDir).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md');
+  const ids = [];
+  for (const file of files) {
+    const fullPath = path.join(reqDir, file);
+    try {
+      const content = fs.readFileSync(fullPath, 'utf8');
+      const m = content.match(/^id:\s*REQ-(\d+)/im);
+      if (m) {
+        ids.push(parseInt(m[1], 10));
+      }
+    } catch {
+      // ignore read error
+    }
+  }
+  if (ids.length === 0) return 'REQ-001';
+  const max = Math.max(...ids);
+  return `REQ-${String(max + 1).padStart(3, '0')}`;
+}
+
+function listExistingDomains(projectDir) {
+  const testsDir = path.join(projectDir, 'tests');
+  if (!fs.existsSync(testsDir)) return ['auth'];
+  const reserved = new Set(['support', 'fixtures', 'api', 'pages', 'data']);
+  try {
+    const entries = fs.readdirSync(testsDir, { withFileTypes: true });
+    const domains = entries
+      .filter((e) => e.isDirectory() && !reserved.has(e.name))
+      .map((e) => e.name);
+    return domains.length > 0 ? domains : ['auth'];
+  } catch {
+    return ['auth'];
+  }
+}
+
+async function runWizard({ root, config, input = process.stdin, output = process.stdout, promptFn = null }) {
+  let rl = null;
+  let ask = promptFn;
+  if (!ask) {
+    rl = readline.createInterface({ input, output });
+    ask = (q) => new Promise((resolve) => rl.question(q, resolve));
+  }
+
+  try {
+    const reqDir = path.resolve(root, config.requirementsDir || 'requirements');
+    const projectDir = path.resolve(root, config.projectDir || 'playwright');
+    const suggestedReq = suggestNextReqId(reqDir);
+    const existingDomains = listExistingDomains(projectDir);
+
+    output.write('\n🧙 === BỘ TỰ ĐỘNG KHỞI TẠO TRUY VẾT QA (SCAFFOLD WIZARD) ===\n\n');
+
+    // 1. Mã Requirement
+    const ansReq = (await ask(`1. Mã Requirement [Mặc định: ${suggestedReq}]: `)).trim();
+    const reqId = ansReq || suggestedReq;
+
+    // 2. Tiêu đề
+    let title = '';
+    while (!title) {
+      title = (await ask('2. Tiêu đề tính năng (Ví dụ: "Quên mật khẩu"): ')).trim();
+      if (!title) output.write('   ⚠️ Tiêu đề không được để trống!\n');
+    }
+
+    // 3. Slug
+    const defaultSlug = slugify(title);
+    const ansSlug = (await ask(`3. Slug định danh [Mặc định: ${defaultSlug}]: `)).trim();
+    const slug = ansSlug || defaultSlug;
+
+    // 4. Domain
+    output.write('4. Chọn Domain kiểm thử:\n');
+    existingDomains.forEach((dom, idx) => {
+      output.write(`   [${idx + 1}] ${dom}\n`);
+    });
+    output.write(`   [${existingDomains.length + 1}] Nhập domain mới...\n`);
+    const ansDomainChoice = (await ask(`   Chọn (1-${existingDomains.length + 1}) [Mặc định: 1]: `)).trim();
+    let domain = existingDomains[0] || 'auth';
+    const choiceNum = parseInt(ansDomainChoice, 10);
+    if (!isNaN(choiceNum) && choiceNum >= 1 && choiceNum <= existingDomains.length) {
+      domain = existingDomains[choiceNum - 1];
+    } else if (choiceNum === existingDomains.length + 1) {
+      const customDom = (await ask('   Nhập tên domain mới: ')).trim();
+      if (customDom) domain = slugify(customDom);
+    }
+
+    // 5. Số AC
+    const ansAcs = (await ask('5. Số lượng Acceptance Criteria (AC) [Mặc định: 2]: ')).trim();
+    const acCount = parseInt(ansAcs, 10) || 2;
+
+    // 6. Preview & Confirm
+    output.write('\n📋 Xem trước các file sẽ được sinh:\n');
+    output.write(`   + ${config.requirementsDir || 'requirements'}/${reqId}-${slug}.md\n`);
+    output.write(`   + ${config.testCasesDir || 'test-cases'}/${reqId}-${slug}.md\n`);
+    output.write(`   + ${config.projectDir || 'playwright'}/tests/${domain}/${slug}.spec.ts\n\n`);
+
+    const confirm = (await ask('👉 Bạn có muốn tạo các file này? (Y/n): ')).trim().toLowerCase();
+    if (confirm !== '' && confirm !== 'y' && confirm !== 'yes') {
+      output.write('\n❌ Đã hủy thao tác scaffold.\n\n');
+      if (rl) rl.close();
+      return null;
+    }
+
+    if (rl) rl.close();
+
+    const res = generateScaffold({
+      root,
+      reqId,
+      slug,
+      title,
+      acCount,
+      domain,
+      force: false,
+    });
+
+    output.write(`\n✅ Đã khởi tạo thành công bộ truy vết cho ${reqId}:\n`);
+    res.created.forEach((f) => output.write(`   + ${f}\n`));
+    output.write('\n💡 Lưu ý: File spec được sinh với test.fixme và tag @wip, test case ở trạng thái Candidate (P2).\n');
+    output.write('   qa:gaps/drift có thể báo "minor" (bình thường đối với file nháp vừa sinh).\n\n');
+
+    return res;
+  } catch (err) {
+    if (rl) rl.close();
+    throw err;
+  }
 }
 
 function findDuplicateReqId(reqDir, reqId, ignoreFilePath = null) {
@@ -447,11 +575,17 @@ function inferFromSpec({ root, specFile, force }) {
   };
 }
 
-function main() {
+async function main() {
   const flags = parseArgs(process.argv.slice(2));
   const root = path.resolve(__dirname, '..', '..');
+  const config = loadConfig(root);
 
   try {
+    if (flags.wizard || (!flags.req && !flags.infer && process.stdin.isTTY)) {
+      await runWizard({ root, config });
+      return;
+    }
+
     if (flags.infer) {
       const res = inferFromSpec({ root, specFile: flags.infer, force: flags.force });
       if (flags.json) console.log(JSON.stringify(res, null, 2));
@@ -470,10 +604,12 @@ function main() {
 
     if (!flags.req) {
       console.log('Cách dùng:');
+      console.log('  node tools/scaffold --wizard                                        (Giao diện hỏi đáp tương tác)');
       console.log('  node tools/scaffold --req REQ-002 --title "Đăng ký tài khoản" --acs 3');
       console.log('  node tools/scaffold --infer playwright/tests/auth/login.spec.ts');
       console.log('');
       console.log('Tùy chọn:');
+      console.log('  --wizard, -w      Chạy chế độ Wizard hỏi đáp từng bước');
       console.log('  --req=REQ-xxx     Mã requirement (bắt buộc)');
       console.log('  --title="..."     Tên tính năng');
       console.log('  --slug=...        Slug đường dẫn (mặc định suy từ title)');
@@ -514,13 +650,19 @@ function main() {
 }
 
 if (require.main === module) {
-  main();
+  main().catch((err) => {
+    console.error(`\n❌ Lỗi: ${err.message}\n`);
+    process.exitCode = 1;
+  });
 }
 
 module.exports = {
   slugify,
   parseArgs,
   findDuplicateReqId,
+  suggestNextReqId,
+  listExistingDomains,
+  runWizard,
   generateScaffold,
   inferFromSpec,
   generateRequirementContent,

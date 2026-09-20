@@ -12,6 +12,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadRequirements, loadTestCases, loadAutomatedTests } = require('./sources');
 
+/**
+ * Thang mức độ nghiêm trọng, khai MỘT lần cho cả bộ công cụ. Trước đây index.js giữ
+ * một bản sao riêng, nên thêm một mức mới ở đây mà quên sửa bên kia sẽ khiến `--strict`
+ * âm thầm xếp hạng khác với báo cáo in ra.
+ */
+const SEVERITY_RANK = { blocker: 3, major: 2, minor: 1 };
+
 /** Đường dẫn hiển thị của một test, đã được sources.js tính sẵn từ gốc repo. */
 function specPath(options, t) {
   return `${t.path || t.file}:${t.line}`;
@@ -41,12 +48,60 @@ function emptySpecFinding(testCases, automated, options) {
  */
 function collect(root, options) {
   const loadAutomated = (options && options.loadAutomated) || loadAutomatedTests;
-  const requirements = loadRequirements(root, options);
-  const testCases = loadTestCases(root, options);
+  let requirements = loadRequirements(root, options);
+  let testCases = loadTestCases(root, options);
   const automated = loadAutomated(root, options);
   // MỘT định nghĩa "test thật" cho cả bốn lệnh. Trước đây mỗi lệnh tự lọc một kiểu
   // nên coverage, gaps và impact bất đồng ý về việc file setup có phải test không.
-  const realTests = (automated.tests || []).filter((t) => !t.isSetup);
+  let realTests = (automated.tests || []).filter((t) => !t.isSetup);
+
+  if (options && (options.filterReq || options.filterDomain || options.filterTag)) {
+    if (options.filterReq) {
+      const targetReq = options.filterReq.toUpperCase();
+      requirements = requirements.filter((r) => r.id && r.id.toUpperCase() === targetReq);
+      testCases = {
+        ...testCases,
+        links: testCases.links.filter((l) => l.reqId && l.reqId.toUpperCase() === targetReq),
+      };
+      realTests = realTests.filter((t) => {
+        return (t.tags && t.tags.includes(`@${targetReq}`)) || (t.reqId && t.reqId.toUpperCase() === targetReq);
+      });
+    }
+    if (options.filterDomain) {
+      const dom = options.filterDomain.toLowerCase();
+      realTests = realTests.filter((t) => {
+        const p = (t.path || t.file || '').toLowerCase();
+        return p.includes(`/${dom}/`) || p.startsWith(`${dom}/`);
+      });
+      const activeTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
+      testCases = {
+        ...testCases,
+        links: testCases.links.filter((l) => {
+          const sp = (l.spec || '').toLowerCase();
+          return sp.includes(`/${dom}/`) || sp.startsWith(`${dom}/`) || activeTcIds.has(l.tcId);
+        }),
+      };
+      const activeReqIds = new Set(testCases.links.map((l) => l.reqId).filter(Boolean));
+      if (activeReqIds.size > 0) {
+        requirements = requirements.filter((r) => activeReqIds.has(r.id));
+      }
+    }
+    if (options.filterTag) {
+      const rawTag = options.filterTag;
+      const tag = rawTag.startsWith('@') ? rawTag : `@${rawTag}`;
+      realTests = realTests.filter((t) => t.tags && t.tags.includes(tag));
+      const activeTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
+      testCases = {
+        ...testCases,
+        links: testCases.links.filter((l) => activeTcIds.has(l.tcId)),
+      };
+      const activeReqIds = new Set(testCases.links.map((l) => l.reqId).filter(Boolean));
+      if (activeReqIds.size > 0) {
+        requirements = requirements.filter((r) => activeReqIds.has(r.id));
+      }
+    }
+  }
+
   return { requirements, testCases, automated, realTests };
 }
 
@@ -402,6 +457,17 @@ function gaps(root, options) {
         action: 'Gắn tag @wip hoặc phục hồi lại test nếu đã sẵn sàng.',
       });
     }
+    if (t.missingAwaits && t.missingAwaits.length > 0) {
+      for (const ma of t.missingAwaits) {
+        findings.push({
+          severity: 'major',
+          kind: 'assertion-thieu-await',
+          where: `${t.path || t.file}:${ma.line}`,
+          message: `${t.tcId || t.title} gọi matcher bất đồng bộ của Playwright mà thiếu "await": "${ma.text}". Test có nguy cơ pass giả hoặc flaky.`,
+          action: 'Thêm await trước expect(...).',
+        });
+      }
+    }
   }
 
   const empty = emptySpecFinding(testCases, automated, options);
@@ -655,4 +721,111 @@ function matrix(root, options) {
   };
 }
 
-module.exports = { coverage, gaps, impact, drift, matrix };
+function summary(root, options) {
+  const cov = coverage(root, options);
+  const gapsList = gaps(root, options);
+  const driftList = drift(root, options);
+
+  const allFindings = [...gapsList, ...driftList];
+  const blockerCount = allFindings.filter((f) => f.severity === 'blocker').length;
+  const majorCount = allFindings.filter((f) => f.severity === 'major').length;
+  const minorCount = allFindings.filter((f) => f.severity === 'minor').length;
+
+  let decisionsTotal = 0;
+  let decisionsPending = 0;
+  let decisionsBlocking = 0;
+  const decisionsPath = path.join(root, 'decisions.json');
+  if (fs.existsSync(decisionsPath)) {
+    try {
+      const dData = JSON.parse(fs.readFileSync(decisionsPath, 'utf8').replace(/^﻿/, ''));
+      if (dData && Array.isArray(dData.decisions)) {
+        decisionsTotal = dData.decisions.length;
+        const pendingList = dData.decisions.filter((d) => !d.answer || !d.answer.optionId);
+        decisionsPending = pendingList.length;
+        decisionsBlocking = pendingList.filter((d) => d.severity === 'blocking').length;
+      }
+    } catch {
+      // Bỏ qua lỗi parse decisions
+    }
+  }
+
+  // Gọi ĐÚNG hàm mà `node tools/boundary` dùng. Trước đây khối này chỉ ĐẾM số mục
+  // ship/seed/own rồi mặc định 'ALIGNED' mà không hề chạy kiểm tra nào — nên
+  // `boundary --strict` báo BLOCKER và exit 1 trong khi dashboard vẫn in ALIGNED.
+  // Một đèn xanh tính ra mà không chạy kiểm tra là chế độ hỏng tệ nhất ở repo này.
+  let boundaryStatus = 'ALIGNED';
+  let boundaryProblems = [];
+  let shipCount = 0;
+  let seedCount = 0;
+  let ownCount = 0;
+  const { loadManifest, analyse, countByCategory } = require('../../boundary');
+  const loaded = loadManifest(root);
+  if (loaded.error) {
+    // Thiếu file và file hỏng là hai chuyện khác nhau: đừng gộp thành một trạng thái.
+    boundaryStatus = fs.existsSync(path.join(root, 'sync-manifest.json')) ? 'DRIFTED' : 'MISSING';
+  } else {
+    const counts = countByCategory(loaded.manifest);
+    shipCount = counts.ship;
+    seedCount = counts.seed;
+    ownCount = counts.own;
+    boundaryProblems = analyse(loaded.manifest, root).problems;
+    const blocking = boundaryProblems.filter(
+      (p) => (SEVERITY_RANK[p.severity] || 0) >= SEVERITY_RANK.major,
+    );
+    if (blocking.length > 0) boundaryStatus = 'DRIFTED';
+  }
+
+  const acsCovered = cov.rows.filter((r) => r.automated && r.automated.length > 0).length;
+  const coveragePercent =
+    cov.acceptanceCriteria === 0 ? 0 : Number(((acsCovered / cov.acceptanceCriteria) * 100).toFixed(1));
+
+  const wipTestsCount = cov.rows.reduce((sum, r) => sum + (r.wip ? r.wip.length : 0), 0);
+  const candidateCount = cov.rows.reduce((sum, r) => sum + (r.candidates ? r.candidates.length : 0), 0);
+
+  let systemHealth = 'HEALTHY';
+  if (blockerCount > 0 || boundaryStatus === 'MISSING' || boundaryStatus === 'DRIFTED') {
+    systemHealth = 'CRITICAL';
+  } else if (majorCount > 0 || decisionsBlocking > 0) {
+    systemHealth = 'WARNING';
+  }
+
+  return {
+    schemaVersion: '1.0.0',
+    timestamp: new Date().toISOString(),
+    systemHealth,
+    metrics: {
+      requirements: cov.requirements,
+      acceptanceCriteria: cov.acceptanceCriteria,
+      coveredAcCount: acsCovered,
+      coveragePercent,
+      testCases: cov.testCases,
+      automatedTests: cov.automatedTests,
+      wipTests: wipTestsCount,
+      candidateTests: candidateCount,
+    },
+    health: {
+      status: systemHealth,
+      blockers: blockerCount,
+      majors: majorCount,
+      minors: minorCount,
+      totalFindings: allFindings.length,
+    },
+    boundary: {
+      status: boundaryStatus,
+      shipCount,
+      seedCount,
+      ownCount,
+      // Trả luôn danh sách vấn đề: một trạng thái DRIFTED không kèm lý do thì người
+      // đọc dashboard vẫn phải mở terminal chạy lại `node tools/boundary`.
+      problems: boundaryProblems,
+    },
+    decisions: {
+      total: decisionsTotal,
+      pending: decisionsPending,
+      blocking: decisionsBlocking,
+    },
+    findings: allFindings,
+  };
+}
+
+module.exports = { collect, coverage, gaps, impact, drift, matrix, summary, SEVERITY_RANK };

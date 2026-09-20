@@ -223,6 +223,84 @@ function loadTestCases(root, options = {}) {
  * REQ lấy từ tag (`test.describe(..., { tag: '@REQ-001' })`),
  * TC/AC lấy từ title (`TC-001 - AC-001 ...`, đã được ESLint ép).
  */
+/**
+ * Matcher bất đồng bộ của Playwright — gọi mà quên `await` thì assertion không bao giờ
+ * được chờ, test xanh giả. Để thành hằng số đặt tên và cho phép ghi đè qua
+ * `options.asyncMatchers`, vì danh sách này là API của Playwright chứ không phải
+ * quy ước của repo; Playwright thêm matcher mới thì không phải sửa code.
+ */
+const ASYNC_MATCHERS = new Set([
+  'toBeVisible', 'toBeHidden', 'toHaveText', 'toContainText', 'toBeEnabled',
+  'toBeDisabled', 'toHaveValue', 'toHaveValues', 'toBeChecked', 'toHaveCount',
+  'toHaveAttribute', 'toHaveURL', 'toHaveTitle', 'toBeAttached', 'toBeInViewport',
+  'toBeFocused', 'toBeEmpty', 'toBeEditable', 'toHaveClass', 'toHaveId',
+  'toHaveCSS', 'toHaveJSProperty', 'toHaveScreenshot', 'toHaveAccessibleName',
+  'toHaveAccessibleDescription', 'toHaveRole', 'toPass',
+]);
+
+/**
+ * Tìm dấu `)` đóng cho dấu `(` ở vị trí `open`, có nhận biết chuỗi và comment.
+ * Dùng regex `[^)]*` thay cho việc này là fail-open: nó dừng ở `)` ĐẦU TIÊN, nên
+ * `expect(page.getByRole('button'))` không bao giờ khớp — tức là bỏ lọt đúng dạng
+ * locator viết inline, dạng phổ biến nhất và cũng dễ quên `await` nhất.
+ */
+function matchingParen(text, open) {
+  let depth = 0;
+  let quote = null;
+  for (let i = open; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) {
+      if (ch === '\\') i++;
+      else if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "'" || ch === '"' || ch === '`') { quote = ch; continue; }
+    if (ch === '/' && text[i + 1] === '/') { // comment dòng
+      const nl = text.indexOf('\n', i);
+      if (nl === -1) return -1;
+      i = nl;
+      continue;
+    }
+    if (ch === '(') depth++;
+    else if (ch === ')') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+/**
+ * Quét thân một test, trả về các lời gọi `expect(...).<matcher bất đồng bộ>(...)`
+ * thiếu `await`/`return`. Quét trên toàn thân (đã nối dòng) nên bắt được cả
+ * `expect(...)` trải nhiều dòng.
+ */
+function findMissingAwaits(bodyLines, firstLineNo, asyncMatchers = ASYNC_MATCHERS) {
+  const text = bodyLines.join('\n');
+  const out = [];
+  const re = /\bexpect(?:\.soft)?\s*\(/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const open = text.indexOf('(', m.index);
+    const close = matchingParen(text, open);
+    if (close === -1) continue;
+    // Bỏ qua `.not`, `.resolves`, `.rejects` chen giữa để không bỏ lọt phủ định.
+    const after = text.slice(close + 1);
+    const tail = after.match(/^(?:\s*\.\s*(?:not|resolves|rejects))*\s*\.\s*([A-Za-z][A-Za-z0-9]*)\s*\(/);
+    if (!tail || !asyncMatchers.has(tail[1])) continue;
+    // `await`/`return` phải đứng NGAY trước expect. Kiểm cả dòng như trước đây sẽ
+    // bỏ sót `expect(a).toBeVisible(); await foo();` viết chung một dòng.
+    if (/\b(?:await|return|yield)\s*$/.test(text.slice(0, m.index))) continue;
+    const lineOffset = text.slice(0, m.index).split('\n').length - 1;
+    out.push({
+      line: firstLineNo + lineOffset,
+      matcher: tail[1],
+      text: (bodyLines[lineOffset] || '').trim(),
+    });
+  }
+  return out;
+}
+
 function loadAutomatedTests(root, options = {}) {
   // `.` = gốc repo, cho repo để playwright.config ngay ở root.
   const rel = options.projectDir || 'playwright';
@@ -313,6 +391,8 @@ function loadAutomatedTests(root, options = {}) {
       let isSkipped = false;
 
       const fileLines = getFileLines(testPath);
+      let missingAwaits = [];
+
       if (fileLines && spec.line > 0) {
         const start = spec.line - 1;
         const lineText = fileLines[start] || '';
@@ -320,22 +400,32 @@ function loadAutomatedTests(root, options = {}) {
           isSkipped = true;
         }
         let count = 0;
+        let end = fileLines.length;
         for (let i = start; i < fileLines.length; i++) {
           const l = fileLines[i];
           if (i > start && /^\s{0,6}test(?:\.describe|\.only|\.skip|\.fixme)?\s*\(/.test(l)) {
+            end = i;
             break;
           }
           const mExpect = l.match(/\bexpect(?:\.soft)?\s*\(/g);
           if (mExpect) count += mExpect.length;
         }
         assertionCount = count;
+        missingAwaits = findMissingAwaits(
+          fileLines.slice(start, end),
+          start + 1,
+          (options && options.asyncMatchers) || ASYNC_MATCHERS,
+        );
       }
+
+      const reqTag = tags.find((t) => /^@?REQ-\d{3}$/.test(t));
+      const reqId = reqTag ? (reqTag.startsWith('@') ? reqTag.slice(1) : reqTag) : null;
 
       tests.push({
         title: spec.title,
         tcId: m ? m[1] : null,
         acId: m ? m[2] : null,
-        reqId: (tags.find((t) => /^REQ-\d{3}$/.test(t)) || null),
+        reqId,
         tags,
         file: (spec.file || '').replace(/\\/g, '/'),
         // Đường dẫn tính từ gốc repo — dùng cho mọi thông báo và bảng traceability.
@@ -344,6 +434,7 @@ function loadAutomatedTests(root, options = {}) {
         line: spec.line || 0,
         assertionCount,
         isSkipped,
+        missingAwaits,
       });
     }
     for (const child of suite.suites || []) walk(child);
@@ -377,4 +468,11 @@ function loadAutomatedTests(root, options = {}) {
   };
 }
 
-module.exports = { loadRequirements, loadTestCases, loadAutomatedTests, parseFrontMatter };
+module.exports = {
+  loadRequirements,
+  loadTestCases,
+  loadAutomatedTests,
+  parseFrontMatter,
+  findMissingAwaits,
+  ASYNC_MATCHERS,
+};

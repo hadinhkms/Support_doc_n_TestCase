@@ -18,12 +18,13 @@
  * Không dùng dependency ngoài để chạy được ở cả repo JavaScript lẫn TypeScript.
  */
 
+const fs = require('node:fs');
 const path = require('node:path');
-const { coverage, gaps, impact, drift, matrix } = require('./lib/commands');
+const { coverage, gaps, impact, drift, matrix, summary, SEVERITY_RANK } = require('./lib/commands');
+const { fixTraceability } = require('./lib/fixer');
 const { loadConfig } = require('./lib/config');
 
 const ROOT = path.resolve(__dirname, '..', '..');
-const SEVERITY_RANK = { blocker: 3, major: 2, minor: 1 };
 const COLOR = process.stdout.isTTY && !process.env.NO_COLOR;
 const c = (code, s) => (COLOR ? `\u001b[${code}m${s}\u001b[0m` : s);
 const red = (s) => c('31', s);
@@ -34,15 +35,31 @@ const bold = (s) => c('1', s);
 
 function parseArgs(argv) {
   // project/projectDir để null: chưa có cờ thì nhường cho qa.config.json.
-  const flags = { json: false, strict: false, project: null, projectDir: null, checkBoundaryRules: null };
+  const flags = {
+    json: false,
+    strict: false,
+    project: null,
+    projectDir: null,
+    checkBoundaryRules: null,
+    domain: null,
+    req: null,
+    tag: null,
+    output: null,
+    dryRun: false,
+  };
   const positional = [];
   for (const arg of argv) {
     if (arg === '--json') flags.json = true;
     else if (arg === '--strict') flags.strict = true;
+    else if (arg === '--dry-run') flags.dryRun = true;
     else if (arg === '--no-boundary-rules') flags.checkBoundaryRules = false;
     else if (arg === '--boundary-rules') flags.checkBoundaryRules = true;
     else if (arg.startsWith('--project-dir=')) flags.projectDir = arg.slice('--project-dir='.length);
     else if (arg.startsWith('--project=')) flags.project = arg.slice('--project='.length);
+    else if (arg.startsWith('--domain=')) flags.domain = arg.slice('--domain='.length);
+    else if (arg.startsWith('--req=')) flags.req = arg.slice('--req='.length);
+    else if (arg.startsWith('--tag=')) flags.tag = arg.slice('--tag='.length);
+    else if (arg.startsWith('--output=')) flags.output = arg.slice('--output='.length);
     else if (arg.startsWith('--')) throw new Error(`Cờ không hợp lệ: ${arg}`);
     else positional.push(arg);
   }
@@ -180,9 +197,20 @@ function main() {
     requirementsDir: config.requirementsDir,
     testCasesDir: config.testCasesDir,
     checkBoundaryRules: flags.checkBoundaryRules !== null ? flags.checkBoundaryRules : config.checkBoundaryRules,
+    filterDomain: flags.domain,
+    filterReq: flags.req,
+    filterTag: flags.tag,
+    dryRun: flags.dryRun,
   };
   if (options.ignoreSpecs.length > 0 && !flags.json) {
     console.log(dim(`(ignoreSpecs đang bật: ${options.ignoreSpecs.join(', ')})`));
+  }
+  if ((options.filterDomain || options.filterReq || options.filterTag) && !flags.json) {
+    const filters = [];
+    if (options.filterDomain) filters.push(`domain: ${options.filterDomain}`);
+    if (options.filterReq) filters.push(`req: ${options.filterReq}`);
+    if (options.filterTag) filters.push(`tag: ${options.filterTag}`);
+    console.log(dim(`(Đang lọc theo ${filters.join(', ')})`));
   }
 
   let findings = null;
@@ -212,9 +240,69 @@ function main() {
       }
       break;
     }
+    case 'summary': {
+      const res = summary(ROOT, options);
+      if (flags.output) {
+        const outPath = path.resolve(ROOT, flags.output);
+        fs.mkdirSync(path.dirname(outPath), { recursive: true });
+        fs.writeFileSync(outPath, JSON.stringify(res, null, 2), 'utf8');
+      }
+      if (flags.json) {
+        console.log(JSON.stringify(res, null, 2));
+      } else {
+        const m = res.metrics;
+        const h = res.health;
+        const b = res.boundary;
+        const d = res.decisions;
+        const healthColor = h.status === 'HEALTHY' ? green : h.status === 'WARNING' ? yellow : red;
+
+        console.log(bold('\n┌─────────────────────────────────────────────────────────────┐'));
+        console.log(bold(`│  ${c('36;1', 'QA TRACEABILITY & HEALTH DASHBOARD SUMMARY')}                │`));
+        console.log(bold('├─────────────────────────────────────────────────────────────┤'));
+        console.log(`│  Trạng thái hệ thống: ${healthColor(bold(h.status.padEnd(9)))}                           │`);
+        console.log(`│  Độ phủ Automation  : ${bold(String(m.coveragePercent + '%').padEnd(7))} (${m.coveredAcCount}/${m.acceptanceCriteria} ACs có script)         │`);
+        console.log(`│  Requirements       : ${bold(String(m.requirements).padEnd(4))}  · Test Cases       : ${bold(String(m.testCases).padEnd(5))}     │`);
+        console.log(`│  Automated Tests    : ${bold(String(m.automatedTests).padEnd(4))}  · WIP / Stub Tests : ${bold(String(m.wipTests).padEnd(5))}     │`);
+        console.log(`│  Vấn đề (Findings)  : ${red(h.blockers)} blocker · ${yellow(h.majors)} major · ${dim(h.minors)} minor    │`);
+        console.log(`│  Quyết định chờ duyệt: ${bold(String(d.pending).padEnd(3))} (Chặn: ${d.blocking > 0 ? red(d.blocking) : green(0)})                   │`);
+        console.log(`│  Ranh giới Hub-Repo : ${b.status === 'ALIGNED' ? green('ALIGNED') : red('DRIFTED')} (ship ${b.shipCount}, seed ${b.seedCount}, own ${b.ownCount})  │`);
+        console.log(bold('└─────────────────────────────────────────────────────────────┘\n'));
+        if (flags.output) {
+          console.log(dim(`(Đã xuất báo cáo JSON ra: ${flags.output})\n`));
+        }
+      }
+      findings = res.findings;
+      break;
+    }
+    case 'fix': {
+      const res = fixTraceability(ROOT, options);
+      if (flags.json) {
+        console.log(JSON.stringify(res, null, 2));
+      } else {
+        const prefix = res.dryRun ? '[DRY-RUN] ' : '';
+        if (res.fixedCount === 0) {
+          console.log(green(`\n${prefix}OK: Toàn bộ bảng traceability đã đồng bộ, không phát hiện lỗi cần sửa.\n`));
+        } else {
+          console.log(bold(`\n${prefix}🔧 Đã xử lý ${res.fixedCount} vấn đề truy vết (${res.modifiedFilesCount} file):\n`));
+          for (const c of res.changes) {
+            if (c.kind === 'chuan-hoa-duong-dan-spec') {
+              console.log(`  - [${c.file}:${c.line}] Chuẩn hoá đường dẫn: ${dim(c.from)} -> ${green(c.to)}`);
+            } else if (c.kind === 'them-test-case-chua-khai-bao') {
+              console.log(`  + [${c.file}:${c.line}] Tự động bổ sung test case: ${bold(c.tcId)} (${c.acId}) -> ${dim(c.spec)}`);
+            }
+          }
+          if (res.dryRun) {
+            console.log(yellow('\n(Đây là chế độ dry-run: không có file nào trên đĩa bị thay đổi. Bỏ cờ --dry-run để áp dụng).\n'));
+          } else {
+            console.log(green('\n(Đã cập nhật file và đồng bộ lại test-cases/traceability.md).\n'));
+          }
+        }
+      }
+      break;
+    }
     default:
       console.error(`Lệnh không hợp lệ: ${command}`);
-      console.error('Dùng: coverage | gaps | impact <REQ-xxx> | drift | matrix');
+      console.error('Dùng: coverage | gaps | impact <REQ-xxx> | drift | matrix | summary | fix');
       process.exitCode = 2;
       return;
   }

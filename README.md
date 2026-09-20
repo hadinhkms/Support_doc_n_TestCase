@@ -106,7 +106,9 @@ npm run qa:gaps                 # NÊN THÊM script nào hoặc thiếu test bi�
 npm run qa:impact -- REQ-001    # requirement đổi thì PHẢI SỬA file nào
 npm run qa:drift                # traceability mục ở đâu
 npm run qa:matrix               # tự động tạo/cập nhật ma trận truy vết (traceability.md)
-npm run qa:scaffold             # tự động sinh bộ 3 file REQ/TC/Spec hoặc reverse từ spec
+npm run qa:scaffold             # tự động sinh bộ 3 file REQ/TC/Spec hoặc reverse từ spec (hỗ trợ --wizard)
+npm run qa:summary              # tóm tắt chỉ số sức khỏe QA (hỗ trợ --json cho Dashboard)
+npm run qa:fix                  # tự động sửa và chuẩn hoá liên kết truy vết (hỗ trợ --dry-run)
 npm run qa:boundary             # ranh giới Hub <-> project còn khớp không
 npm run qa:check                # boundary + drift + gaps --strict, dùng cho CI gate
 npm run decisions               # quản lý và render nhật ký quyết định kỹ thuật

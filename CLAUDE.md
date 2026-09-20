@@ -16,7 +16,9 @@ Chạy ở **thư mục gốc**:
 | `npm run qa:gaps` | Biết chỗ nào chưa có script hoặc thiếu test biên |
 | `npm run qa:coverage` | Xem toàn cảnh REQ -> AC -> TC -> script |
 | `npm run qa:matrix` | Tự động sinh/cập nhật ma trận truy vết (`traceability.md`) |
-| `npm run qa:scaffold` | Tự động sinh bộ 3 file REQ/TC/Spec hoặc reverse từ spec |
+| `npm run qa:scaffold` | Tự động sinh bộ 3 file REQ/TC/Spec hoặc reverse từ spec (hỗ trợ `--wizard`) |
+| `npm run qa:summary` | Tóm tắt chỉ số sức khỏe QA (hỗ trợ `--json` cho Dashboard) |
+| `npm run qa:fix` | Tự động sửa và chuẩn hoá liên kết truy vết (hỗ trợ `--dry-run`) |
 | `npm run qa:drift` | Phát hiện liên kết truy vết bị mục/lệch |
 | `npm run qa:boundary` | Kiểm tra ranh giới đồng bộ Hub <-> Project |
 | `npm run qa:check` | Gate cuối: boundary + drift + gaps (giống CI) |
