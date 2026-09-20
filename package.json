@@ -14,6 +14,8 @@
     "decisions": "node tools/decisions",
     "decisions:render": "node tools/decisions render",
     "decisions:json": "node tools/decisions --json",
+    "qa:matrix": "node tools/qa matrix",
+    "qa:scaffold": "node tools/scaffold",
     "test": "node --test tools/",
     "test:watch": "node --test --watch tools/"
   },

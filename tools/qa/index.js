@@ -19,7 +19,7 @@
  */
 
 const path = require('node:path');
-const { coverage, gaps, impact, drift } = require('./lib/commands');
+const { coverage, gaps, impact, drift, matrix } = require('./lib/commands');
 const { loadConfig } = require('./lib/config');
 
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -199,9 +199,18 @@ function main() {
     case 'impact':
       runImpact(positional[1], options, flags);
       break;
+    case 'matrix': {
+      const res = matrix(ROOT, options);
+      if (flags.json) console.log(JSON.stringify(res, null, 2));
+      else {
+        console.log(bold(`\n✅ Đã tự động cập nhật ma trận truy vết (${res.rowsCount} dòng):`));
+        console.log(`   -> ${res.file}\n`);
+      }
+      break;
+    }
     default:
       console.error(`Lệnh không hợp lệ: ${command}`);
-      console.error('Dùng: coverage | gaps | impact <REQ-xxx> | drift');
+      console.error('Dùng: coverage | gaps | impact <REQ-xxx> | drift | matrix');
       process.exitCode = 2;
       return;
   }

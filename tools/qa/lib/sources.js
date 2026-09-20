@@ -286,11 +286,51 @@ function loadAutomatedTests(root, options = {}) {
     return rootRel ? `${rootRel}/${f}` : f;
   };
 
+  const fileCache = new Map();
+  const getFileLines = (relPath) => {
+    if (!fileCache.has(relPath)) {
+      const absPath = path.resolve(root, relPath);
+      if (fs.existsSync(absPath)) {
+        try {
+          fileCache.set(relPath, readText(absPath).split('\n'));
+        } catch {
+          fileCache.set(relPath, null);
+        }
+      } else {
+        fileCache.set(relPath, null);
+      }
+    }
+    return fileCache.get(relPath);
+  };
+
   const tests = [];
   const walk = (suite) => {
     for (const spec of suite.specs || []) {
       const m = spec.title.match(RE_TC_AC_TITLE);
       const tags = spec.tags || [];
+      const testPath = toRepoPath(spec.file);
+      let assertionCount = null;
+      let isSkipped = false;
+
+      const fileLines = getFileLines(testPath);
+      if (fileLines && spec.line > 0) {
+        const start = spec.line - 1;
+        const lineText = fileLines[start] || '';
+        if (/test\.(?:skip|fixme)\b/.test(lineText)) {
+          isSkipped = true;
+        }
+        let count = 0;
+        for (let i = start; i < fileLines.length; i++) {
+          const l = fileLines[i];
+          if (i > start && /^\s{0,6}test(?:\.describe|\.only|\.skip|\.fixme)?\s*\(/.test(l)) {
+            break;
+          }
+          const mExpect = l.match(/\bexpect(?:\.soft)?\s*\(/g);
+          if (mExpect) count += mExpect.length;
+        }
+        assertionCount = count;
+      }
+
       tests.push({
         title: spec.title,
         tcId: m ? m[1] : null,
@@ -299,9 +339,11 @@ function loadAutomatedTests(root, options = {}) {
         tags,
         file: (spec.file || '').replace(/\\/g, '/'),
         // Đường dẫn tính từ gốc repo — dùng cho mọi thông báo và bảng traceability.
-        path: toRepoPath(spec.file),
+        path: testPath,
         isSetup: RE_SETUP_FILE.test(spec.file || ''),
         line: spec.line || 0,
+        assertionCount,
+        isSkipped,
       });
     }
     for (const child of suite.suites || []) walk(child);

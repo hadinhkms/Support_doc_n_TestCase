@@ -13,7 +13,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { coverage, gaps, impact, drift } = require('./commands');
+const { coverage, gaps, impact, drift, matrix } = require('./commands');
 
 function makeRepo(files) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qa-commands-'));
@@ -57,6 +57,8 @@ function spec(title, opts = {}) {
     path: file,
     isSetup: Boolean(opts.isSetup),
     line: opts.line || 7,
+    assertionCount: 'assertionCount' in opts ? opts.assertionCount : 1,
+    isSkipped: Boolean(opts.isSkipped),
   };
 }
 
@@ -598,5 +600,75 @@ test('impact: REQ không tồn tại -> trả error, không ném exception', () 
     assert.ok(r.error, 'phải trả lỗi để index.js đặt exit code 2');
     assert.ok(r.error.includes('REQ-404'));
     assert.equal(r.acs, undefined);
+  });
+});
+
+test('gaps: phát hiện spec thiếu assertion (assertionCount = 0)', () => {
+  withRepo(DOCS, (root) => {
+    const tests = [
+      spec('TC-001 - AC-001 login', { assertionCount: 0 }),
+      spec('TC-002 - AC-002 wrong pass', { assertionCount: 1 }),
+    ];
+    const findings = gaps(root, opts(tests));
+    const f = findings.find((x) => x.kind === 'spec-thieu-assertion');
+    assert.ok(f, 'phải có finding spec-thieu-assertion');
+    assert.equal(f.severity, 'major');
+    assert.match(f.message, /TC-001/);
+  });
+});
+
+test('gaps: phát hiện test bị skip âm thầm không có @wip', () => {
+  withRepo(DOCS, (root) => {
+    const tests = [
+      spec('TC-001 - AC-001 login', { isSkipped: true }),
+      spec('TC-002 - AC-002 wrong pass', { isSkipped: true, reqId: 'REQ-001' }),
+    ];
+    // Gắn tag @wip cho TC-002
+    tests[1].tags = ['@wip'];
+    const findings = gaps(root, opts(tests));
+    const skippedFindings = findings.filter((x) => x.kind === 'test-bi-skip-am-tham');
+    assert.equal(skippedFindings.length, 1);
+    assert.match(skippedFindings[0].message, /TC-001/);
+  });
+});
+
+test('gaps: phát hiện rule có nhiều giá trị biên nhưng chỉ gán 1 test case', () => {
+  const repoWithMultiBoundary = {
+    ...DOCS,
+    'requirements/REQ-001.md': `---
+id: REQ-001
+status: Ready for Test
+test_cases: test-cases/REQ-001.md
+---
+# REQ-001
+## Acceptance criteria
+### AC-001: Happy path
+### AC-002: Error
+## Rules and validation
+| Field/rule | Valid | Invalid | Boundary | Expected | Test cases |
+|---|---|---|---|---|---|
+| Age | 18-65 | <18, >65 | 17, 18, 65, 66 | Valid/Invalid | TC-001 |
+`,
+  };
+  withRepo(repoWithMultiBoundary, (root) => {
+    const findings = gaps(root, { ...opts(CLEAN_TESTS), checkBoundaryRules: true });
+    const f = findings.find((x) => x.kind === 'rule-thieu-boundary-test');
+    assert.ok(f, 'phải có finding rule-thieu-boundary-test mức minor');
+    assert.equal(f.severity, 'minor');
+    assert.match(f.message, /Age/);
+  });
+});
+
+test('matrix: sinh file traceability.md với đầy đủ cột và đúng số dòng', () => {
+  withRepo(DOCS, (root) => {
+    const res = matrix(root, opts(CLEAN_TESTS));
+    assert.equal(res.ok, true);
+    assert.equal(res.rowsCount, 2);
+    const traceFile = path.join(root, 'test-cases/traceability.md');
+    assert.ok(fs.existsSync(traceFile));
+    const content = fs.readFileSync(traceFile, 'utf8');
+    assert.match(content, /# Ma Trận Truy Vết Kiểm Thử/);
+    assert.match(content, /TC-001.*Yes \(Automated\)/);
+    assert.match(content, /TC-002.*Yes \(Automated\)/);
   });
 });

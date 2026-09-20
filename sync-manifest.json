@@ -47,6 +47,14 @@
     {
       "path": "CLAUDE.md",
       "reason": "Entry point cho Claude Code - trỏ sang copilot-instructions, phải giống nhau mọi project"
+    },
+    {
+      "path": "tools/scaffold",
+      "reason": "Bộ công cụ tự động sinh requirement, test case và spec mẫu - dùng chung cho mọi project"
+    },
+    {
+      "path": ".vscode",
+      "reason": "Snippets và cấu hình IDE giúp chuẩn hoá cú pháp mã kiểm thử"
     }
   ],
   "seed": [
@@ -145,6 +153,10 @@
       "path": "playwright/tests/a11y",
       "reason": "BUSINESS. Spec theo domain.",
       "hubModule": "tests"
+    },
+    {
+      "path": "_Plan_implement",
+      "reason": "Kế hoạch nâng cấp và nhật ký triển khai của riêng project."
     }
   ],
   "notes": [

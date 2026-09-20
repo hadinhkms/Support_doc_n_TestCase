@@ -7,6 +7,8 @@
  *   drift    - traceability đã mục ở đâu
  */
 
+const fs = require('node:fs');
+const path = require('node:path');
 const { loadRequirements, loadTestCases, loadAutomatedTests } = require('./sources');
 
 /** Đường dẫn hiển thị của một test, đã được sources.js tính sẵn từ gốc repo. */
@@ -225,6 +227,15 @@ function gaps(root, options) {
           action: 'Sửa mã TC hoặc bổ sung test case.',
         });
       }
+      if (options && options.checkBoundaryRules && rule.boundary && rule.boundary !== '-' && rule.testCases.length === 1 && rule.boundary.includes(',')) {
+        findings.push({
+          severity: 'minor',
+          kind: 'rule-thieu-boundary-test',
+          where: req.file,
+          message: `Dòng rule "${rule.field}" có nhiều giá trị biên (${rule.boundary}) nhưng chỉ gán 1 test case (${rule.testCases[0]}).`,
+          action: 'Khuyến nghị tách thêm test case độc lập cho các giá trị biên (Boundary Value Analysis).',
+        });
+      }
     }
   }
 
@@ -255,6 +266,28 @@ function gaps(root, options) {
         where: link.file,
         message: `${link.tcId} là ${link.priority} nhưng vẫn ở trạng thái Candidate.`,
         action: 'P0/P1 nên được automation, hoặc hạ priority kèm giải thích.',
+      });
+    }
+  }
+
+  // Kiểm tra chất lượng assertion và trạng thái skip của test script thật
+  for (const t of realTests) {
+    if (t.assertionCount === 0) {
+      findings.push({
+        severity: 'major',
+        kind: 'spec-thieu-assertion',
+        where: specPath(options, t),
+        message: `${t.tcId || t.title} không chứa bất kỳ lệnh assert/expect nào (assertionCount = 0).`,
+        action: 'Bổ sung assertion expect(...) để kiểm chứng kết quả mong đợi, tránh test rỗng.',
+      });
+    }
+    if (t.isSkipped && !t.tags.includes('@wip')) {
+      findings.push({
+        severity: 'major',
+        kind: 'test-bi-skip-am-tham',
+        where: specPath(options, t),
+        message: `${t.tcId || t.title} đang bị test.skip hoặc test.fixme mà không gắn tag @wip để cách ly.`,
+        action: 'Gắn tag @wip hoặc phục hồi lại test nếu đã sẵn sàng.',
       });
     }
   }
@@ -424,4 +457,58 @@ function drift(root, options) {
   return findings;
 }
 
-module.exports = { coverage, gaps, impact, drift };
+/**
+ * Tự động tạo ma trận truy vết Markdown từ dữ liệu sống của repo.
+ * Chống xung đột Git: file traceability.md là artifact sinh tự động, không sửa tay.
+ */
+function matrix(root, options) {
+  const { testCases, realTests } = collect(root, options);
+  const automatedTcIds = new Set(realTests.map((t) => t.tcId).filter(Boolean));
+  const specsByTc = new Map();
+  for (const t of realTests) {
+    if (t.tcId) {
+      if (!specsByTc.has(t.tcId)) specsByTc.set(t.tcId, []);
+      specsByTc.get(t.tcId).push(specPath(options, t));
+    }
+  }
+
+  const lines = [
+    '# Ma Trận Truy Vết Kiểm Thử (Traceability Matrix)',
+    '',
+    '<!-- AUTO-GENERATED FILE. DO NOT EDIT MANUALLY. -->',
+    `<!-- Sinh tự động lúc: ${new Date().toISOString()} bằng lệnh: npm run qa:matrix -->`,
+    '',
+    'Bảng tổng hợp sống đối chiếu giữa Requirement, Acceptance Criteria, Test Case và Playwright script.',
+    '',
+    '| Requirement | Acceptance criterion | Test case | Trạng thái Automation | Spec file | Priority |',
+    '|---|---|---|---|---|---|',
+  ];
+
+  let rowsCount = 0;
+  for (const link of testCases.links) {
+    const isAuto = automatedTcIds.has(link.tcId);
+    let statusText = link.automation || 'No';
+    if (link.automation === 'Yes') {
+      statusText = isAuto ? 'Yes (Automated)' : 'Yes (Thiếu script)';
+    }
+    const specs = specsByTc.get(link.tcId) || [];
+    const specCol = specs.length > 0 ? specs.map((s) => `\`${s}\``).join('<br>') : (link.spec ? `\`${link.spec}\`` : '-');
+
+    lines.push(
+      `| ${link.reqId} | ${link.acId} | ${link.tcId} | ${statusText} | ${specCol} | ${link.priority || '-'} |`
+    );
+    rowsCount++;
+  }
+
+  lines.push('');
+  const outPath = path.join(root, (options && options.testCasesDir) || 'test-cases', 'traceability.md');
+  fs.writeFileSync(outPath, lines.join('\n'), 'utf8');
+
+  return {
+    ok: true,
+    file: path.relative(root, outPath).replace(/\\/g, '/'),
+    rowsCount,
+  };
+}
+
+module.exports = { coverage, gaps, impact, drift, matrix };
