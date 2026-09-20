@@ -10,6 +10,7 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['**/ai/**', '**/*.ai.spec.ts', '**/*.ai.test.ts', '**/scratch/**', '**/temp/**', '**/draft/**'],
   outputDir: './test-results',
 
   fullyParallel: true,

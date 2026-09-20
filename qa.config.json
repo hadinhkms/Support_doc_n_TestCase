@@ -1,5 +1,9 @@
 {
   "$comment": "Layout Playwright của repo này, dùng bởi tools/qa. Repo khác sửa 2 giá trị dưới cho khớp: projectDir là thư mục chứa playwright.config (`.` = gốc repo), project là tên project dùng để liệt kê test. Cờ --project-dir / --project ghi đè file này.",
   "projectDir": "playwright",
-  "project": "chromium"
+  "project": "chromium",
+  "ignoreSpecs": [
+    "playwright/tests/ai",
+    "playwright/tests/scratch"
+  ]
 }

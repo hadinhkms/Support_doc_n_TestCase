@@ -38,3 +38,30 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+
+# AI-generated tests, drafts & temporary test scripts (Tuyệt đối không commit lên Git)
+.ai/
+ai/
+playwright/tests/ai/
+playwright/tests/**/ai_*
+playwright/tests/**/*.ai.spec.*
+playwright/tests/**/*.ai.test.*
+playwright/tests/scratch/
+playwright/tests/temp/
+playwright/tests/draft/
+playwright/tests/**/draft_*
+playwright/tests/**/temp_*
+playwright/tests/**/scratch_*
+tests/ai/
+tests/**/ai_*
+tests/**/draft_*
+tests/**/temp_*
+tests/**/scratch_*
+*.scratch.*
+*.draft.*
+*.ai.spec.*
+*.ai.test.*
+*ai-test*
+*ai_test*
+scratch/
+
