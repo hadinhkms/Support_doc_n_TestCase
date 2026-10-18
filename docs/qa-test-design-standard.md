@@ -57,3 +57,15 @@ Priority:
 - P3: thẩm mỹ, edge case có tác động thấp.
 
 Test level: API/service trước UI khi cùng một business rule có thể kiểm chứng ở API. UI chỉ giữ smoke, critical journey và hành vi giao diện.
+
+## 6. Bằng chứng kiểm thử (Evidence Collection & Flow Journey)
+
+- **Mục tiêu**: Cung cấp bằng chứng trực quan (visual evidence) cho chuỗi hành trình nghiệp vụ (User Journey Flow) để nghiệm thu, phục vụ Dashboard và báo cáo kiểm thử.
+- **Quy tắc phân loại**:
+  - **Happy path / E2E User Journey (Tag `@journey`)**: Thu thập ảnh chụp theo từng mốc quan trọng (**Milestone States**: Khởi tạo $\to$ Nhập liệu $\to$ Submit $\to$ Thành công) thông qua `captureJourneyStep()`.
+  - **Negative / Boundary / Validation**: Giữ nguyên cơ chế `only-on-failure` (chỉ chụp khi lỗi). Không chụp khi pass để tránh lãng phí dung lượng và làm chậm worker.
+- **Hiệu năng CI/CD**:
+  - Không chụp sau mỗi thao tác bàn phím/chuột cơ học đơn lẻ.
+  - Sử dụng ảnh viewport chuẩn (`fullPage: false`), chỉ dùng `fullPage: true` khi bắt buộc kiểm tra toàn bộ chiều dọc trang.
+  - Điều khiển linh hoạt qua biến môi trường `CAPTURE_JOURNEY` (`false` trên Fast PR Gate, `true` trên Visual Audit / Nightly / Nghiệm thu).
+

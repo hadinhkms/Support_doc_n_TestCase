@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/test-fixtures';
 import { standardUser, invalidCredentials } from '../data/users';
+import { captureJourneyStep } from '../support/evidence';
 
 /**
  * REQ-001 Sign in with email and password
@@ -14,22 +15,25 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
 
   test(
     'TC-001 - AC-001 valid user can sign in and lands on dashboard',
-    { tag: ['@smoke', '@p0'] },
-    async ({ loginPage, dashboardPage, page }) => {
+    { tag: ['@smoke', '@p0', '@journey'] },
+    async ({ loginPage, dashboardPage, page }, testInfo) => {
       const user = standardUser();
 
       await test.step('Mở trang đăng nhập', async () => {
         await loginPage.goto();
         await expect(loginPage.submitButton).toBeVisible();
+        await captureJourneyStep(page, testInfo, 1, 'Trang dang nhap khoi tao');
       });
 
       await test.step('Nhập credential hợp lệ và submit', async () => {
         await loginPage.login(user.email, user.password);
+        await captureJourneyStep(page, testInfo, 2, 'Nhap thong tin va submit');
       });
 
       await test.step('Kết quả chính: vào được dashboard', async () => {
         await expect(page).toHaveURL(/\/dashboard/);
         await expect(dashboardPage.heading).toBeVisible();
+        await captureJourneyStep(page, testInfo, 3, 'Dashboard tai thanh cong');
       });
 
       await test.step('Side effect: session được thiết lập', async () => {

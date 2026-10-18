@@ -36,7 +36,7 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 ### TC-001: Đăng nhập thành công đưa người dùng vào dashboard
 
 - Type: Functional | Priority: P0 | Technique: EP (lớp hợp lệ)
-- Automation: Yes | Tags: `@smoke @p0`
+- Automation: Yes | Tags: `@smoke @p0 @journey`
 - Preconditions: tài khoản `active`, chưa đăng nhập
 - Test data: `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`
 

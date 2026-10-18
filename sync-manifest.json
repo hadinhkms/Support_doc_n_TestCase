@@ -49,6 +49,10 @@
       "reason": "Entry point cho Claude Code - trỏ sang copilot-instructions, phải giống nhau mọi project"
     },
     {
+      "path": "AGENTS.md",
+      "reason": "Entry point cho AI Agent - trỏ sang copilot-instructions, phải giống nhau mọi project"
+    },
+    {
       "path": "tools/scaffold",
       "reason": "Bộ công cụ tự động sinh requirement, test case và spec mẫu - dùng chung cho mọi project"
     },
