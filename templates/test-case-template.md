@@ -17,11 +17,11 @@
 
 ### TC-001: <Mục tiêu kiểm thử>
 
-- Type: Functional | Validation | Boundary | Security | Accessibility | Regression
+- Type: Functional | Validation | Boundary | Security | Accessibility | UI/UX | Regression
 - Priority: P0 | P1 | P2 | P3
 - Technique: <EP/BVA/Decision table/State transition/Error guessing>
 - Automation: Yes | Candidate | No
-- Tags: `@smoke @p0 @security @a11y` (khớp với Priority ở trên)
+- Tags: `@smoke @p0 @security @a11y @ui` (khớp với Priority ở trên)
 - Preconditions: <...>
 - Test data: <...>
 
@@ -41,7 +41,9 @@ Mọi case `Automation: No` phải có một dòng ở đây. Không để trố
 ## Coverage notes
 
 - Positive: <...>
-- Negative: <...>
-- Boundary: <...>
+- Negative (bao gồm nhập chữ vào ô số, định dạng sai): <...>
+- Boundary (bao gồm `maxlength` / `min`-`max`): <...>
 - Permission/state: <...>
+- Security / XSS: <Đã phủ ở TC-0xx (trang public/customer) | Bỏ qua vì trang admin/internal không nhận input từ public/customer>
+- UI/UX & Layout: <Không overlap khi bật lỗi, không tràn ngang (horizontal overflow), không vỡ ảnh>
 - Uncovered risk: <...>

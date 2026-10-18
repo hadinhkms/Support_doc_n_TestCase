@@ -7,6 +7,11 @@ Khi người dùng yêu cầu viết test script hoặc test cases trong workspa
 2. Nếu requirement chưa đủ, không tự bịa expected result. Ghi `Open questions` và nêu rõ assumption cần xác nhận.
 3. Chuẩn hóa hoặc cập nhật requirement theo `templates/requirement-template.md` với mã REQ/AC ổn định.
 4. Thiết kế test case theo `templates/test-case-template.md`, bắt buộc xem xét happy path, negative, boundary, state/permission, error/retry và regression.
+   - **Quy tắc kiểm thử ô nhập liệu (Field Validation — Maxlength & Data Type)**:
+     - **Textbox chữ**: Bắt buộc xét rỗng/chỉ khoảng trắng, biên độ dài `minlength`/`maxlength` (`max`, `max + 1` ký tự — kiểm tra thuộc tính `maxlength` tự cắt chuỗi hoặc báo lỗi validation).
+     - **Textbox số (Numeric input)**: Bắt buộc xét nhập chữ (`abc`), ký tự đặc biệt (`!@#`), paste chuỗi lẫn chữ (`12abc34`), số âm/thập phân (nếu chỉ nhận số nguyên dương), và biên giá trị `min - 1`, `min`, `max`, `max + 1`.
+   - **Quy tắc XSS theo loại trang (Page Exposure)**: Với các trang/module dành cho `public` hoặc `customer` (end-user) có ô nhập liệu hoặc query param hiển thị lại lên UI, bắt buộc xét thêm test case XSS (`Type: Security`, tag `@security`). Với trang thuần `admin`/nội bộ (không hiển thị dữ liệu thô do customer/public gửi lên), không cần viết test XSS và ghi rõ lý do vào mục `Coverage notes`.
+   - **Quy tắc kiểm thử UI/UX & Layout**: Kiểm tra các lỗi hiển thị phổ biến (`Type: UI/UX`, tag `@ui` hoặc `@a11y`): các phần tử/thông báo lỗi bật lên không đè nhau (**Overlap**), không vỡ khung ngang (**Horizontal Overflow** trên Desktop & Mobile), chuỗi dài ở biên `max` không tràn khỏi khung chứa (**Text/Container Overflow**), ảnh hiển thị không bị vỡ (**Broken Images**), và nút Submit khoá/loading khi đang xử lý (**Double-submit protection**). Ưu tiên dùng sẵn các hàm helper trong `playwright/tests/support/ui-checks.ts`.
 5. Tạo traceability `REQ -> AC -> TC -> script` và đánh priority P0-P3.
 6. Đánh giá candidate automation theo `docs/automation-strategy.md`; giải thích case nào không automation và lý do.
 7. Với case được chọn, viết Playwright theo từng step rõ ràng trong `playwright/tests/`, gắn REQ/AC/TC trong title hoặc comment.

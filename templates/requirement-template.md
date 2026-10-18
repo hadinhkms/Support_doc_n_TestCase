@@ -35,6 +35,7 @@ test_cases: test-cases/REQ-XXX-<slug>.md
 ## Actors and preconditions
 
 - Actor/role: <...>
+- Page exposure: `public` | `customer` (cần xét XSS nếu có input) | `admin/internal` (bỏ qua XSS trừ khi render dữ liệu từ customer)
 - Preconditions: <...>
 - Test data: <...>
 
@@ -50,7 +51,8 @@ test_cases: test-cases/REQ-XXX-<slug>.md
 
 | Field/rule | Valid | Invalid | Boundary | Expected | Test cases |
 |---|---|---|---|---|---|
-| <field> | <...> | <...> | <...> | <...> | TC-0xx |
+| <field chữ> | <...> | rỗng, chỉ khoảng trắng | `max`, `max+1` ký tự | Chặn ở `maxlength` hoặc báo lỗi tại trường | TC-0xx |
+| <field số> | <...> | nhập chữ (`abc`), ký tự đặc biệt (`!@#`), số âm | `min-1`, `min`, `max`, `max+1` | Không nhận chữ / báo lỗi định dạng số | TC-0xx |
 
 Cột `Test cases` là bắt buộc: `node tools/qa gaps` dùng cột này để biết dòng rule nào
 chưa có case nào phủ. Để trống sẽ bị báo gap.
@@ -59,6 +61,7 @@ chưa có case nào phủ. Để trống sẽ bị báo gap.
 
 - Performance: <...>
 - Accessibility: <...>
+- UI/UX & Layout: <Không đè phần tử (overlap) khi hiện lỗi, không tràn ngang (horizontal overflow) ở Desktop/Mobile, text dài không tràn khung, nút submit chống double-click>
 - Security/permission: <...>
 - Browser/device: <...>
 
