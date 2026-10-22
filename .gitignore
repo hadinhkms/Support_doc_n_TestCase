@@ -58,6 +58,9 @@ tests/**/draft_*
 tests/**/temp_*
 tests/**/scratch_*
 *.scratch.*
+
+# Master process junction
+.master_process/
 *.draft.*
 *.ai.spec.*
 *.ai.test.*

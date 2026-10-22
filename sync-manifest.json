@@ -161,6 +161,10 @@
     {
       "path": "_Plan_implement",
       "reason": "Kế hoạch nâng cấp và nhật ký triển khai của riêng project."
+    },
+    {
+      "path": ".master_process",
+      "reason": "Liên kết Junction trỏ tới D:/_Master_process - quy trình chung, không sync từ Hub."
     }
   ],
   "notes": [
