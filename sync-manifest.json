@@ -59,6 +59,10 @@
     {
       "path": ".vscode",
       "reason": "Snippets và cấu hình IDE giúp chuẩn hoá cú pháp mã kiểm thử"
+    },
+    {
+      "path": ".agents",
+      "reason": "Bộ Skills chuyên biệt cho AI Agent (ví dụ qa-logic-gaps) - dùng chung mọi project"
     }
   ],
   "seed": [
