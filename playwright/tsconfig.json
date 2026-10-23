@@ -19,10 +19,17 @@
       "@fixtures/*": ["./tests/fixtures/*"],
       "@pages/*": ["./tests/pages/*"],
       "@api/*": ["./tests/api/*"],
-      "@data/*": ["./tests/data/*"]
+      "@data/*": ["./tests/data/*"],
+      "@support/*": ["./tests/support/*"]
     },
     "noEmit": true
   },
-  "include": ["tests/**/*.ts", "playwright.config.ts", "eslint.config.mjs"],
+  "include": [
+    "tests/**/*.ts",
+    "deep-engine-tests/**/*.ts",
+    "playwright.config.ts",
+    "deep-engine.config.ts",
+    "eslint.config.mjs"
+  ],
   "exclude": ["node_modules", "playwright-report", "test-results"]
 }

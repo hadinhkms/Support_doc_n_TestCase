@@ -18,6 +18,7 @@
     "qa:scaffold": "node tools/scaffold",
     "qa:summary": "node tools/qa summary",
     "qa:fix": "node tools/qa fix",
+    "qa:learn": "node tools/qa learn",
     "test": "node --test tools/",
     "test:watch": "node --test --watch tools/"
   },

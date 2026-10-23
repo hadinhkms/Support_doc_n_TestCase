@@ -33,11 +33,13 @@ const DEFAULTS = {
   ignoreSpecs: [],
   // Bật đối chiếu quy tắc phân tích biên (EP + BVA). Mặc định bật theo Plan 10/11.
   checkBoundaryRules: true,
+  // Bật kiểm tra độ phủ chiều sâu (UI geometry, XSS, Idempotency, Weak assertion) ở mức chặn.
+  checkDeepCoverage: false,
 };
 
 const KNOWN_KEYS = new Set(Object.keys(DEFAULTS));
 const ARRAY_KEYS = new Set(['ignoreSpecs']);
-const BOOLEAN_KEYS = new Set(['checkBoundaryRules']);
+const BOOLEAN_KEYS = new Set(['checkBoundaryRules', 'checkDeepCoverage']);
 
 /**
  * Đọc qa.config.json nếu có. Ném lỗi khi file sai định dạng hoặc sai khoá —

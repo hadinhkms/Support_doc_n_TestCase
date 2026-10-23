@@ -1,6 +1,6 @@
 # Test Cases: REQ-001 Sign in with email and password
 
-Requirement: `requirements/REQ-001-sign-in.md` (v1.0)
+Requirement: `requirements/REQ-001-sign-in.md` (v1.1)
 Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 ## Traceability
@@ -22,14 +22,15 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 | REQ-001 | AC-001 | TC-013 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
 | REQ-001 | AC-003 | TC-014 | Candidate | - | P2 |
 | REQ-001 | AC-002 | TC-015 | Candidate | - | P2 |
+| REQ-001 | AC-006 | TC-016 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-008 | TC-017 | Yes | `playwright/tests/auth/login.spec.ts` | P2 |
+| REQ-001 | AC-009 | TC-018 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-010 | TC-019 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
 
 ## Test data and environment
 
 - Environment: staging, `BASE_URL` (xem `playwright/.env.example`)
 - User/role: `TEST_USER_EMAIL` (admin), `TEST_VIEWER_EMAIL` (viewer)
-- Seed data: tài khoản cố định, tạo sẵn ở staging, không xoá sau khi chạy
-- Cleanup: không tạo dữ liệu mới nên không cần cleanup. Riêng TC-009 làm khoá tài khoản
-  nên **phải dùng tài khoản riêng**, không dùng `TEST_USER_EMAIL`.
 
 ## Test cases
 
@@ -37,71 +38,57 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 - Type: Functional | Priority: P0 | Technique: EP (lớp hợp lệ)
 - Automation: Yes | Tags: `@smoke @p0 @journey`
-- Preconditions: tài khoản `active`, chưa đăng nhập
-- Test data: `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login` | Form hiện, nút `Sign in` khả dụng |
-| 2 | Nhập email và password hợp lệ, bấm `Sign in` | Request được gửi |
-| 3 | Quan sát điều hướng | URL chuyển sang `/dashboard`, heading `Dashboard` hiển thị |
-| 4 | Quan sát side effect | Menu tài khoản hiển thị; tồn tại cookie session |
+| 1 | Mở `/login`, nhập email và password hợp lệ, bấm `Sign in` | Chuyển sang `/dashboard`, heading `Dashboard` và cookie session hiển thị |
 
 ### TC-002: Sai password bị từ chối, không lộ trường nào sai
 
 - Type: Security | Priority: P1 | Technique: EP (lớp không hợp lệ)
 - Automation: Yes | Tags: `@p1 @security`
-- Test data: email hợp lệ + `invalidCredentials.wrongPassword`
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login` | Form hiện |
-| 2 | Nhập email đúng, password sai, submit | Request được gửi |
-| 3 | Quan sát thông báo | `Invalid email or password` hiển thị trong vùng `role=alert` |
-| 4 | Quan sát URL và session | Vẫn ở `/login`, không vào được dashboard |
+| 1 | Mở `/login`, nhập email đúng + password sai, submit | Hiển thị `Invalid email or password`, vẫn ở `/login` |
 
 ### TC-003: Email không tồn tại trả về đúng thông báo như sai password
 
-- Type: Security | Priority: P1 | Technique: Decision table (email tồn tại x password đúng)
+- Type: Security | Priority: P1 | Technique: Decision table
 - Automation: Yes | Tags: `@p1 @security`
-- Test data: `invalidCredentials.unknownEmail`
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login`, nhập email chưa đăng ký + password bất kỳ, submit | Request được gửi |
-| 2 | So sánh thông báo với TC-002 | Giống hệt: `Invalid email or password` |
+| 1 | Mở `/login`, nhập email chưa đăng ký + password bất kỳ, submit | Giống hệt TC-002: `Invalid email or password` |
 
 ### TC-004: Email sai định dạng bị chặn ở client
 
 - Type: Validation | Priority: P2 | Technique: EP + BVA
 - Automation: Yes | Tags: `@p2`
-- Test data: `not-an-email`
+- **Capabilities**: boundary
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login`, nhập `not-an-email` và password bất kỳ, submit | Không có request lên server |
-| 2 | Quan sát trường Email | Lỗi validation hiển thị tại trường, vẫn ở `/login` |
+| 1 | Mở `/login`, kiểm chứng `expectBoundaryRejected` với email sai định dạng | Lỗi validation hiển thị tại trường, không gửi request lên server |
 
 ### TC-005: Session tồn tại qua reload
 
 - Type: Functional | Priority: P1 | Technique: State transition
 - Automation: Yes | Tags: `@p1`
+- **Capabilities**: persistence
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Đăng nhập thành công | Ở `/dashboard` |
-| 2 | Reload trang | Vẫn ở `/dashboard`, heading `Dashboard` hiển thị, không bị đẩy về `/login` |
+| 1 | Đăng nhập thành công và gọi `expectStatePersistence` tải lại trang | Vẫn ở `/dashboard`, heading `Dashboard` hiển thị bền vững |
 
 ### TC-006: Chưa đăng nhập không vào được dashboard
 
-- Type: Security | Priority: P0 | Technique: Error guessing (truy cập URL trực tiếp)
+- Type: Security | Priority: P0 | Technique: Error guessing
 - Automation: Yes | Tags: `@p0 @security`
-- Preconditions: context sạch, không có cookie
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Truy cập thẳng `/dashboard` | Bị chuyển về `/login` |
-| 2 | Quan sát nội dung trang | Không thấy heading `Dashboard` hay dữ liệu nào của dashboard |
+| 1 | Truy cập thẳng `/dashboard` khi chưa đăng nhập | Bị chuyển về `/login`, không thấy dữ liệu dashboard |
 
 ### TC-007: Trang đăng nhập không vi phạm WCAG 2.1 A/AA
 
@@ -119,59 +106,48 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login`, bấm Tab lần 1 | Focus ở trường Email |
-| 2 | Tab lần 2 | Focus ở trường Password |
-| 3 | Tab lần 3 | Focus ở nút `Sign in` |
+| 1 | Mở `/login`, bấm Tab lần lượt qua Email -> Password -> Sign in | Focus di chuyển đúng thứ tự |
 
 ### TC-009: Khoá tài khoản sau 5 lần thử sai
 
 - Type: Security | Priority: P1 | Technique: BVA (lần thứ 5 và 6)
-- **Automation: No** - xem lý do ở mục "Case không automation"
-- Preconditions: **tài khoản chuyên dụng**, không dùng tài khoản của suite chính
+- **Automation: No** - xem mục "Case không automation"
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Thử sai password 5 lần liên tiếp | Mỗi lần: `Invalid email or password` |
-| 2 | Thử lần thứ 6 với password ĐÚNG | Bị từ chối, thông báo khoá kèm thời gian mở khoá |
-| 3 | Chờ hết 15 phút, đăng nhập đúng | Vào được `/dashboard` |
+| 1 | Thử sai password 5 lần liên tiếp rồi thử lần thứ 6 | Bị từ chối, thông báo khoá 15 phút |
 
 ### TC-010: Session hết hạn sau 24 giờ không hoạt động
 
 - Type: Functional | Priority: P2 | Technique: BVA (24h, 24h+1m)
-- **Automation: No** - cần tua thời gian, môi trường test chưa hỗ trợ
+- **Automation: No** - cần tua thời gian server
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Đăng nhập, để yên hơn 24h | Không thao tác gì |
-| 2 | Thao tác bất kỳ | Bị đẩy về `/login` |
+| 1 | Đăng nhập, để yên hơn 24h rồi thao tác bất kỳ | Bị đẩy về `/login` |
 
 ### TC-011: Screen reader đọc đúng nhãn và thông báo lỗi
 
 - Type: Accessibility | Priority: P2 | Technique: Manual exploratory
-- **Automation: No** - cần đánh giá của con người (NVDA/VoiceOver)
+- **Automation: No** - cần đánh giá bằng NVDA/VoiceOver
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login` bằng NVDA | Đọc đúng nhãn `Email`, `Password`, nút `Sign in` |
-| 2 | Submit sai credential | Thông báo lỗi được đọc lên (live region) |
+| 1 | Mở `/login` bằng NVDA và submit sai credential | Đọc đúng nhãn và thông báo lỗi live region |
 
 ### TC-012: Biên độ dài password (8 / 64 / 65 ký tự)
 
 - Type: Boundary | Priority: P2 | Technique: BVA
-- **Automation: Candidate** - chờ dev expose test id cho lỗi ở trường Password
+- **Automation: Candidate** - chờ expose test id cho lỗi Password
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Nhập password 7 ký tự | Lỗi validation |
-| 2 | Nhập password 8 và 64 ký tự | Được chấp nhận, submit đi tiếp |
-| 3 | Nhập password 65 ký tự | Lỗi validation |
+| 1 | Nhập password 7, 8, 64, 65 ký tự | 7 và 65 báo lỗi; 8 và 64 hợp lệ |
 
 ### TC-013: Thuộc tính bảo mật của cookie session
 
 - Type: Security | Priority: P1 | Technique: Error guessing
 - Automation: Yes | Tags: `@p1 @security`
-- Preconditions: đăng nhập thành công bằng `TEST_USER_EMAIL`
-- Test data: `TEST_USER_EMAIL` / `TEST_USER_PASSWORD`
 
 | Step | Action | Expected result |
 |---|---|---|
@@ -181,42 +157,64 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 - Type: Functional | Priority: P2 | Technique: BVA
 - Automation: Candidate | Tags: `@wip @p2`
-- Preconditions: Form đăng nhập hiển thị
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Nhập email đúng định dạng dài 254 ký tự (max hợp lệ) | Trường hợp lệ, cho phép submit |
-| 2 | Nhập email dài 255 ký tự | Báo lỗi validation độ dài tại trường |
+| 1 | Nhập email dài 254 và 255 ký tự | 254 hợp lệ; 255 báo lỗi validation |
 
 ### TC-015: Kiểm thử độ dài mật khẩu tại các điểm biên mở rộng (7, 8, 64, 65 ký tự)
 
 - Type: Functional | Priority: P2 | Technique: BVA
 - Automation: Candidate | Tags: `@wip @p2`
-- Preconditions: Form đăng nhập hiển thị
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Nhập password 7 ký tự | Lỗi validation độ dài |
-| 2 | Nhập password 8 và 64 ký tự | Chấp nhận hợp lệ |
-| 3 | Nhập password 65 ký tự | Lỗi validation độ dài |
+| 1 | Nhập password 7, 8, 64, 65 ký tự | 7 và 65 báo lỗi; 8 và 64 chấp nhận |
+
+### TC-016: Kiểm chứng bố cục hình học form đăng nhập và tên tiếp cận tương tác
+
+- Type: UI/UX & Accessibility | Priority: P1 | Technique: DOM Geometry & A11y Audit
+- Automation: Yes | Tags: `@p1 @ui @a11y`
+- **Capabilities**: ui-geometry, a11y
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Mở `/login`, chạy `expectNoHorizontalScroll`, `expectNoTextOverflow`, `expectNotOccluded`, `expectInteractiveA11y` | Không tràn ngang, không cắt chữ, nút `Sign in` không bị che khuất và đủ accessible name |
+
+### TC-017: Kiểm chứng giao diện đăng nhập nguyên vẹn trên Desktop, Tablet và Mobile
+
+- Type: Responsive UI | Priority: P2 | Technique: Multi-Viewport Matrix
+- Automation: Yes | Tags: `@p2 @ui`
+- **Capabilities**: responsive
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Mở `/login`, chạy `expectResponsiveIntegrity` với `requiredLocators` và `optionalLocators` | Các trường bắt buộc hiển thị nguyên vẹn qua mọi viewport |
+
+### TC-018: Kiểm chứng chống gửi trùng khi nhấn đúp liên tiếp vào nút đăng nhập
+
+- Type: Concurrency & Idempotency | Priority: P1 | Technique: Race Condition Probe
+- Automation: Yes | Tags: `@p1 @security`
+- **Capabilities**: idempotency
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Điền credential hợp lệ và gọi `expectIdempotentSubmit` trên nút `Sign in` | Phát sinh tối đa 1 request `POST /api/auth/login` |
+
+### TC-019: Kiểm chứng escape an toàn chuỗi XSS trong thông báo lỗi đăng nhập
+
+- Type: Security | Priority: P1 | Technique: Fault Injection (XSS)
+- Automation: Yes | Tags: `@p1 @security`
+- **Capabilities**: xss
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Chạy `expectSafeXssRender` với `XSS_PAYLOADS` trên trường `Email` và vùng `errorMessage` | Không thực thi script và không xuất hiện phần tử HTML độc hại trong `errorMessage` |
 
 ## Case không automation
 
 | Test case | Lý do | Bù đắp bằng gì |
 |---|---|---|
-| TC-009 | Làm khoá tài khoản 15 phút nên gây nhiễu cho test chạy song song; phụ thuộc rate limit của môi trường; còn chờ Q-003 (có CAPTCHA hay không). | Test thủ công mỗi release + monitoring số lần khoá trên production |
+| TC-009 | Làm khoá tài khoản 15 phút gây nhiễu khi chạy song song; chờ Q-003. | Test thủ công mỗi release + monitoring |
 | TC-010 | Cần chờ 24h hoặc tua thời gian server; staging chưa hỗ trợ. | Test ở tầng API/unit của module session |
-| TC-011 | Cần đánh giá của con người bằng screen reader thật; quét tự động chỉ bắt được khoảng 30-40% lỗi a11y. | TC-007 + TC-008 phủ phần máy kiểm được; phần còn lại test thủ công mỗi quý |
-
-## Coverage notes
-
-- Positive: TC-001 (credential hợp lệ), TC-005 (session giữ qua reload).
-- Negative: TC-002, TC-003 (credential sai), TC-004 (định dạng sai).
-- Boundary: TC-012 (độ dài password), TC-009 (lần thử thứ 5/6), TC-010 (24h).
-- Permission/state: TC-006 (chưa đăng nhập), TC-009 (trạng thái bị khoá).
-- Accessibility: TC-007, TC-008 (tự động), TC-011 (thủ công).
-- Uncovered risk:
-  - Hết hạn session 24h chỉ kiểm được bằng tay (TC-010), rủi ro session sống quá hạn không bị phát hiện.
-  - Chưa có test cho concurrency: cùng một tài khoản đăng nhập ở 2 thiết bị.
-  - Chưa có test cho email dài 254/255 ký tự, dù bảng validation của REQ-001 đã nêu.
-  - Chưa kiểm password không bị ghi vào log/response, cần kiểm ở tầng backend.
+| TC-011 | Cần đánh giá bằng screen reader thật (NVDA/VoiceOver). | TC-007 + TC-008 + TC-016 phủ phần tự động |

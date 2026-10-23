@@ -10,7 +10,12 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
-    files: ['tests/**/*.ts', 'playwright.config.ts'],
+    files: [
+      'tests/**/*.ts',
+      'deep-engine-tests/**/*.ts',
+      'playwright.config.ts',
+      'deep-engine.config.ts',
+    ],
     languageOptions: {
       parserOptions: { project: './tsconfig.json', tsconfigRootDir: import.meta.dirname },
     },
@@ -22,7 +27,7 @@ export default tseslint.config(
   },
 
   {
-    // Chỉ áp cho file test, không áp cho page object / helper.
+    // Chỉ áp cho file test nghiệp vụ, không áp cho page object / helper.
     files: ['tests/**/*.spec.ts', 'tests/**/*.setup.ts'],
     ...playwright.configs['flat/recommended'],
     rules: {
@@ -39,7 +44,7 @@ export default tseslint.config(
       'playwright/no-focused-test': 'error',
       'playwright/no-conditional-in-test': 'error',
       'playwright/no-conditional-expect': 'error',
-      'playwright/expect-expect': 'error',
+      'playwright/expect-expect': ['error', { assertFunctionPatterns: ['^expect[A-Z]'] }],
       'playwright/prefer-web-first-assertions': 'error',
       'playwright/no-useless-await': 'error',
       'playwright/valid-expect': 'error',
@@ -62,6 +67,29 @@ export default tseslint.config(
             "CallExpression[callee.property.name='locator'] > Literal[value=/^(\\.|#)|:nth-/]",
           message:
             'Selector CSS phụ thuộc layout. Dùng getByRole / getByLabel / getByTestId (docs/selector-convention.md).',
+        },
+      ],
+    },
+  },
+
+  {
+    // Harness tự kiểm chứng (HM-00 .. HM-08) chạy độc lập qua deep-engine.config.ts.
+    files: ['deep-engine-tests/**/*.spec.ts'],
+    ...playwright.configs['flat/recommended'],
+    rules: {
+      ...playwright.configs['flat/recommended'].rules,
+      'playwright/no-page-pause': 'error',
+      'playwright/no-focused-test': 'error',
+      'playwright/expect-expect': ['error', { assertFunctionPatterns: ['^expect[A-Z]'] }],
+      'playwright/valid-expect': 'error',
+      'playwright/no-skipped-test': ['error', { allowConditional: true }],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.name='test'] > Literal:first-child[value!=/^HM-[0-9]{2}\\s+-\\s+/]",
+          message:
+            'Harness test title trong deep-engine-tests/ phải bắt đầu bằng mã HM-xx - <mô tả>.',
         },
       ],
     },

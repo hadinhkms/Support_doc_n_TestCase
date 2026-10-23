@@ -7,18 +7,22 @@ Bảng tổng hợp sống đối chiếu giữa Requirement, Acceptance Criteri
 
 | Requirement | Acceptance criterion | Test case | Trạng thái Automation | Spec file | Priority |
 |---|---|---|---|---|---|
-| REQ-001 | AC-001 | TC-001 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:16` | P0 |
-| REQ-001 | AC-002 | TC-002 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:47` | P1 |
-| REQ-001 | AC-002 | TC-003 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:65` | P1 |
-| REQ-001 | AC-003 | TC-004 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:76` | P2 |
-| REQ-001 | AC-004 | TC-005 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:88` | P1 |
-| REQ-001 | AC-005 | TC-006 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:105` | P0 |
+| REQ-001 | AC-001 | TC-001 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:30` | P0 |
+| REQ-001 | AC-002 | TC-002 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:61` | P1 |
+| REQ-001 | AC-002 | TC-003 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:79` | P1 |
+| REQ-001 | AC-003 | TC-004 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:90` | P2 |
+| REQ-001 | AC-004 | TC-005 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:107` | P1 |
+| REQ-001 | AC-005 | TC-006 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:122` | P0 |
 | REQ-001 | AC-006 | TC-007 | Yes (Automated) | `playwright/tests/a11y/login.a11y.spec.ts:12` | P2 |
 | REQ-001 | AC-006 | TC-008 | Yes (Automated) | `playwright/tests/a11y/login.a11y.spec.ts:29` | P2 |
 | REQ-001 | AC-007 | TC-009 | No | `-` | P1 |
 | REQ-001 | AC-004 | TC-010 | No | `-` | P2 |
 | REQ-001 | AC-006 | TC-011 | No | `-` | P2 |
 | REQ-001 | AC-002 | TC-012 | Candidate | `-` | P2 |
-| REQ-001 | AC-001 | TC-013 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:116` | P1 |
+| REQ-001 | AC-001 | TC-013 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:133` | P1 |
 | REQ-001 | AC-003 | TC-014 | Candidate | `-` | P2 |
 | REQ-001 | AC-002 | TC-015 | Candidate | `-` | P2 |
+| REQ-001 | AC-006 | TC-016 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:158` | P1 |
+| REQ-001 | AC-008 | TC-017 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:170` | P2 |
+| REQ-001 | AC-009 | TC-018 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:186` | P1 |
+| REQ-001 | AC-010 | TC-019 | Yes (Automated) | `playwright/tests/auth/login.spec.ts:201` | P1 |

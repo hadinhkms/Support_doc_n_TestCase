@@ -12,6 +12,7 @@
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",
     "test:list": "playwright test --list",
+    "test:deep-engine": "playwright test -c deep-engine.config.ts",
     "report": "playwright show-report",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",

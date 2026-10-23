@@ -1,4 +1,17 @@
-import { test as base, expect } from '@playwright/test';
+import {
+  baseTest,
+  expect,
+  expectNoConsoleOrPageError,
+  expectExpectedError,
+  createRuntimeTrap,
+  redactSensitiveText,
+  redactHeaders,
+  matchesAllowRule,
+  type RuntimeTrap,
+  type RuntimeFailureRecord,
+  type RuntimeAllowRule,
+  type RuntimeFailureSource,
+} from './base.fixture';
 import { LoginPage } from '../pages/login.page';
 import { DashboardPage } from '../pages/dashboard.page';
 import { ApiClient } from '../api/api-client';
@@ -11,10 +24,10 @@ type Fixtures = {
 
 /**
  * Test object dùng chung cho toàn bộ spec.
- * Import từ đây thay vì từ '@playwright/test' để mọi test có sẵn page object
- * và API helper, đồng thời dễ thêm setup/cleanup tập trung về sau.
+ * Kế thừa `baseTest` (đã gắn sẵn `runtimeTrap` { auto: true }) và bổ sung
+ * các page object / API helper theo nhu cầu của từng test.
  */
-export const test = base.extend<Fixtures>({
+export const test = baseTest.extend<Fixtures>({
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
   },
@@ -26,4 +39,16 @@ export const test = base.extend<Fixtures>({
   },
 });
 
-export { expect };
+export {
+  expect,
+  expectNoConsoleOrPageError,
+  expectExpectedError,
+  createRuntimeTrap,
+  redactSensitiveText,
+  redactHeaders,
+  matchesAllowRule,
+  type RuntimeTrap,
+  type RuntimeFailureRecord,
+  type RuntimeAllowRule,
+  type RuntimeFailureSource,
+};

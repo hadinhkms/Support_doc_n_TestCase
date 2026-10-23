@@ -71,6 +71,14 @@
       "reason": "Project đổi projects/baseURL/timeout theo môi trường của mình"
     },
     {
+      "path": "playwright/deep-engine.config.ts",
+      "reason": "Cấu hình harness kiểm chứng độc lập cho Deep Test Engine (HM-00..HM-08)"
+    },
+    {
+      "path": "playwright/deep-engine-tests",
+      "reason": "Bộ spec tự kiểm chứng đột biến (HM-00..HM-08) cho Deep Test Engine"
+    },
+    {
       "path": "playwright/tsconfig.json",
       "reason": "Project có thể thêm path alias riêng"
     },

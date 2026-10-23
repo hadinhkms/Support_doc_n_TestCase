@@ -177,6 +177,15 @@ function gaps(root, options) {
     linksByAc.get(k).push(link);
     linksByTc.set(link.tcId, link);
   }
+  const detailsByTc = new Map((testCases.details || []).map((d) => [d.tcId, d]));
+  const activeTestsByReq = new Map();
+  for (const t of realTests) {
+    const isWip = Boolean(t.tags && t.tags.includes('@wip'));
+    if (t.isSkipped || isWip || !t.reqId) continue;
+    if (!activeTestsByReq.has(t.reqId)) activeTestsByReq.set(t.reqId, []);
+    activeTestsByReq.get(t.reqId).push(t);
+  }
+  const deepSeverity = options && options.checkDeepCoverage ? 'major' : 'minor';
 
   const findings = [];
 
@@ -380,6 +389,50 @@ function gaps(root, options) {
         }
       }
     }
+
+    const reqActiveTests = activeTestsByReq.get(req.id) || [];
+    if (req.uiCoverage && req.uiCoverage.status === 'Required') {
+      const hasUiHelperOrTag = reqActiveTests.some((t) => {
+        const tags = t.tags || [];
+        const matchers = (t.assertionProfile && t.assertionProfile.matchers) || [];
+        return (
+          tags.includes('@visual') ||
+          tags.includes('@ui') ||
+          matchers.some((m) =>
+            /^helper:expect(?:NoHorizontalScroll|NoHorizontalOverflow|NoTextOverflow|PairwiseNoOverlap|NoOverlap|ContainedIn|ContainedWithin|NotOccluded|InteractiveA11y|ResponsiveIntegrity)$/.test(
+              m,
+            ),
+          )
+        );
+      });
+      if (!hasUiHelperOrTag) {
+        findings.push({
+          severity: deepSeverity,
+          kind: 'missing-ui-coverage',
+          where: req.file,
+          message: `${req.id} khai UI coverage = Required nhưng chưa có test nào gắn @visual/@ui hoặc gọi helper kiểm tra bố cục (support/ui-checks).`,
+          action:
+            'Bổ sung kịch bản kiểm thử UI/UX với helper từ support/ui-checks hoặc khai Exempt (reason: ...) nếu không áp dụng.',
+        });
+      }
+    }
+
+    if (req.xssApplicability && req.xssApplicability.status === 'Applicable') {
+      const hasXssGuard = reqActiveTests.some((t) => {
+        const matchers = (t.assertionProfile && t.assertionProfile.matchers) || [];
+        return matchers.includes('helper:expectSafeXssRender');
+      });
+      if (!hasXssGuard) {
+        findings.push({
+          severity: deepSeverity,
+          kind: 'missing-xss-coverage',
+          where: req.file,
+          message: `${req.id} khai XSS applicability = Applicable nhưng chưa có test nào gọi expectSafeXssRender.`,
+          action:
+            'Bổ sung kịch bản @security gọi expectSafeXssRender từ support/deep-guards hoặc khai Not applicable (reason: ...) nếu không áp dụng.',
+        });
+      }
+    }
   }
 
   // TC khai Yes nhưng không tìm thấy script -> traceability nói dối.
@@ -439,7 +492,9 @@ function gaps(root, options) {
 
   // Kiểm tra chất lượng assertion và trạng thái skip của test script thật
   for (const t of realTests) {
-    if (t.assertionCount === 0) {
+    const profileKind = t.assertionProfile && t.assertionProfile.kind;
+    const isWip = Boolean(t.tags && t.tags.includes('@wip'));
+    if (t.assertionCount === 0 && profileKind !== 'unknown') {
       findings.push({
         severity: 'major',
         kind: 'spec-thieu-assertion',
@@ -448,7 +503,64 @@ function gaps(root, options) {
         action: 'Bổ sung assertion expect(...) để kiểm chứng kết quả mong đợi, tránh test rỗng.',
       });
     }
-    if (t.isSkipped && !t.tags.includes('@wip')) {
+    const isNavOnly = profileKind
+      ? profileKind === 'navigation-only'
+      : Boolean(t.onlyNavigationAssert);
+    if (isNavOnly && !t.isSkipped && !isWip) {
+      const matchersList =
+        t.assertionProfile &&
+        Array.isArray(t.assertionProfile.matchers) &&
+        t.assertionProfile.matchers.length > 0
+          ? t.assertionProfile.matchers.join(', ')
+          : 'toHaveURL/toHaveTitle';
+      findings.push({
+        severity: 'minor',
+        kind: 'spec-chi-assert-url',
+        where: specPath(options, t),
+        message: `${t.tcId || t.title} chỉ assert điều hướng trên page (${matchersList}) mà chưa kiểm chứng trạng thái UI/dữ liệu nghiệp vụ.`,
+        action:
+          'Đối chiếu Expected Result của test case; bổ sung assertion đúng kết quả nghiệp vụ nếu TC yêu cầu (không thêm đại một toBeVisible bất kỳ chỉ để tắt cảnh báo).',
+      });
+    }
+    const isWeakExistenceOnly = Boolean(
+      (t.assertionProfile && t.assertionProfile.weakExistenceOnly) || t.weakExistenceOnly,
+    );
+    if (isWeakExistenceOnly && !t.isSkipped && !isWip) {
+      const matchersList =
+        t.assertionProfile &&
+        Array.isArray(t.assertionProfile.matchers) &&
+        t.assertionProfile.matchers.length > 0
+          ? t.assertionProfile.matchers.join(', ')
+          : 'toBeDefined/toBeTruthy';
+      findings.push({
+        severity: deepSeverity,
+        kind: 'weak-existence-assertion',
+        where: specPath(options, t),
+        message: `${t.tcId || t.title} chỉ dùng assertion kiểm tra tồn tại yếu (${matchersList}) mà chưa đối chiếu giá trị hoặc trạng thái cụ thể.`,
+        action:
+          'Thay toBeDefined()/toBeTruthy() bằng assertion kiểm tra giá trị/trạng thái cụ thể (toBe, toEqual, toHaveText, toBeVisible, hoặc deep helper).',
+      });
+    }
+    const tcDetail = t.tcId ? detailsByTc.get(t.tcId) : null;
+    const requiresIdempotency = Boolean(
+      t.requiresIdempotencyGuard ||
+        (t.tags && t.tags.includes('@idempotency')) ||
+        (tcDetail && Array.isArray(tcDetail.capabilities) && tcDetail.capabilities.includes('idempotency')),
+    );
+    if (requiresIdempotency && !t.isSkipped && !isWip) {
+      const matchers = (t.assertionProfile && t.assertionProfile.matchers) || [];
+      if (!matchers.includes('helper:expectIdempotentSubmit')) {
+        findings.push({
+          severity: deepSeverity,
+          kind: 'missing-idempotency-guard',
+          where: specPath(options, t),
+          message: `${t.tcId || t.title} yêu cầu kiểm chứng chống gửi trùng (idempotency) nhưng chưa sử dụng helper expectIdempotentSubmit.`,
+          action:
+            'Sử dụng expectIdempotentSubmit từ support/deep-guards để kiểm chứng khoá nút và chỉ gửi đúng 1 request mutation.',
+        });
+      }
+    }
+    if (t.isSkipped && !isWip) {
       findings.push({
         severity: 'major',
         kind: 'test-bi-skip-am-tham',
