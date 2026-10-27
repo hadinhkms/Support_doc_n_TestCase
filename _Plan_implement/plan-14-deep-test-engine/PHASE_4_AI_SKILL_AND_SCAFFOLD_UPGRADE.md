@@ -71,7 +71,7 @@
 
 ## D. Tiêu Chí Nghiệm Thu Tổng (Exit Gate)
 - [x] `python .master_process/master.py plan-check` đạt `Exit 0 — PLAN-CHECK: PASS`.
-- [ ] `node --test tools/scaffold/scaffold.test.js` và `npm test` đạt Exit Code `0`.
+- [x] `node --test tools/scaffold/scaffold.test.js` và `npm test` đạt Exit Code `0`.
 
 ## E. Câu Hỏi Mở (Open Questions)
 - Hiện có **0 câu hỏi chặn** (zero blocking questions). Cú pháp template giữa Phase 0, Phase 3 và Phase 4 đã thống nhất 100%.

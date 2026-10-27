@@ -1,5 +1,14 @@
 import { expect, type Dialog, type Locator, type Page, type Request, type Response } from '@playwright/test';
 
+export {
+  expectNetworkFaultRecovery,
+  expectMultiTabConcurrency,
+  expectPerformanceBudget,
+  type PreservedInputCheck,
+  type NetworkFaultRecoveryOptions,
+  type MultiTabConcurrencyScenario,
+} from './resilience-guards';
+
 export const XSS_PAYLOADS = [
   '<img src=x onerror="window.__xss_triggered=true">',
   '"><script>window.__xss_triggered=true</script>',
@@ -229,35 +238,4 @@ export async function expectBoundaryRejected(
       expect(res.status()).toBeLessThan(500);
     }
   }
-}
-
-export async function expectPerformanceBudget(
-  page: Page,
-  action: () => Promise<void>,
-  budget: { maxActionMs: number; maxDomInteractiveMs?: number; maxTransferSizeBytes?: number },
-): Promise<{ elapsedMs: number }> {
-  const start = performance.now();
-  await action();
-  const elapsedMs = Math.round(performance.now() - start);
-  expect(elapsedMs, `[expectPerformanceBudget] ${elapsedMs}ms > ${budget.maxActionMs}ms`).toBeLessThanOrEqual(
-    budget.maxActionMs,
-  );
-
-  if (budget.maxDomInteractiveMs !== undefined || budget.maxTransferSizeBytes !== undefined) {
-    const metrics = await page.evaluate(() => {
-      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-      const res = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
-      return {
-        domInteractiveMs: nav ? Math.round(nav.domInteractive) : 0,
-        transferSizeBytes: (nav?.transferSize ?? 0) + res.reduce((s, r) => s + (r.transferSize || 0), 0),
-      };
-    });
-    if (budget.maxDomInteractiveMs !== undefined) {
-      expect(metrics.domInteractiveMs).toBeLessThanOrEqual(budget.maxDomInteractiveMs);
-    }
-    if (budget.maxTransferSizeBytes !== undefined) {
-      expect(metrics.transferSizeBytes).toBeLessThanOrEqual(budget.maxTransferSizeBytes);
-    }
-  }
-  return { elapsedMs };
 }

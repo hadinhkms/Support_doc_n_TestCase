@@ -6,8 +6,16 @@ body:
     id: summary
     attributes:
       label: Tóm tắt
-      description: Một câu, mô tả hành vi sai - không phải mô tả thao tác.
+      description: Một câu ngắn gọn, dễ hình dung hành vi sai.
       placeholder: 'Đăng nhập sai mật khẩu vẫn tạo session và vào được /dashboard'
+    validations: { required: true }
+
+  - type: textarea
+    id: business_context
+    attributes:
+      label: Bối cảnh nghiệp vụ
+      description: Nêu ngắn gọn tình huống người dùng đang thực hiện để đọc vào dễ hình dung ngay.
+      placeholder: 'Người dùng đang ở màn hình đăng nhập, nhập sai mật khẩu của tài khoản hợp lệ rồi bấm Đăng nhập.'
     validations: { required: true }
 
   - type: input
@@ -64,7 +72,7 @@ body:
     id: evidence
     attributes:
       label: Evidence
-      description: Trace, screenshot, video, log. Với lỗi từ automation, đính kèm trace.zip.
+      description: 'Ảnh chụp màn hình bắt buộc khoanh vùng đỏ trực tiếp vào chỗ bị sai để nhìn hình biết ngay cần focus vào đâu (kèm trace.zip, video hoặc log).'
     validations: { required: true }
 
   - type: input

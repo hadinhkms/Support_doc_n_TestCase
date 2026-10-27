@@ -322,6 +322,8 @@ const VERIFIED_GUARD_HELPERS = new Set([
   'expectStatePersistence',
   'expectBoundaryRejected',
   'expectPerformanceBudget',
+  'expectNetworkFaultRecovery',
+  'expectMultiTabConcurrency',
 ]);
 
 const VERIFIED_FIXTURE_HELPERS = new Set(['expectExpectedError']);
@@ -334,7 +336,8 @@ const VERIFIED_DEEP_HELPERS = new Set([
 
 /**
  * Phân giải danh sách helper được import hợp lệ từ `support/ui-checks`, `support/deep-guards`,
- * hoặc `fixtures/base.fixture` / `fixtures/test-fixtures` (hỗ trợ cả multiline import và `as` alias).
+ * `support/resilience-guards`, `deep-testing/*`, hoặc `fixtures/base.fixture` / `fixtures/test-fixtures`
+ * (hỗ trợ cả ES `import`, CommonJS `require`, multiline và `as` / `:` alias).
  * Trả về `Map<localName, canonicalName>`.
  */
 function extractVerifiedHelperImports(fileInput) {
@@ -346,31 +349,36 @@ function extractVerifiedHelperImports(fileInput) {
     .replace(/\/\*[\s\S]*?\*\//g, ' ')
     .replace(/\/\/[^\n]*/g, ' ');
 
-  const importRe = /\bimport\s+(?!type\b)\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g;
-  let m;
-  while ((m = importRe.exec(stripped)) !== null) {
-    const specifiersBlock = m[1];
-    const modulePath = m[2].trim().replace(/\\/g, '/');
+  const importPatterns = [
+    /\bimport\s+(?!type\b)\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g,
+    /\b(?:const|let|var)\s+\{([\s\S]*?)\}\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)/g,
+  ];
+  for (const importRe of importPatterns) {
+    let m;
+    while ((m = importRe.exec(stripped)) !== null) {
+      const specifiersBlock = m[1];
+      const modulePath = m[2].trim().replace(/\\/g, '/');
 
-    let allowedSet = null;
-    if (/(?:^|\/|@)support\/ui-checks(?:\.[jt]s)?$/.test(modulePath)) {
-      allowedSet = VERIFIED_UI_HELPERS;
-    } else if (/(?:^|\/|@)support\/deep-guards(?:\.[jt]s)?$/.test(modulePath)) {
-      allowedSet = VERIFIED_GUARD_HELPERS;
-    } else if (/(?:^|\/|@)fixtures\/(?:base\.fixture|test-fixtures)(?:\.[jt]s)?$/.test(modulePath)) {
-      allowedSet = VERIFIED_DEEP_HELPERS;
-    }
-    if (!allowedSet) continue;
+      let allowedSet = null;
+      if (/(?:^|\/|@)(?:support|deep-testing)\/ui-checks(?:\.[jt]s)?$/.test(modulePath)) {
+        allowedSet = VERIFIED_UI_HELPERS;
+      } else if (/(?:^|\/|@)(?:support|deep-testing)\/(?:deep-guards|resilience-guards)(?:\.[jt]s)?$/.test(modulePath)) {
+        allowedSet = VERIFIED_GUARD_HELPERS;
+      } else if (/(?:^|\/|@)(?:fixtures\/(?:base\.fixture|test-fixtures)|deep-testing(?:\/index)?)(?:\.[jt]s)?$/.test(modulePath)) {
+        allowedSet = VERIFIED_DEEP_HELPERS;
+      }
+      if (!allowedSet) continue;
 
-    for (const part of specifiersBlock.split(',')) {
-      const cleaned = part.trim();
-      if (!cleaned || /^type\s+/.test(cleaned)) continue;
-      const mSpec = cleaned.match(/^([A-Za-z_$][A-Za-z0-9_$]*)(?:\s+as\s+([A-Za-z_$][A-Za-z0-9_$]*))?$/);
-      if (!mSpec) continue;
-      const canonical = mSpec[1];
-      const local = mSpec[2] || mSpec[1];
-      if (allowedSet.has(canonical)) {
-        map.set(local, canonical);
+      for (const part of specifiersBlock.split(',')) {
+        const cleaned = part.trim();
+        if (!cleaned || /^type\s+/.test(cleaned)) continue;
+        const mSpec = cleaned.match(/^([A-Za-z_$][A-Za-z0-9_$]*)(?:(?:\s+as\s+|\s*:\s*)([A-Za-z_$][A-Za-z0-9_$]*))?$/);
+        if (!mSpec) continue;
+        const canonical = mSpec[1];
+        const local = mSpec[2] || mSpec[1];
+        if (allowedSet.has(canonical)) {
+          map.set(local, canonical);
+        }
       }
     }
   }

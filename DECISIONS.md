@@ -3,7 +3,7 @@
 > File này được SINH RA từ `decisions.json` bằng `npm run decisions:render`.
 > Đừng sửa tay — sửa `decisions.json`, hoặc xác nhận qua dashboard.
 
-Lập ngày 2026-09-20. Nguồn: Audit đọc trực tiếp 3 repo: D:\_Script_automation, D:\_CarThings\Automation_Carthings, D:\_Automation-Project
+Lập ngày 2026-09-20. Nguồn: Audit đọc trực tiếp 3 repo: D:\_QA_Test_Automation, D:\_CarThings\Automation_Carthings, D:\_Automation-Project
 
 | # | Quyết định | Đang chặn | Mức | Trạng thái |
 |---|---|---|---|---|
@@ -44,7 +44,7 @@ Lập ngày 2026-09-20. Nguồn: Audit đọc trực tiếp 3 repo: D:\_Script_a
 
 - qa-trace không bị loại trừ khỏi sync nên sẽ tự xuống satellite — `D:\_Automation-Project\scripts\lib\sync-manifest.js - excludes của module scripts`
 - CarThings đang dùng tools/qa cho 5 script qa:* — `D:\_CarThings\Automation_Carthings\package.json`
-- tools/qa không có unit test nào — `D:\_Script_automation\tools\qa - chỉ có index.js, README.md, lib/`
+- tools/qa không có unit test nào — `D:\_QA_Test_Automation\tools\qa - chỉ có index.js, README.md, lib/`
 
 **Lựa chọn.**
 
@@ -67,7 +67,7 @@ Người xác nhận:            Ngày:
 ## D-02. Ai sở hữu CLAUDE.md, AGENTS.md, GEMINI.md, QA_AI_RULES.md?
 
 - Mức: **Chặn** · Đang chặn: Dọn 20 file at-risk ở Hub, và việc viết lại 13 rule QA
-- Repo liên quan: `D:\_Automation-Project` · `D:\_CarThings\Automation_Carthings` · `D:\_Script_automation`
+- Repo liên quan: `D:\_Automation-Project` · `D:\_CarThings\Automation_Carthings` · `D:\_QA_Test_Automation`
 
 **Bối cảnh.** Bốn file này đang bị ba nơi cùng nhận: nằm trong ROOT_FILES_TO_SYNC của Hub (Hub ghi đè), nằm nhóm ship trong sync-manifest.json của repo chuẩn, và chứa 45 dòng nội dung riêng của satellite. 45 dòng đó đang nằm trong danh sách at-risk của pre-sync-drift. Lần sync thành công đầu tiên sẽ xoá sạch chúng.
 
@@ -95,7 +95,7 @@ Người xác nhận:            Ngày:
 ## D-03. 8 mục ship mà Hub không hề có: hạ seed hay đưa framework lên Hub?
 
 - Mức: **Chặn** · Đang chặn: Tính đúng đắn của sync-manifest.json
-- Repo liên quan: `D:\_Script_automation` · `D:\_Automation-Project`
+- Repo liên quan: `D:\_QA_Test_Automation` · `D:\_Automation-Project`
 
 **Bối cảnh.** sync-manifest.json khai 9 mục ship, nhưng Hub chỉ có tools/visual_compare.html. Tám mục sau không tồn tại ở Hub nên không bao giờ được ship: templates, docs, tools/qa, tools/boundary, .github/ISSUE_TEMPLATE, .github/pull_request_template.md, playwright/eslint.config.mjs, .github/copilot-instructions.md. Manifest đang mô tả một thực tế không có.
 
@@ -237,13 +237,13 @@ Người xác nhận:            Ngày:
 ## D-04. TC-013: automation, ghi No kèm lý do, hay hạ xuống P2?
 
 - Mức: **Gấp** · Đang chặn: CI của repo chuẩn đang đỏ trên main
-- Repo liên quan: `D:\_Script_automation`
+- Repo liên quan: `D:\_QA_Test_Automation`
 
 **Bối cảnh.** npm run qa:check exit 1, finding duy nhất là p0-p1-con-dang-candidate: TC-013 là P1 nhưng còn Candidate. Vì job e2e khai needs [quality, traceability] nên job e2e CHƯA TỪNG CHẠY kể từ khi workflow được thêm. Lối tắt đáng chú ý: rule chỉ bắn vào dòng P0/P1 còn Candidate. TC-009 là P1 với Automation No và không bị bắt. Nên ghi TC-013 thành No kèm lý do sẽ xanh gate ngay mà không phải hạ một P1 thật xuống P2.
 
 **Bằng chứng.**
 
-- qa:check exit 1, một finding duy nhất là TC-013 — `node tools/qa gaps --strict tại D:\_Script_automation`
+- qa:check exit 1, một finding duy nhất là TC-013 — `node tools/qa gaps --strict tại D:\_QA_Test_Automation`
 - job e2e phụ thuộc job traceability — `.github/workflows/playwright.yml - needs: [quality, traceability]`
 - TC-009 là P1 Automation No và không bị flag — `test-cases/REQ-001-sign-in.md`
 

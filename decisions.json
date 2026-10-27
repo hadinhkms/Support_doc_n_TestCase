@@ -2,7 +2,7 @@
   "$comment": "NGUỒN SỰ THẬT cho các quyết định đang chờ xác nhận. Dashboard đọc file này để render và ghi ngược phần `answer`. DECISIONS.md được SINH RA từ file này bằng `npm run decisions:render` - đừng sửa tay file .md. Mọi decision có cùng bộ trường nên dashboard render generic được.",
   "version": 1,
   "createdAt": "2026-09-20",
-  "source": "Audit đọc trực tiếp 3 repo: D:\\_Script_automation, D:\\_CarThings\\Automation_Carthings, D:\\_Automation-Project",
+  "source": "Audit đọc trực tiếp 3 repo: D:\\_QA_Test_Automation, D:\\_CarThings\\Automation_Carthings, D:\\_Automation-Project",
   "severityOrder": [
     "blocking",
     "urgent",
@@ -84,7 +84,7 @@
         },
         {
           "claim": "tools/qa không có unit test nào",
-          "source": "D:\\_Script_automation\\tools\\qa - chỉ có index.js, README.md, lib/"
+          "source": "D:\\_QA_Test_Automation\\tools\\qa - chỉ có index.js, README.md, lib/"
         }
       ],
       "options": [
@@ -122,7 +122,7 @@
       "repos": [
         "D:\\_Automation-Project",
         "D:\\_CarThings\\Automation_Carthings",
-        "D:\\_Script_automation"
+        "D:\\_QA_Test_Automation"
       ],
       "context": "Bốn file này đang bị ba nơi cùng nhận: nằm trong ROOT_FILES_TO_SYNC của Hub (Hub ghi đè), nằm nhóm ship trong sync-manifest.json của repo chuẩn, và chứa 45 dòng nội dung riêng của satellite. 45 dòng đó đang nằm trong danh sách at-risk của pre-sync-drift. Lần sync thành công đầu tiên sẽ xoá sạch chúng.",
       "evidence": [
@@ -163,7 +163,7 @@
       "severity": "blocking",
       "blocks": "Tính đúng đắn của sync-manifest.json",
       "repos": [
-        "D:\\_Script_automation",
+        "D:\\_QA_Test_Automation",
         "D:\\_Automation-Project"
       ],
       "context": "sync-manifest.json khai 9 mục ship, nhưng Hub chỉ có tools/visual_compare.html. Tám mục sau không tồn tại ở Hub nên không bao giờ được ship: templates, docs, tools/qa, tools/boundary, .github/ISSUE_TEMPLATE, .github/pull_request_template.md, playwright/eslint.config.mjs, .github/copilot-instructions.md. Manifest đang mô tả một thực tế không có.",
@@ -205,13 +205,13 @@
       "severity": "urgent",
       "blocks": "CI của repo chuẩn đang đỏ trên main",
       "repos": [
-        "D:\\_Script_automation"
+        "D:\\_QA_Test_Automation"
       ],
       "context": "npm run qa:check exit 1, finding duy nhất là p0-p1-con-dang-candidate: TC-013 là P1 nhưng còn Candidate. Vì job e2e khai needs [quality, traceability] nên job e2e CHƯA TỪNG CHẠY kể từ khi workflow được thêm. Lối tắt đáng chú ý: rule chỉ bắn vào dòng P0/P1 còn Candidate. TC-009 là P1 với Automation No và không bị bắt. Nên ghi TC-013 thành No kèm lý do sẽ xanh gate ngay mà không phải hạ một P1 thật xuống P2.",
       "evidence": [
         {
           "claim": "qa:check exit 1, một finding duy nhất là TC-013",
-          "source": "node tools/qa gaps --strict tại D:\\_Script_automation"
+          "source": "node tools/qa gaps --strict tại D:\\_QA_Test_Automation"
         },
         {
           "claim": "job e2e phụ thuộc job traceability",

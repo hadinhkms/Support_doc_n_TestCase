@@ -1176,3 +1176,26 @@ test_cases: test-cases/REQ-101.md
     assert.deepEqual(tcs.details[0].capabilities, ['ui-geometry', 'xss', 'idempotency']);
   });
 });
+
+test('TC-14-P3-05c: extractVerifiedHelperImports nhận diện expectNetworkFaultRecovery, expectMultiTabConcurrency và CommonJS require từ core/deep-testing', () => {
+  const cjsSpec = [
+    "const { expectNoTextOverflow, expectNetworkFaultRecovery: checkFault, expectMultiTabConcurrency } = require('../../core/deep-testing');",
+    "test('TC-001 - AC-001 resilience check', async ({ page }) => {",
+    "  await expectNoTextOverflow(page);",
+    "  await checkFault(page, async () => {}, { urlPattern: '**/api', errorLocator: page.locator('#err') });",
+    "  await expectMultiTabConcurrency(page, { setupBothTabs: async () => {}, tabAAction: async () => {}, tabBConflictingAction: async () => {}, verifyConflictOrIsolation: async () => {} });",
+    "});",
+  ];
+  const map = extractVerifiedHelperImports(cjsSpec);
+  assert.equal(map.get('expectNoTextOverflow'), 'expectNoTextOverflow');
+  assert.equal(map.get('checkFault'), 'expectNetworkFaultRecovery');
+  assert.equal(map.get('expectMultiTabConcurrency'), 'expectMultiTabConcurrency');
+
+  const profile = analyzeTestAssertions(cjsSpec);
+  assert.equal(profile.kind, 'mixed');
+  assert.deepEqual(profile.matchers, [
+    'helper:expectNoTextOverflow',
+    'helper:expectNetworkFaultRecovery',
+    'helper:expectMultiTabConcurrency',
+  ]);
+});

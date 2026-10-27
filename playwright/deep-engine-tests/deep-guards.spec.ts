@@ -2,6 +2,8 @@ import { test, expect } from '../tests/fixtures/test-fixtures';
 import {
   expectBoundaryRejected,
   expectIdempotentSubmit,
+  expectMultiTabConcurrency,
+  expectNetworkFaultRecovery,
   expectPerformanceBudget,
   expectSafeXssRender,
   expectStatePersistence,
@@ -208,5 +210,100 @@ test.describe('Deep Logic & Security Invariant Guards (HM-06..HM-08)', () => {
       { maxActionMs: 2000 },
     );
     expect(perf.elapsedMs).toBeGreaterThanOrEqual(0);
+  });
+
+  test('HM-08 - TC-14-P3-06 expectNetworkFaultRecovery and expectMultiTabConcurrency verify fault recovery and tab conflict guard', async ({
+    page,
+    runtimeTrap,
+  }) => {
+    await page.setContent(`
+      <input id="title-input" value="Xe Mazda CX-5 2025" />
+      <input id="secret-input" value="123456" />
+      <button id="save-post" type="button">Save Post</button>
+      <div id="fault-banner" style="display:none"></div>
+      <script>
+        const btn = document.getElementById('save-post');
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          try {
+            const res = await fetch('https://app.local/api/posts', { method: 'POST' });
+            if (!res.ok) {
+              document.getElementById('fault-banner').textContent = 'Server error, please retry';
+              document.getElementById('fault-banner').style.display = 'block';
+              document.getElementById('secret-input').value = '';
+            }
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      </script>
+    `);
+
+    await expectNetworkFaultRecovery(
+      page,
+      async () => {
+        await page.locator('#save-post').click();
+      },
+      {
+        urlPattern: '**/api/posts',
+        faultMode: 'http-500',
+        errorLocator: page.locator('#fault-banner'),
+        expectedErrorPattern: /Server error/,
+        submitButton: page.locator('#save-post'),
+        preservedInputs: [{ locator: page.locator('#title-input'), expectedValue: 'Xe Mazda CX-5 2025' }],
+        clearedInputs: [page.locator('#secret-input')],
+        allowRuntimeTrap: runtimeTrap,
+      },
+    );
+
+    let currentVersion = 1;
+    await page.context().route('https://app.local/api/doc', async (route) => {
+      if (route.request().method() === 'PUT') {
+        const body = JSON.parse(route.request().postData() || '{}');
+        if (body.version !== currentVersion) {
+          await route.fulfill({ status: 409, contentType: 'application/json', body: '{"error":"Version conflict"}' });
+          return;
+        }
+        currentVersion += 1;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: `{"version":${currentVersion}}` });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: `
+          <div id="conflict-alert" style="display:none">Conflict detected</div>
+          <button id="save-doc" type="button">Save Doc</button>
+          <script>
+            window.__ver = ${currentVersion};
+            document.getElementById('save-doc').addEventListener('click', async () => {
+              const res = await fetch('https://app.local/api/doc', {
+                method: 'PUT',
+                body: JSON.stringify({ version: window.__ver }),
+              });
+              if (res.status === 409) {
+                document.getElementById('conflict-alert').style.display = 'block';
+              }
+            });
+          </script>
+        `,
+      });
+    });
+
+    await expectMultiTabConcurrency(page, {
+      setupBothTabs: async (tabA, tabB) => {
+        await tabA.goto('https://app.local/api/doc');
+        await tabB.goto('https://app.local/api/doc');
+      },
+      tabAAction: async (tabA) => {
+        await tabA.locator('#save-doc').click();
+      },
+      tabBConflictingAction: async (tabB) => {
+        await tabB.locator('#save-doc').click();
+      },
+      verifyConflictOrIsolation: async (_tabA, tabB) => {
+        await expect(tabB.locator('#conflict-alert')).toBeVisible();
+      },
+    });
   });
 });
