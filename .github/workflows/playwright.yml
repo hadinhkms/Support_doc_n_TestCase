@@ -24,7 +24,7 @@ env:
 jobs:
   # Kiểm tra tĩnh - không cần môi trường app, luôn chạy được.
   quality:
-    name: Lint & typecheck
+    name: Lint, typecheck & helper runtime checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -39,6 +39,19 @@ jobs:
       - run: npm run lint
       # Phát hiện sớm spec lỗi cú pháp / test bị trùng mà không cần chạy thật.
       - run: npm run test:list
+
+      # Self-contained helper probes need no application URL or credentials.
+      - name: Install Chromium for helper runtime checks
+        run: npx playwright install --with-deps chromium
+      - name: Verify Deep Test Engine and regression probes
+        run: npm run test:deep-engine -- --workers=2
+      - name: Upload helper failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deep-engine-failure-evidence
+          path: playwright/test-results/deep-engine/
+          retention-days: 7
 
   # Gate traceability: requirement <-> test case <-> script phải khớp nhau.
   # Chạy được mà không cần môi trường app.

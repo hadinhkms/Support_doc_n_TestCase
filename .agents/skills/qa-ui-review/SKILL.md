@@ -130,6 +130,8 @@ Keep **classification**, **severity**, and **confidence** separate:
   or create a requirement from an established source using the workspace workflow.
 - Map applicable findings to `REQ -> AC -> TC -> script`; use `ui-geometry`, `a11y`,
   `responsive`, `idempotency`, or other existing capabilities where accurate.
+- Use a focused axe scan where available plus keyboard/focus assertions for relevant
+  accessibility flows. The small interactive-name helper is not a WCAG conformance scan.
 - Inspect actual helper exports/signatures before use. Existing helpers in
   `playwright/tests/support/ui-checks.ts` cover horizontal overflow, text overflow,
   occlusion, interactive accessible names, responsive integrity, and broken images.
@@ -138,6 +140,9 @@ Keep **classification**, **severity**, and **confidence** separate:
 - Use `deep-guards.ts` for relevant async resilience/idempotency scenarios and
   `captureAnnotatedBugEvidence` from `evidence.ts` for confirmed visual bugs, following
   their actual interfaces. Import test fixtures as required by the workspace.
+- When intentionally injecting network faults, acknowledge only the observed injected
+  failure through the helper's runtime-trap integration; never leave a broad URL/error
+  allowance that could hide a later regression.
 - Review-only requests produce findings, not rewrites. When fixes are authorized,
   prefer the smallest compatible patch; preserve component contracts, accessibility,
   localization, and project conventions. Do not add libraries just to satisfy a rubric.

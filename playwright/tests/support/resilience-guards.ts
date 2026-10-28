@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, type Route } from '@playwright/test';
+import { redactSensitiveText, type RuntimeTrap } from '../fixtures/base.fixture';
 
 export interface PreservedInputCheck {
   locator: Locator;
@@ -13,7 +14,8 @@ export interface NetworkFaultRecoveryOptions {
   submitButton?: Locator;
   preservedInputs?: PreservedInputCheck[];
   clearedInputs?: Locator[];
-  allowRuntimeTrap?: { allow: (rule: { source: 'http-5xx' | 'requestfailed'; pattern: string | RegExp; reason: string }) => void };
+  /** Acknowledge only the observed injected failure, never a persistent URL allowance. */
+  allowRuntimeTrap?: Pick<RuntimeTrap, 'records' | 'flushBrowserQueue' | 'allowRecord'>;
 }
 
 /**
@@ -28,18 +30,16 @@ export async function expectNetworkFaultRecovery(
   options: NetworkFaultRecoveryOptions,
 ): Promise<void> {
   const mode = options.faultMode ?? 'http-500';
-  if (options.allowRuntimeTrap) {
-    options.allowRuntimeTrap.allow({
-      source: mode === 'network-abort' ? 'requestfailed' : 'http-5xx',
-      pattern: options.urlPattern,
-      reason: `Fault injection via expectNetworkFaultRecovery (${mode})`,
-    });
-  }
-
+  const trap = options.allowRuntimeTrap;
+  const startIndex = trap?.records.length ?? 0;
   let faultInjected = false;
+  let injectedUrl = '';
+  let injectedMethod = '';
   const handler = async (route: Route): Promise<void> => {
     if (!faultInjected) {
       faultInjected = true;
+      injectedUrl = redactSensitiveText(route.request().url());
+      injectedMethod = route.request().method();
       if (mode === 'network-abort') {
         await route.abort('failed');
       } else {
@@ -94,6 +94,28 @@ export async function expectNetworkFaultRecovery(
     if (options.clearedInputs?.length) {
       for (const loc of options.clearedInputs) {
         await expect(loc, '[expectNetworkFaultRecovery] Sensitive input must be cleared after fault').toHaveValue('');
+      }
+    }
+    if (trap) {
+      await trap.flushBrowserQueue();
+      const injectedRecord = trap.records.slice(startIndex).find(
+        (record) =>
+          record.url === injectedUrl &&
+          record.method === injectedMethod &&
+          (mode === 'network-abort'
+            ? record.source === 'requestfailed'
+            : record.source === 'http-5xx' && record.status === (mode === 'http-503' ? 503 : 500)),
+      );
+      expect(injectedRecord, '[expectNetworkFaultRecovery] Runtime trap must observe the injected failure').toBeDefined();
+      trap.allowRecord(injectedRecord!);
+      // Chromium also emits this exact browser diagnostic for route.abort('failed').
+      // Acknowledge one paired record only; retain application errors and later faults.
+      if (mode === 'network-abort') {
+        const browserDiagnostic = trap.records.slice(startIndex).find(
+          (record) => record.source === 'console.error' && record.url === injectedUrl &&
+            record.message === 'Failed to load resource: net::ERR_FAILED',
+        );
+        if (browserDiagnostic) trap.allowRecord(browserDiagnostic);
       }
     }
   } finally {

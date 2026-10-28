@@ -99,14 +99,14 @@ Inspect the corresponding `.spec.ts` files and Page Objects (`playwright/tests/p
 | Triệu chứng lỗi (Bug Symptom) | Capability Tag | Helper bắt buộc (`playwright/tests/support/`) |
 |---|---|---|
 | Tràn khung ngang trên Desktop/Mobile | `ui-geometry` | `expectNoHorizontalScroll(page)` (`ui-checks.ts`) |
-| Cắt cụt chữ (`scrollWidth > clientWidth`) không có `title` | `ui-geometry` | `expectNoTextOverflow(page, rootLocator)` (`ui-checks.ts`) |
-| Nút bấm bị sticky header/toast/modal đè tâm điểm | `ui-geometry` | `expectNotOccluded(page, targetLocator)` (`ui-checks.ts`) |
-| Nút/input/link thiếu tên tiếp cận (`accessibleName`) | `a11y` | `expectInteractiveA11y(page, rootLocator)` (`ui-checks.ts`) |
+| Cắt cụt chữ (`scrollWidth > clientWidth`) không có `title` | `ui-geometry` | `expectNoTextOverflow(rootLocator)` (`ui-checks.ts`) |
+| Nút bấm bị sticky header/toast/modal đè tâm điểm | `ui-geometry` | `expectNotOccluded(targetLocator)` (`ui-checks.ts`) |
+| Nút/input/link thiếu tên tiếp cận (`accessibleName`) | `a11y` | `expectInteractiveA11y(rootLocator)` (`ui-checks.ts`) |
 | Vỡ layout khi đổi qua Desktop / Tablet / Mobile | `responsive` | `expectResponsiveIntegrity(page, { requiredLocators, optionalLocators })` (`ui-checks.ts`) |
-| Double-click gửi 2+ request `POST`/`PUT`/`PATCH`/`DELETE` | `idempotency` | `expectIdempotentSubmit(page, { submitLocator, urlPattern })` (`deep-guards.ts`) |
-| Payload `<script>` / `onerror` thực thi hoặc lọt vào DOM sink | `xss` | `expectSafeXssRender(page, { inputLocator, submitLocator, sinkLocator })` (`deep-guards.ts`) |
-| Optimistic UI mất dữ liệu sau khi `page.reload()` | `persistence` | `expectStatePersistence(page, { act, verify })` (`deep-guards.ts`) |
-| Giá trị biên / rỗng / quá dài vẫn bắn request thành công | `boundary` | `expectBoundaryRejected(page, { inputLocator, submitLocator, errorLocator, invalidValues })` (`deep-guards.ts`) |
+| Double-click gửi 2+ request `POST`/`PUT`/`PATCH`/`DELETE` | `idempotency` | `expectIdempotentSubmit(page, submitLocator, urlPattern)` (`deep-guards.ts`) |
+| Payload `<script>` / `onerror` thực thi hoặc lọt vào DOM sink | `xss` | `expectSafeXssRender(page, inputAction, { sinkLocator })` (`deep-guards.ts`) |
+| Optimistic UI mất dữ liệu sau khi `page.reload()` | `persistence` | `expectStatePersistence(page, assertFn)` (`deep-guards.ts`) |
+| Giá trị biên / rỗng / quá dài vẫn bắn request thành công | `boundary` | `expectBoundaryRejected(page, trigger, errorLocator, options)` (`deep-guards.ts`) |
 
 ---
 

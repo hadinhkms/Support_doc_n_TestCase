@@ -26,6 +26,17 @@ npm run verify                # typecheck + lint + liệt kê test
 6. Viết script vào `playwright/tests/<domain>/<feature>.spec.ts`.
 7. Chạy test, lưu evidence khi fail và cập nhật trạng thái. Lỗi sản phẩm → mở issue theo [bug template](.github/ISSUE_TEMPLATE/bug_report.yml); test không ổn định → theo [flaky policy](docs/flaky-test-policy.md).
 
+## Bộ Kỹ Năng AI Agent (`.agents/skills/`)
+
+Workspace tích hợp 4 bộ kỹ năng chuyên sâu cho AI Coding & QA Agent theo kiến trúc **Progressive Disclosure**:
+
+| Skill | Mục đích & Khi nào sử dụng |
+|---|---|
+| [`qa-system-testing`](.agents/skills/qa-system-testing/SKILL.md) | **Điều phối kiểm thử hệ thống đa tầng & Multi-portal** qua 3 pha:<br>• `Workflow 01`: Review PRD/SRS/API Spec, bắt lỗ hổng phân quyền liên cổng (`RBAC`/`BOLA`), State Machine & Webhook.<br>• `Workflow 02`: Thiết kế Test Matrix phân tầng **Test Pyramid (70/20/10)** và chuẩn hóa `REQ -> AC -> TC`.<br>• `Workflow 03`: Kiểm thử E2E Diff-aware (`git diff`) & đối soát đa điểm (`UI + API + Database`). |
+| [`qa-logic-gaps`](.agents/skills/qa-logic-gaps/SKILL.md) | Rà soát lỗ hổng độ phủ `REQ <-> AC <-> TC <-> Spec`, phát hiện assertion yếu (`PA-xx`), bẫy nghiệp vụ (`DH-xx`) và vận hành **Selective Learning** (`npm run qa:learn`). |
+| [`qa-api-testing`](.agents/skills/qa-api-testing/SKILL.md) | Thiết kế & tự động hóa kiểm thử API chuyên sâu (`APIRequestContext`, OWASP API Top 10: BOLA/IDOR, BFLA, Mass Assignment, Race Condition `Promise.all`, Read-After-Write/Reject). |
+| [`qa-ui-review`](.agents/skills/qa-ui-review/SKILL.md) | Review mã nguồn Frontend và giao diện thực tế theo Rubric 15 nhóm (Layout, Mobile, A11y, Interaction, Async state). |
+
 ## Review UI/UX của ứng dụng
 
 Dùng [skill qa-ui-review](.agents/skills/qa-ui-review/SKILL.md) khi cần review mã frontend
@@ -106,6 +117,7 @@ playwright/
 | [docs/test-data-management.md](docs/test-data-management.md) | Seed, cleanup, cô lập khi chạy song song, dữ liệu nhạy cảm |
 | [docs/flaky-test-policy.md](docs/flaky-test-policy.md) | Phân loại nguyên nhân, quy trình quarantine, ngưỡng cảnh báo |
 | [docs/hub-and-project-boundary.md](docs/hub-and-project-boundary.md) | Cái gì thuộc Hub, cái gì thuộc project, và cách chặn ghi đè business |
+| [docs/qa-research-references.md](docs/qa-research-references.md) | Danh mục link GitHub tham khảo về Agentic QA Skills & System Testing Architecture |
 
 ## Lệnh Playwright
 
