@@ -29,18 +29,27 @@ body:
   - type: dropdown
     id: severity
     attributes:
-      label: Severity
+      label: Mức độ nghiêm trọng (Severity)
       options:
-        - S1 - Chặn sử dụng, mất dữ liệu hoặc lỗ hổng bảo mật
-        - S2 - Chức năng chính sai, chưa có workaround
-        - S3 - Luồng phụ hoặc có workaround
-        - S4 - Thẩm mỹ, tác động thấp
+        - P0 / S1 - Chặn sử dụng, mất dữ liệu hoặc lỗ hổng bảo mật (Blocker)
+        - P1 / S2 - Chức năng chính sai, chưa có workaround (Critical)
+        - P2 / S3 - Luồng phụ, giao diện sai lệch hoặc có workaround (Major)
+        - P3 / S4 - Thẩm mỹ, lệch nhỏ, tác động thấp (Minor)
+    validations: { required: true }
+
+  - type: textarea
+    id: preconditions
+    attributes:
+      label: Tiền điều kiện (Preconditions)
+      description: Trạng thái tài khoản, quyền (role), cấu hình hoặc dữ liệu cần có sẵn trước khi thực hiện.
+      placeholder: 'Tài khoản hợp lệ đang ở trạng thái Active, chưa đăng nhập trên trình duyệt.'
     validations: { required: true }
 
   - type: textarea
     id: steps
     attributes:
-      label: Các bước tái hiện
+      label: Các bước tái hiện (Steps to Reproduce)
+      description: Ghi tuần tự từng thao tác và dữ liệu nhập để Dev hoặc Tester khác làm theo là tái hiện được ngay.
       value: |
         1.
         2.
@@ -51,8 +60,9 @@ body:
     id: expected_actual
     attributes:
       label: Kết quả mong đợi và kết quả thực tế
+      description: 'Kết quả mong đợi đối chiếu theo AC-xx / BR-xx (nếu tài liệu chưa quy định thì ghi rõ SPEC_GAP).'
       value: |
-        **Mong đợi:**
+        **Mong đợi (theo AC/BR):**
 
         **Thực tế:**
     validations: { required: true }

@@ -10,6 +10,11 @@ description: >-
 
 This skill provides a systematic two-layer methodology (**Automated Static Analysis** + **Deep Semantic Business Logic Audit**) augmented by a **Selective Learning Knowledge Base** to uncover **Logic Gaps** across `requirements/`, `test-cases/`, and `playwright/tests/`.
 
+For frontend source or rendered UI/UX review, use the sibling
+[qa-ui-review skill](../qa-ui-review/SKILL.md). This skill owns coverage and assertion
+quality; the sibling owns application UI findings. For mixed requests, connect findings
+through REQ/AC/TC, avoid duplicates, and preserve workspace rule 14 for confirmed bugs.
+
 ---
 
 ## Workflow

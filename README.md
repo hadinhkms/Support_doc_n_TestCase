@@ -26,6 +26,34 @@ npm run verify                # typecheck + lint + liệt kê test
 6. Viết script vào `playwright/tests/<domain>/<feature>.spec.ts`.
 7. Chạy test, lưu evidence khi fail và cập nhật trạng thái. Lỗi sản phẩm → mở issue theo [bug template](.github/ISSUE_TEMPLATE/bug_report.yml); test không ổn định → theo [flaky policy](docs/flaky-test-policy.md).
 
+## Review UI/UX của ứng dụng
+
+Dùng [skill qa-ui-review](.agents/skills/qa-ui-review/SKILL.md) khi cần review mã frontend
+hoặc giao diện thực tế của ứng dụng được kiểm thử. Ví dụ:
+
+```text
+$qa-ui-review Quick: review thay đổi UI checkout tại <đường dẫn source / URL>
+so với <base ref>; tập trung mobile, overflow và keyboard; chỉ báo cáo.
+
+$qa-ui-review Full: review toàn luồng checkout tại <đường dẫn source / URL>,
+kiểm tra các viewport và trạng thái được hỗ trợ; chỉ báo cáo.
+```
+
+Skill có rubric 15 nhóm kiểm tra, phân biệt rủi ro từ code, bug đã tái hiện và đề xuất
+thiết kế; ghi rõ phần chưa kiểm chứng nếu thiếu source hoặc môi trường chạy. Finding
+cần test được nối vào REQ → AC → TC → script theo rule chung. Dùng `qa-logic-gaps`
+khi mục tiêu là tìm thiếu coverage hoặc assertion yếu trong bộ test.
+
+**Quick là mặc định**: chạy test liên quan trước, đọc diff và dependency cần thiết,
+chọn mục rubric phù hợp, chỉ nạp ảnh/log có ích và báo finding mới/thay đổi cùng các ID
+còn mở. **Full** dành cho review toàn diện, release/sign-off hoặc thay đổi ảnh hưởng rộng.
+Mốc review có thể lưu ở `_Plan_implement/ui-reviews/<scope>.md` kèm revision, môi trường,
+finding và bằng chứng; phải kiểm tra độ còn hiệu lực trước khi dùng lại. Đây là tối ưu
+context AI, không giảm yêu cầu kiểm chứng; chưa có số đo phần trăm tiết kiệm quota.
+
+Skill và rule chung thuộc nhóm `ship`: thay đổi trực tiếp tại repo này cần được đưa
+về Hub trước lần sync kế tiếp để tránh bị ghi đè.
+
 ## Khi có sẵn test automation
 
 Có thể bắt đầu từ script theo luồng ngược:

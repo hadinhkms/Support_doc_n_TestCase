@@ -32,6 +32,26 @@ Khi người dùng yêu cầu viết test script hoặc test cases trong workspa
       2. **Xác minh khả năng tái hiện (Reproducibility Verification)**: Chạy lại đúng kịch bản đó trong trạng thái sạch (`npx playwright test <spec> --repeat-each=3` hoặc gọi lại API độc lập). Chỉ khi lỗi tái hiện nhất quán với cùng nguyên nhân và triệu chứng mới được công nhận là **Confirmed Bug (`BUG-xx`)**. Nếu chạy lại mà không còn thấy lỗi, phải điều tra lại timing của test hoặc dùng bộ kích hoạt đồng thời (`Promise.all` / `expectMultiTabConcurrency`) để xác minh rõ nguyên nhân trước khi báo.
       3. **Bằng chứng kép & Quy ước trình bày khi tạo Bug (Dual Proof & Bug Presentation)**: Mọi Bug báo cáo phải kèm đồng thời: (a) bằng chứng thực thi khi tái hiện lỗi (log lỗi `runtimeTrap`, HTTP status/payload, ảnh/DOM thực tế) và (b) chỉ rõ dòng code/logic gây lỗi (`file:line`) nếu có quyền đọc mã nguồn ứng dụng, hoặc chuỗi bước tái hiện tối giản (`Steps to Reproduce` / lệnh `curl`). Khi viết nội dung Bug, dùng từ ngữ tự nhiên, ngắn gọn, dễ đọc và dễ hình dung; mục mô tả tình huống đặt tên đúng là **`Bối cảnh nghiệp vụ`** (không đặt tiêu đề kiểu *"Giải thích dễ hiểu cho Dev"*). Ảnh bằng chứng (`Visual Evidence`) bắt buộc phải **khoanh vùng (khung đỏ) trực tiếp vào vị trí bị sai** (dùng `captureAnnotatedBugEvidence` trong `playwright/tests/support/evidence.ts`) để nhìn vào hình biết ngay chỗ cần tập trung.
 
+## Review mã frontend và UI/UX
+
+Khi người dùng yêu cầu review UI/UX hoặc mã frontend của ứng dụng được kiểm thử, dùng
+[skill qa-ui-review](../.agents/skills/qa-ui-review/SKILL.md). Skill bổ sung checklist
+đọc mã và kiểm tra giao diện; quy định viết test, traceability và cổng xác minh Bug
+ở trên vẫn là nguồn duy nhất. Không tự áp dụng toàn bộ checklist vào mọi task viết test.
+
+- Mặc định dùng **Quick** theo diff/phạm vi liên quan, chạy kiểm tra tự động phù hợp
+  trước và chỉ nạp log/ảnh cần phân tích. Dùng **Full** khi review toàn diện, release/sign-off
+  hoặc thay đổi ảnh hưởng rộng; xem quy tắc chọn mode và tái sử dụng checkpoint trong skill.
+  Tiết kiệm context không được bỏ bằng chứng, rerun bắt buộc hoặc coi kết quả cũ là Pass hiện tại.
+- Phân biệt rủi ro từ code (`UI-RISK`), Bug đã xác minh (`BUG`), đề xuất thiết kế
+  (`UI-REC`) và câu hỏi còn mở (`Q`). Chỉ gắn `Confirmed Bug` khi đạt mục 14.
+- Chưa chạy kiểm tra thì ghi `Not verified`; không kết luận Pass hoặc production-ready
+  từ việc không thấy lỗi trong code. Phân biệt bằng chứng browser emulation và thiết bị thật.
+- Review coverage/assertion của REQ/TC/Playwright dùng `qa-logic-gaps`; review frontend
+  dùng `qa-ui-review`. Nếu cần cả hai, giữ liên kết finding tới REQ/AC/TC và tránh báo trùng.
+- Chỉ sửa mã khi người dùng yêu cầu; dùng bản vá nhỏ phù hợp convention và kiểm chứng
+  theo phạm vi thay đổi. Không tự tạo requirement hay gate CI từ sở thích thiết kế.
+
 Khi người dùng cung cấp test automation hiện có:
 
 1. Dùng script làm nguồn bằng chứng để lập inventory `spec -> test -> page/API/fixture/data`.
