@@ -10,6 +10,8 @@ description: >-
 
 # QA Deep API Testing Skill
 
+> **Live Source + Built-in Fallback:** Nếu trên máy tồn tại `D:/_QA_Test_Automation/.agents/skills/qa-api-testing/`, ưu tiên đọc `SKILL.md` và `references/*` trực tiếp từ `D:/_QA_Test_Automation/.agents/skills/qa-api-testing/` để lấy bản mới nhất; nếu không có trên máy, sử dụng ngay bản tích hợp sẵn tại thư mục hiện tại.
+
 This skill provides an end-to-end methodology for designing, automating, and auditing **Standard & Deep API Tests** across `requirements/`, `test-cases/`, and `playwright/tests/` using Playwright's `APIRequestContext` and `ApiClient`.
 
 ---
@@ -31,7 +33,7 @@ Load these reference guides when designing test cases or writing Playwright API 
    npm run qa:impact -- <REQ-id>
    npm run qa:gaps
    ```
-   Always read [.github/copilot-instructions.md](../../../.github/copilot-instructions.md) before modifying `requirements/`, `test-cases/`, or `playwright/tests/`.
+   Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying `requirements/`, `test-cases/`, or `playwright/tests/`.
 
 2. **Configure Canonical Metadata in `requirements/REQ-xxx-*.md`**:
    `tools/qa` enforces strict metadata rules (`missing-ui-coverage`, `missing-xss-coverage`). Configure the requirement header based on the API scope:
@@ -118,17 +120,23 @@ Follow the patterns in [references/playwright-api-patterns.md](references/playwr
 
 ---
 
-### Step 4: Verification & Quality Gates
+### Step 4: Zero False-Positive Bug Confirmation & Quality Gates
+
+1. **Zero False-Positive & Reproducibility Gate (When Hunting API Bugs)**:
+   - **Never guess or report an API bug from a single accidental failure.** Before logging any `BUG-xx`:
+     - **Rule Out Test Faults First**: Verify the failure is not caused by a test script bug (wrong endpoint path, stale token, polluted DB state from a previous run, missing `await`, or wrong Content-Type header in the test). If the test is wrong, fix the test and re-run — never report it as an application bug.
+     - **Reproducibility Verification**: Re-run the isolated API call or Playwright spec (`npx playwright test <spec> --repeat-each=3`) to confirm the issue still occurs on re-check. Only report a **Confirmed Bug (`BUG-xx`)** when it reproduces consistently with identical HTTP status, response payload, and state mutation (or via a `Promise.all` race probe for concurrency bugs).
+     - **Dual Proof**: Attach both the exact request/response telemetry (`method`, `url`, `payload`, `status`, `response body`, Read-After-Write/Reject check) and the backend source `file:line` root cause (when backend code is in scope).
 
 After creating or updating requirements, test cases, or API specs, run the verification pipeline in order:
 
-1. **Inside `playwright/`**:
+2. **Inside `playwright/`**:
    ```bash
    npm run verify
    ```
    *(Runs TypeScript `tsc --noEmit`, ESLint rules, and `playwright test --list`)*
 
-2. **At repository root**:
+3. **At repository root**:
    ```bash
    npm run qa:matrix
    npm run qa:check

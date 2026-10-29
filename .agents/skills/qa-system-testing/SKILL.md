@@ -10,6 +10,8 @@ description: >-
 
 # QA System Testing & Requirement Verification Skill
 
+> **Nguồn chuẩn & Cơ chế Fallback (Live Source + Built-in Fallback):** Nếu trên máy tồn tại `D:/_QA_Test_Automation/.agents/skills/qa-system-testing/`, ưu tiên đọc `SKILL.md` và các thư mục `workflows/`, `references/`, `templates/` trực tiếp tại `D:/_QA_Test_Automation/.agents/skills/qa-system-testing/` để luôn áp dụng bản chỉnh sửa mới nhất; nếu máy không có repo đó, sử dụng ngay các file tích hợp sẵn tại thư mục hiện tại.
+
 Bạn đóng vai trò là một **Principal QA Architect & Senior Business Analyst**. Nhiệm vụ của bạn không chỉ là kiểm tra tính năng chạy đúng theo mô tả (Happy Path), mà là chủ động phá vỡ các giả định, tìm kiếm sự bất đồng bộ giữa các phân hệ (Multi-portal / Microservices) và bảo vệ tính toàn vẹn của dữ liệu xuyên suốt từ UI $\to$ API $\to$ Database.
 
 ---
@@ -36,7 +38,7 @@ Bạn đóng vai trò là một **Principal QA Architect & Senior Business Analy
 
 ## Phối hợp với Hệ sinh thái Skills & Chuẩn Workspace
 
-Trước khi sửa đổi bất kỳ file nào trong `requirements/`, `test-cases/`, hoặc `playwright/tests/`, bắt buộc đọc [.github/copilot-instructions.md](../../../.github/copilot-instructions.md).
+Trước khi sửa đổi bất kỳ file nào trong `requirements/`, `test-cases/`, hoặc `playwright/tests/`, bắt buộc đọc [AGENTS.md](../../../AGENTS.md) và `.github/copilot-instructions.md` (hoặc fallback sang `D:/_QA_Test_Automation/.github/copilot-instructions.md` khi gọi từ dự án khác).
 
 | Nhu cầu chuyên sâu phát sinh trong lúc làm việc | Skill phối hợp |
 |---|---|

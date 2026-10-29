@@ -9,6 +9,8 @@ description: >-
 
 # UI/UX Frontend Review
 
+> **Live Source + Built-in Fallback:** Nếu trên máy tồn tại `D:/_QA_Test_Automation/.agents/skills/qa-ui-review/`, ưu tiên đọc `SKILL.md` và `references/ui-review-rubric.md` trực tiếp từ `D:/_QA_Test_Automation/.agents/skills/qa-ui-review/` để lấy bản mới nhất; nếu không có trên máy, sử dụng ngay bản tích hợp sẵn tại thư mục hiện tại.
+
 Review the application UI with evidence proportional to the conclusion. This QA
 workspace may contain only tests and Page Objects: identify the actual application
 source and running URL before treating test code as frontend implementation.
@@ -75,7 +77,7 @@ and retain Not verified. Checkpoints never replace mandatory reruns or final gat
 
 ## Scope and sources
 
-- Read [workspace rules](../../../.github/copilot-instructions.md) first. They are
+- Read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) first. They are
   the authority for test authoring, traceability, and confirmed-bug evidence.
 - Establish the requested pages/components, available source, running environment,
   supported browsers/devices, design references, and whether changes are requested.

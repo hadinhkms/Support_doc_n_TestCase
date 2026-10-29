@@ -8,7 +8,7 @@ Chuyển hóa Requirement thành bộ kịch bản kiểm thử tối ưu độ 
 ## Quy trình Thiết kế 4 Bước
 
 ### Bước 1: Áp dụng Kỹ thuật Thiết kế Kiểm thử Chuyên sâu
-Đọc đối chiếu [../references/edge-case-catalog.md](../references/edge-case-catalog.md) và [../../../docs/qa-test-design-standard.md](../../../docs/qa-test-design-standard.md):
+Đọc đối chiếu [../references/edge-case-catalog.md](../references/edge-case-catalog.md) và `docs/qa-test-design-standard.md` (hoặc `D:/_QA_Test_Automation/docs/qa-test-design-standard.md`):
 1. **Equivalence Partitioning (EP) & Boundary Value Analysis (BVA):**
    - Textbox chữ: rỗng, chỉ khoảng trắng (`"   "`), khoảng trắng đầu/cuối, `min - 1`, `min`, `max`, `max + 1`, `UNICODE_OVERFLOW_PAYLOADS`.
    - Textbox số/tiền tệ: chữ (`abc`), ký tự đặc biệt (`!@#`), dán chuỗi hỗn hợp (`12abc34`), số `0`, số âm, số thập phân, `min - 1`, `min`, `max`, `max + 1`.
@@ -35,7 +35,7 @@ Không đẩy mọi kịch bản lên tầng UI E2E. Phân loại rõ từng k�
 ---
 
 ### Bước 3: Chấm điểm Ưu tiên Automation (Candidate Selection)
-Với các kịch bản ở tầng API và UI/E2E, áp dụng tiêu chí 5 chiều trong [../../../docs/automation-strategy.md](../../../docs/automation-strategy.md) (`Frequency`, `Risk`, `Stability`, `Feasibility`, `Maintenance` chấm 1–5; tổng $\ge 17/25$ hoặc thuộc `P0`/`P1` Critical Path $\to$ `Automation: Yes`).
+Với các kịch bản ở tầng API và UI/E2E, áp dụng tiêu chí 5 chiều trong `docs/automation-strategy.md` (hoặc `D:/_QA_Test_Automation/docs/automation-strategy.md`) (`Frequency`, `Risk`, `Stability`, `Feasibility`, `Maintenance` chấm 1–5; tổng $\ge 17/25$ hoặc thuộc `P0`/`P1` Critical Path $\to$ `Automation: Yes`).
 
 ---
 
