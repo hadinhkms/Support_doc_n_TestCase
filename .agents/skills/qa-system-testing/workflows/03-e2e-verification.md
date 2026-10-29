@@ -8,9 +8,8 @@ Xác minh tính toàn vẹn của luồng nghiệp vụ xuyên suốt từ giao 
 ## Quy trình Thực thi 5 Bước (Execution & Verification Loop)
 
 ### Bước 1: Xác định Phạm vi Ảnh hưởng theo Diff & Traceability (Diff-Aware Scoping)
-1. **Phân tích thay đổi mã nguồn (`git diff`) & Giới hạn Dòng Code (Line Limits — Rule 15):**
+1. **Phân tích thay đổi mã nguồn (`git diff`):**
    - Xác định các Controller, Service, API Route, Database Migration, Shared Component và UI Route bị tác động trực tiếp hoặc gián tiếp.
-   - **Kiểm tra trần dòng code & vùng vàng 80%:** Đối chiếu các file thay đổi (cả source app lẫn test automation) với ngưỡng `Component/Hook/Util ≤ 150`, `Service/API Client ≤ 200`, `Module/Page Object/Backend ≤ 250`, `Test/Spec ≤ 800` dòng (ngoại trừ `.jmx`). Chạy `python master.py audit` (trên repo app) và `npm run qa:limits` (trên repo QA): vượt trần cứng đánh `[BLOCKER]`; chạm vùng vàng `≥ 80%` (`120/160/200/650`) mà thêm logic mới (`> 10` dòng code hoặc thêm hàm/class/component/test) chưa tách đánh `[MAJOR]`.
    - Đánh giá phạm vi ảnh hưởng liên cổng (*Cross-Portal Impact*): Thay đổi ở API/Model này có làm gãy trang danh sách, báo cáo hoặc webhook ở Portal khác không?
 2. **Truy vết ngược trong QA Workspace:**
    - Chạy lệnh phân tích phạm vi ảnh hưởng và lỗ hổng hiện tại:

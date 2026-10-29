@@ -23,7 +23,6 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
    ```bash
    npm run qa:gaps
    npm run qa:drift
-   npm run qa:limits
    ```
    *(Optional: filter by requirement or domain using `node tools/qa gaps --req=REQ-001` or `--domain=auth`)*
 
@@ -31,7 +30,6 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
    - **Coverage holes**: `ac-khong-co-test-case`, `ac-chua-co-script`, `ac-chi-co-script-wip`
    - **BVA/EP mapping holes**: `rule-chua-map-toi-test-case`, `rule-thieu-boundary-test`
    - **Script quality holes**: `spec-thieu-assertion` (0 `expect` calls), `assertion-thieu-await` (false-positive async matcher), `test-bi-skip-am-tham`, `spec-chi-assert-url` (navigation-only assertion heuristic)
-   - **File line limit & monolith holes (`qa:limits`, Rule 15)**: `vuot-tran-so-dong` (`[BLOCKER]`: `Component/Hook/Util > 150`, `Service/API Client > 200`, `Module/Page Object/Fixture > 250`, `Test/Spec > 800`), `vuot-vung-vang-80-them-logic` (`[MAJOR]`: file `≥ 80%` trần `120/160/200/650` thêm `> 10` dòng logic hoặc hàm/test mới chưa tách)
 
 2. **Read Workspace Rules Before Any Edits**:
    - Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying anything in `requirements/`, `test-cases/`, or `playwright/tests/`.

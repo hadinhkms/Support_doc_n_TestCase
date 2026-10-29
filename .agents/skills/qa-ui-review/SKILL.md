@@ -39,16 +39,9 @@ pages. State the selected mode and reason; neither mode changes the confirmed-bu
    remains Not verified. Green checks do not replace review of affected UI behavior.
 3. Read changed code and enough dependency context to explain its behavior. Load only
    relevant rubric sections (A layout/content, B mobile/input, C state/interaction,
-   D overlays/stability/motion/themes). Check **File Size & 80% Yellow-Zone Line Limits**
-   on changed frontend and test files (workspace rule 15: `Component/Hook/Util ≤ 150`,
-   `Service ≤ 200`, `Module/Page Object ≤ 250`, `Test/Spec ≤ 800`; yellow zone `≥ 80%`
-   at `120/160/200/650` lines requires splitting before adding `> 10` lines of logic or
-   new functions/components — run `python master.py audit` on the app repo or
-   `npm run qa:limits` on the QA repo when available, flagging hard-cap breaches as
-   `[BLOCKER]`/High and unsplit 80%-zone logic additions as `[MAJOR]`/Medium). Do not
-   dump the entire repository, test output, DOM, or all screenshots into context. Expand
-   to callers, global CSS, or other sections when the evidence requires it; do not impose
-   a file/token cap that hides a defect.
+   D overlays/stability/motion/themes). Do not dump the entire repository, test output,
+   DOM, or all screenshots into context. Expand to callers, global CSS, or other sections
+   when the evidence requires it; do not impose a file/token cap that hides a defect.
 4. Inspect representative changed states and failure evidence. Use region screenshots
    when local detail suffices and whole-page images for layout/overlay context. Avoid
    loading near-identical frames into AI context. Preserve original logs/screenshots
