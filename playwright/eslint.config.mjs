@@ -10,6 +10,65 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
+    // Trần kích thước file & độ dài dòng đồng bộ với quality-policy.json (tránh bị chặn lúc git commit):
+    // - Mặc định module (Page Object, Fixture, Support, Data, ApiClient trong tests/, *.setup.ts, *.config.*): <= 250 dòng
+    //   (Lưu ý: tạo mới hoặc thêm logic phải giữ < 200 dòng để không chạm vùng vàng 80%).
+    files: ['**/*.{ts,mts,cts,js,mjs,cjs}'],
+    rules: {
+      'max-lines': ['error', { max: 250, skipBlankLines: false, skipComments: false }],
+      'max-len': [
+        'error',
+        {
+          code: 500,
+          tabWidth: 2,
+          ignoreUrls: false,
+          ignoreStrings: false,
+          ignoreTemplateLiterals: false,
+          ignoreRegExpLiterals: false,
+        },
+      ],
+    },
+  },
+
+  {
+    // File service / api / client đặt NGOÀI tests/, specs/, e2e/: trần cứng <= 200 dòng (vùng vàng 80%: 160 dòng).
+    files: [
+      'services/**/*.{ts,mts,cts,js,mjs,cjs}',
+      '**/*{service,api,client}*.{ts,mts,cts,js,mjs,cjs}',
+    ],
+    ignores: [
+      'tests/**',
+      'deep-engine-tests/**',
+      'specs/**',
+      'e2e/**',
+      '**/*.spec.*',
+      '**/*.test.*',
+    ],
+    rules: {
+      'max-lines': ['error', { max: 200, skipBlankLines: false, skipComments: false }],
+    },
+  },
+
+  {
+    // File util / helper đặt NGOÀI tests/, specs/, e2e/: trần cứng <= 150 dòng (vùng vàng 80%: 120 dòng).
+    files: [
+      '{util,utils,helper,helpers}/**/*.{ts,mts,cts,js,mjs,cjs}',
+      '**/*{util,utils,helper,helpers}*.{ts,mts,cts,js,mjs,cjs}',
+    ],
+    ignores: [
+      'tests/**',
+      'deep-engine-tests/**',
+      'specs/**',
+      'e2e/**',
+      '**/*.spec.*',
+      '**/*.test.*',
+    ],
+    rules: {
+      'max-lines': ['error', { max: 150, skipBlankLines: false, skipComments: false }],
+    },
+  },
+
+  {
     files: [
       'tests/**/*.ts',
       'deep-engine-tests/**/*.ts',
@@ -23,6 +82,14 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+
+  {
+    // File kịch bản kiểm thử (*.spec.*, *.test.*): trần cứng <= 800 dòng (vùng vàng 80%: 640 dòng).
+    files: ['**/*.spec.{ts,mts,cts,js,mjs,cjs}', '**/*.test.{ts,mts,cts,js,mjs,cjs}'],
+    rules: {
+      'max-lines': ['error', { max: 800, skipBlankLines: false, skipComments: false }],
     },
   },
 

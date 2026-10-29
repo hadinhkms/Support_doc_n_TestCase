@@ -20,8 +20,9 @@ npm run qa:coverage            # bức tranh tổng REQ -> AC -> TC -> script
 npm run qa:gaps                # NÊN THÊM script nào
 npm run qa:drift               # traceability mục ở đâu
 npm run qa:impact -- REQ-001   # requirement đổi thì PHẢI SỬA file nào
+npm run qa:limits              # kiểm tra trần số dòng, vùng vàng 80%, mật độ dòng & file nháp
 npm run qa:learn               # quét preview chọn lọc bài học QA (Read-Only)
-npm run qa:check               # drift + gaps ở chế độ --strict (dùng cho CI)
+npm run qa:check               # boundary + drift + gaps + limits ở chế độ --strict (dùng cho CI)
 ```
 
 Cờ dùng chung: `--json` (cho CI/agent đọc — khuyến nghị gọi trực tiếp `node tools/qa <cmd> --json` để tránh banner của `npm`), `--strict` (exit 1 khi có finding từ `major`),
@@ -116,7 +117,19 @@ Gõ sai khoá hoặc sai JSON thì tool báo lỗi và dừng, không âm thầm
 | `test-case-tro-toi-req-khong-ton-tai` | blocker | Dòng traceability trỏ tới REQ đã bị xoá |
 | `test-case-tro-toi-ac-khong-ton-tai` | blocker | Dòng traceability trỏ tới AC đã bị xoá/đổi số |
 
-File `*.setup.ts` được bỏ qua: đó là hạ tầng đăng nhập/seed, không phải test case.
+File `*.setup.ts` được bỏ qua ở `drift`/`gaps`: đó là hạ tầng đăng nhập/seed, không phải test case (nhưng vẫn được `qa:limits` kiểm tra trần `module` $\le 250$ dòng / vùng vàng $200$ dòng).
+
+### `limits` (`node tools/qa/limits`) — giới hạn kích thước code trước khi commit
+
+| Kind | Mức | Nghĩa |
+|---|---|---|
+| `vuot-tran-so-dong` | blocker | Vượt trần cứng của role (`test` > 800, `module`/POM/Fixture/Support/Data/Setup > 250, `service` ngoài `tests/` > 200, `utils` ngoài `tests/` > 150) |
+| `vuot-vung-vang-80-them-logic` | major | File chạm vùng vàng $\ge 80\%$ (`640`/`200`/`160`/`120`) và có thêm hàm/class/test mới hoặc $> 10$ dòng code — pre-commit sẽ chặn `SPLIT REQUIRED` |
+| `cham-vung-vang-80` | minor | File chưa sửa nhưng đã ở vùng vàng $80\%..100\%$ — cảnh báo sớm phải tách trước nếu định thêm test/hàm mới |
+| `dong-qua-dai` | blocker | Có dòng đơn $> 500$ ký tự (`maxLineLength`) |
+| `mat-do-dong-qua-day` | blocker | File $\ge 50$ dòng nhưng độ dài trung bình dòng không rỗng $> 100$ ký tự (`maxAvgLineLength` — chặn dồn 1 dòng dài lách trần) |
+| `file-qua-nang` | blocker | Dung lượng file $> 150\text{ KB}$ (`maxFileBytes`) |
+| `file-rac-khong-duoc-commit` | blocker | File nháp/probe khớp `*.ai-test.*`, `*.scratch.*`, `_scratch/` không nằm trong danh sách gitignored |
 
 ## Chế độ hỏng đã được chặn
 

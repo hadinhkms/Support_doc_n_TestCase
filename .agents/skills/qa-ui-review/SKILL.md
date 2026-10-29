@@ -39,9 +39,16 @@ pages. State the selected mode and reason; neither mode changes the confirmed-bu
    remains Not verified. Green checks do not replace review of affected UI behavior.
 3. Read changed code and enough dependency context to explain its behavior. Load only
    relevant rubric sections (A layout/content, B mobile/input, C state/interaction,
-   D overlays/stability/motion/themes). Do not dump the entire repository, test output,
-   DOM, or all screenshots into context. Expand to callers, global CSS, or other sections
-   when the evidence requires it; do not impose a file/token cap that hides a defect.
+   D overlays/stability/motion/themes). Check **File Size & 80% Yellow-Zone Line Limits**
+   on changed frontend and test files (workspace rule 15: `Component/Hook/Util ≤ 150`,
+   `Service ≤ 200`, `Module/Page Object ≤ 250`, `Test/Spec ≤ 800`; yellow zone `≥ 80%`
+   at `120/160/200/650` lines requires splitting before adding `> 10` lines of logic or
+   new functions/components — run `python master.py audit` on the app repo or
+   `npm run qa:limits` on the QA repo when available, flagging hard-cap breaches as
+   `[BLOCKER]`/High and unsplit 80%-zone logic additions as `[MAJOR]`/Medium). Do not
+   dump the entire repository, test output, DOM, or all screenshots into context. Expand
+   to callers, global CSS, or other sections when the evidence requires it; do not impose
+   a file/token cap that hides a defect.
 4. Inspect representative changed states and failure evidence. Use region screenshots
    when local detail suffices and whole-page images for layout/overlay context. Avoid
    loading near-identical frames into AI context. Preserve original logs/screenshots
@@ -148,9 +155,7 @@ Keep **classification**, **severity**, and **confidence** separate:
 - Review-only requests produce findings, not rewrites. When fixes are authorized,
   prefer the smallest compatible patch; preserve component contracts, accessibility,
   localization, and project conventions. Do not add libraries just to satisfy a rubric.
-- After spec edits, run `npm run verify` in `playwright/`, relevant runtime tests when
-  available, then matrix/check commands required by the workspace. Report static
-  checks separately from runtime results and any unresolved findings.
+- After spec or helper edits, enforce workspace Rule 15 code-size budgets (`*.spec.ts` $< 640/800$ lines; Page Objects, Fixtures, Support, Data, and `*.setup.ts` $< 200/250$ lines; single line $\le 500$ chars; avg line length $\le 100$ chars; no `*.ai-test.*`/`*.scratch.*`), run `npm run verify` in `playwright/`, relevant runtime tests when available, and `npm run qa:limits -- --strict` + matrix/check commands required by the workspace (or `python D:/_Master_process/master.py audit <repo> --changed-only` in external repos). Split any file breaching the limit before finishing. Report static checks separately from runtime results and any unresolved findings.
 
 ## Report
 

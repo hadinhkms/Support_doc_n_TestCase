@@ -32,8 +32,9 @@ Load these reference guides when designing test cases or writing Playwright API 
    ```bash
    npm run qa:impact -- <REQ-id>
    npm run qa:gaps
+   npm run qa:limits
    ```
-   Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying `requirements/`, `test-cases/`, or `playwright/tests/`.
+   Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying `requirements/`, `test-cases/`, or `playwright/tests/` (strictly enforce Rule 15 line limits: `Util/Helper ≤ 150`, `Service/ApiClient ≤ 200`, `Module/Fixture ≤ 250`, `Test/Spec ≤ 800`, and split proactively at the `≥ 80%` yellow zone `120/160/200/650` before adding new logic).
 
 2. **Configure Canonical Metadata in `requirements/REQ-xxx-*.md`**:
    `tools/qa` enforces strict metadata rules (`missing-ui-coverage`, `missing-xss-coverage`). Configure the requirement header based on the API scope:
@@ -118,6 +119,12 @@ Follow the patterns in [references/playwright-api-patterns.md](references/playwr
    - Nightly CI runs with `fullyParallel: true` and sharding. Never share mutable entity IDs or accounts that lock/mutate across tests.
    - Generate unique test data per worker/test (`crypto.randomUUID()`, `Date.now()`) and clean up created resources in `try / finally` or `test.afterEach` using idempotent `api.delete*(id)` helpers.
 
+5. **Code Size Budget & Proactive Modular Splitting (Workspace Rule 15 — Zero Pre-Commit Overflow)**:
+   - Pre-commit hooks enforce both hard line ceilings and the **80% warning zone** (blocking any newly created file or file with added tests/functions once it reaches $\ge 80\%$):
+     - **API Spec files (`*.spec.ts`, `*.test.ts` — role `test`)**: Hard ceiling $\le 800$ lines | **80% warning zone $\ge 640$ lines** $\to$ keep each spec **$< 600$ lines**. For full 8-dimension API suites, proactively split into multiple focused specs (`<resource>.contract.spec.ts`, `<resource>.auth-bola.spec.ts`, `<resource>.validation-concurrency.spec.ts`), keeping `{ tag: '@REQ-xxx' }` on `test.describe` and `TC-xxx - AC-yyy` titles so `tools/qa` joins 100% of coverage.
+     - **`ApiClient`, Domain API Wrappers, Fixtures, Support & Data inside `tests/` (role `module`)**: Hard ceiling $\le 250$ lines | **80% warning zone $\ge 200$ lines** $\to$ keep each file **$< 190$ lines** (split `ApiClient` by domain resource; move large JSON schemas/payloads into `.json` files or focused `tests/data/*.ts` modules). Files outside `tests/` have stricter ceilings (`service` $\le 200$ / warning $160$; `utils`/`helpers` $\le 150$ / warning $120$).
+     - Keep single lines $\le 500$ chars (use `'x'.repeat(n)` for boundary payloads), average non-empty line length $\le 100$ chars, and never commit `*.ai-test.*` or `*.scratch.*` filenames.
+
 ---
 
 ### Step 4: Zero False-Positive Bug Confirmation & Quality Gates
@@ -128,18 +135,19 @@ Follow the patterns in [references/playwright-api-patterns.md](references/playwr
      - **Reproducibility Verification**: Re-run the isolated API call or Playwright spec (`npx playwright test <spec> --repeat-each=3`) to confirm the issue still occurs on re-check. Only report a **Confirmed Bug (`BUG-xx`)** when it reproduces consistently with identical HTTP status, response payload, and state mutation (or via a `Promise.all` race probe for concurrency bugs).
      - **Dual Proof**: Attach both the exact request/response telemetry (`method`, `url`, `payload`, `status`, `response body`, Read-After-Write/Reject check) and the backend source `file:line` root cause (when backend code is in scope).
 
-After creating or updating requirements, test cases, or API specs, run the verification pipeline in order:
+After creating or updating requirements, test cases, or API specs, run the verification pipeline in order (and **immediately split any file violating hard ceilings or the 80% warning zone before finishing**):
 
 2. **Inside `playwright/`**:
    ```bash
    npm run verify
    ```
-   *(Runs TypeScript `tsc --noEmit`, ESLint rules, and `playwright test --list`)*
+   *(Runs TypeScript `tsc --noEmit`, ESLint rules including `max-lines`/`max-len`, `qa:limits --strict`, and `playwright test --list`)*
 
 3. **At repository root**:
    ```bash
    npm run qa:matrix
+   npm run qa:limits -- --strict
    npm run qa:check
    npm test
    ```
-   *(Must result in 0 `blocker` and 0 `major` findings, clean Hub/Project boundary, and 100% passing unit tests).*
+   *(Must result in 0 `blocker` and 0 `major` findings, all created/edited files strictly within code-size budgets, clean Hub/Project boundary, and 100% passing unit tests. In external repos without `tools/qa`, run `python D:/_Master_process/master.py audit <repo> --changed-only` and verify line counts against the 80% thresholds).*

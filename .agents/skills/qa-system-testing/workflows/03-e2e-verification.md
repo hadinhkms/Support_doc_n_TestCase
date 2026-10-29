@@ -8,8 +8,9 @@ Xác minh tính toàn vẹn của luồng nghiệp vụ xuyên suốt từ giao 
 ## Quy trình Thực thi 5 Bước (Execution & Verification Loop)
 
 ### Bước 1: Xác định Phạm vi Ảnh hưởng theo Diff & Traceability (Diff-Aware Scoping)
-1. **Phân tích thay đổi mã nguồn (`git diff`):**
+1. **Phân tích thay đổi mã nguồn (`git diff`) & Giới hạn Dòng Code (Line Limits — Rule 15):**
    - Xác định các Controller, Service, API Route, Database Migration, Shared Component và UI Route bị tác động trực tiếp hoặc gián tiếp.
+   - **Kiểm tra trần dòng code & vùng vàng 80%:** Đối chiếu các file thay đổi (cả source app lẫn test automation) với ngưỡng `Component/Hook/Util ≤ 150`, `Service/API Client ≤ 200`, `Module/Page Object/Backend ≤ 250`, `Test/Spec ≤ 800` dòng (ngoại trừ `.jmx`). Chạy `python master.py audit` (trên repo app) và `npm run qa:limits` (trên repo QA): vượt trần cứng đánh `[BLOCKER]`; chạm vùng vàng `≥ 80%` (`120/160/200/650`) mà thêm logic mới (`> 10` dòng code hoặc thêm hàm/class/component/test) chưa tách đánh `[MAJOR]`.
    - Đánh giá phạm vi ảnh hưởng liên cổng (*Cross-Portal Impact*): Thay đổi ở API/Model này có làm gãy trang danh sách, báo cáo hoặc webhook ở Portal khác không?
 2. **Truy vết ngược trong QA Workspace:**
    - Chạy lệnh phân tích phạm vi ảnh hưởng và lỗ hổng hiện tại:
@@ -78,13 +79,15 @@ Khi phát hiện một test fail hoặc hành vi bất thường, **bắt buộc
 
 ---
 
-### Bước 5: Chạy Cổng Kiểm Chứng Cuối (Final Quality Gates)
-Sau khi cập nhật spec, test case hoặc requirement, chạy tuần tự:
-1. Trong `playwright/`: `npm run verify` (đảm bảo pass TypeScript, ESLint và `playwright test --list`).
+### Bước 5: Chạy Cổng Kiểm Chứng Cuối & Tự Review Giới Hạn Code (Final Quality & Modularity Gates)
+Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, bắt buộc tự kiểm tra giới hạn kích thước code (Rule 15: `*.spec.ts` $< 640/800$ dòng; Page Object / Fixture / Support / Data / `ApiClient` trong `tests/` $< 200/250$ dòng; Service ngoài `tests/` $< 160/200$; Utils ngoài `tests/` $< 120/150$; dòng đơn $\le 500$ ký tự, trung bình dòng $\le 100$ ký tự, không để file `.ai-test.`/`.scratch.`) và chạy tuần tự:
+1. Trong `playwright/`: `npm run verify` (đảm bảo pass TypeScript, ESLint `max-lines`/`max-len`, `limits` và `playwright test --list`).
 2. Ở thư mục gốc:
    ```bash
    npm run qa:matrix
+   npm run qa:limits -- --strict
    npm run qa:check
    npm test
    ```
+   *(Với dự án ngoài workspace chưa có `tools/qa`, chạy `python D:/_Master_process/master.py audit <repo> --changed-only` kèm đếm số dòng các file vừa sửa; nếu chạm vùng vàng $\ge 80\%$ khi thêm logic/test mới thì phải tự tách file và verify lại ngay trước khi trả lời).*
 3. Nếu vừa sửa lỗi hoặc bổ sung kiến thức kiểm thử mới, cân nhắc chạy `npm run qa:learn` theo quy trình của [qa-logic-gaps](../../qa-logic-gaps/SKILL.md) để lưu lại bài học vào Knowledge Base của dự án.

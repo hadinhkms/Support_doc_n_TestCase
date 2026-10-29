@@ -23,6 +23,7 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
    ```bash
    npm run qa:gaps
    npm run qa:drift
+   npm run qa:limits
    ```
    *(Optional: filter by requirement or domain using `node tools/qa gaps --req=REQ-001` or `--domain=auth`)*
 
@@ -30,6 +31,7 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
    - **Coverage holes**: `ac-khong-co-test-case`, `ac-chua-co-script`, `ac-chi-co-script-wip`
    - **BVA/EP mapping holes**: `rule-chua-map-toi-test-case`, `rule-thieu-boundary-test`
    - **Script quality holes**: `spec-thieu-assertion` (0 `expect` calls), `assertion-thieu-await` (false-positive async matcher), `test-bi-skip-am-tham`, `spec-chi-assert-url` (navigation-only assertion heuristic)
+   - **File line limit & monolith holes (`qa:limits`, Rule 15)**: `vuot-tran-so-dong` (`[BLOCKER]`: `Component/Hook/Util > 150`, `Service/API Client > 200`, `Module/Page Object/Fixture > 250`, `Test/Spec > 800`), `vuot-vung-vang-80-them-logic` (`[MAJOR]`: file `≥ 80%` trần `120/160/200/650` thêm `> 10` dòng logic hoặc hàm/test mới chưa tách)
 
 2. **Read Workspace Rules Before Any Edits**:
    - Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying anything in `requirements/`, `test-cases/`, or `playwright/tests/`.
@@ -154,10 +156,11 @@ If the user asks to fix the discovered Logic Gaps:
 1. Update `requirements/REQ-xxx-*.md` (add missing ACs, rules, or `Open questions`).
 2. Update `test-cases/REQ-xxx-*.md` (add missing `TC-xxx` rows and update the `Traceability` table).
 3. Implement or strengthen Playwright tests in `playwright/tests/` (ensure `@REQ-xxx` on `test.describe`, title `TC-xxx - AC-yyy <description>`, and priority tag `@p0`..`@p3`).
-4. Validate strictly before finishing:
-   - Run `npm run verify` inside `playwright/`
+   - **Respect Code Size Budgets Before Adding Tests/Helpers (Workspace Rule 15)**: Never bloat a `.spec.ts` into $\ge 640$ lines (80% warning zone of 800) or a Page Object / Fixture / Support / Data / `ApiClient` file inside `tests/` into $\ge 200$ lines (80% warning zone of `module` ceiling 250; outside `tests/`: `service` $< 160/200$, `utils` $< 120/150$). If adding remediation tests or methods would reach the 80% threshold, proactively split into a companion spec (e.g., `<feature>.validation.spec.ts` or `<feature>.security.spec.ts` carrying `{ tag: '@REQ-xxx' }`) or sub-Page Object first, keep lines $\le 500$ chars and average line length $\le 100$ chars, and never use `*.ai-test.*` / `*.scratch.*` filenames.
+4. Validate strictly before finishing (and self-split any file flagged by `qa:limits` before handing off):
+   - Run `npm run verify` inside `playwright/` (typecheck + ESLint `max-lines`/`max-len` + `limits` + `--list`)
    - Run `npm run qa:matrix` at repository root
-   - Run `npm run qa:check` at repository root (must pass with 0 `blocker`/`major` findings)
+   - Run `npm run qa:limits -- --strict` and `npm run qa:check` at repository root (must pass with 0 `blocker`/`major` findings; in external repos without `tools/qa`, run `python D:/_Master_process/master.py audit <repo> --changed-only` and verify line counts $< 80\%$)
    - Run `npm test` at repository root
 
 ---
