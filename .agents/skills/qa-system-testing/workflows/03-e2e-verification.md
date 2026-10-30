@@ -78,6 +78,11 @@ Khi phát hiện một test fail hoặc hành vi bất thường, **bắt buộc
 
 ---
 
+### Bước 4.5: Ghi Kết Quả Vào Checklist Test Case
+Nếu task có checklist test case (`test-cases/REQ-xxx-*.md`, Jira issue hoặc tài liệu user đưa), thực hiện theo [qa-test-execution](../../qa-test-execution/SKILL.md): mark trạng thái từng test case kèm bằng chứng và bổ sung test case còn thiếu vào checklist.
+
+---
+
 ### Bước 5: Chạy Cổng Kiểm Chứng Cuối & Tự Review Giới Hạn Code (Final Quality & Modularity Gates)
 Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, bắt buộc tự kiểm tra giới hạn kích thước code (Rule 15: `*.spec.ts` $< 640/800$ dòng; Page Object / Fixture / Support / Data / `ApiClient` trong `tests/` $< 200/250$ dòng; Service ngoài `tests/` $< 160/200$; Utils ngoài `tests/` $< 120/150$; dòng đơn $\le 500$ ký tự, trung bình dòng $\le 100$ ký tự, không để file `.ai-test.`/`.scratch.`) và chạy tuần tự:
 1. Trong `playwright/`: `npm run verify` (đảm bảo pass TypeScript, ESLint `max-lines`/`max-len`, `limits` và `playwright test --list`).

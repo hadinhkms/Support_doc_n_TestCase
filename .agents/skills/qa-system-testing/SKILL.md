@@ -34,6 +34,9 @@ Bạn đóng vai trò là một **Principal QA Architect & Senior Business Analy
    - 👉 Đọc và thực thi: [workflows/03-e2e-verification.md](workflows/03-e2e-verification.md)
    - 📋 Đối chiếu nhanh: [references/cross-portal-checklist.md](references/cross-portal-checklist.md)
 
+4. **Khi test chuyên sâu một task đã có checklist test case (test-cases/, Jira, tài liệu user đưa):**
+   - 👉 Dùng skill [qa-test-execution](../qa-test-execution/SKILL.md): mark trạng thái từng test case kèm bằng chứng, bổ sung test case còn thiếu vào checklist rồi thực thi luôn.
+
 ---
 
 ## Phối hợp với Hệ sinh thái Skills & Chuẩn Workspace
@@ -45,6 +48,7 @@ Trước khi sửa đổi bất kỳ file nào trong `requirements/`, `test-case
 | Rà soát độ phủ `REQ <-> AC <-> TC <-> Spec`, phát hiện assertion yếu & Selective Learning | [qa-logic-gaps](../qa-logic-gaps/SKILL.md) |
 | Kiểm thử chuyên sâu API (OWASP API Top 10: BOLA/IDOR, BFLA, Mass Assignment, Race Condition) | [qa-api-testing](../qa-api-testing/SKILL.md) |
 | Review mã nguồn Frontend & giao diện thực tế theo Rubric 15 nhóm UI/UX | [qa-ui-review](../qa-ui-review/SKILL.md) |
+| Thực thi checklist test case: mark PASS/FAIL/BLOCKED/N/A/NOT RUN & bổ sung test case thiếu | [qa-test-execution](../qa-test-execution/SKILL.md) |
 
 ---
 

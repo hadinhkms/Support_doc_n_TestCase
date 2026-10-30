@@ -39,6 +39,13 @@ Khi người dùng yêu cầu viết test script hoặc test cases trong workspa
       - **Mật độ dòng & Vệ sinh file**: Không có dòng đơn nào $> 500$ ký tự (`maxLineLength: 500` — dùng `'x'.repeat(n)` cho chuỗi biên dài); độ dài trung bình dòng không rỗng $\le 100$ ký tự cho file $\ge 50$ dòng (`maxAvgLineLength: 100` — cấm dồn code lên 1 dòng để lách trần số dòng); dung lượng file $\le 150\text{ KB}$; tuyệt đối không đặt tên file chính thức chứa `.ai-test.` hoặc `.scratch.` (bị chặn là `JUNK` lúc commit).
     - **Bắt buộc tự review limit trước khi bàn giao**: Trước khi kết thúc câu trả lời sau khi tạo/sửa bất kỳ script, Page Object, fixture hay helper nào, AI bắt buộc chạy `npm run qa:limits -- --strict` (đã tích hợp trong `npm run qa:check` và `playwright` `npm run verify`; với dự án ngoài workspace chưa có `tools/qa`, chạy `python D:/_Master_process/master.py audit <repo> --changed-only` kèm kiểm tra số dòng $< 80\%$ trần). Phát hiện file vượt trần hoặc thêm logic trong vùng vàng $\ge 80\%$ thì **AI phải tự bóc tách file và verify lại ngay lập tức**, không bao giờ để người dùng phải chỉnh sửa lại trước khi `git commit`.
 
+## Thực thi checklist test case
+
+Khi test chuyên sâu một task đã có checklist test case (`test-cases/`, Jira issue hoặc tài liệu
+người dùng đưa), dùng [skill qa-test-execution](../.agents/skills/qa-test-execution/SKILL.md):
+mark trạng thái từng test case (`PASS`/`FAIL`/`BLOCKED`/`N/A`/`NOT RUN`) kèm bằng chứng, bổ sung
+test case còn thiếu vào checklist rồi thực thi luôn. `FAIL` chỉ dùng khi đạt mục 14.
+
 ## Review mã frontend và UI/UX
 
 Khi người dùng yêu cầu review UI/UX hoặc mã frontend của ứng dụng được kiểm thử, dùng
