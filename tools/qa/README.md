@@ -46,6 +46,8 @@ Mỗi repo để Playwright một kiểu, nên hai giá trị này đọc từ `
 | `requirementsDir` | Thư mục chứa requirement | `requirements` |
 | `testCasesDir` | Thư mục chứa test case | `test-cases` |
 | `ignoreSpecs` | Mảng tiền tố đường dẫn spec nằm **ngoài** phạm vi gate | `[]` |
+| `checkBoundaryRules` | Đối chiếu quy tắc phân tích biên (EP + BVA) trên bảng Rules | `true` |
+| `checkDeepCoverage` | Nâng mức các finding kiểm thử chuyên sâu (Capabilities, UI, XSS, Weak assertion) lên `major` | `false` |
 
 ### `ignoreSpecs` — khoanh vùng thay vì tắt tiếng
 

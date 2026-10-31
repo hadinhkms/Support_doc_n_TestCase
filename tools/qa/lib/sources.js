@@ -154,9 +154,12 @@ function loadRequirements(root, options = {}) {
     let uiCoverage = null;
     let xssApplicability = null;
     for (const line of lines) {
-      const mExp = line.match(/^\s*-\s*\*\*Page exposure\*\*\s*:\s*(Public|Authenticated)\b/i);
+      const mExp = line.match(
+        /^\s*-\s*\*\*Page exposure\*\*\s*:\s*(Public|Customer|Authenticated|Admin)\b/i,
+      );
       if (mExp) {
-        pageExposure = /^public$/i.test(mExp[1]) ? 'Public' : 'Authenticated';
+        const rawExp = mExp[1].toLowerCase();
+        pageExposure = rawExp.charAt(0).toUpperCase() + rawExp.slice(1);
       }
       const mUi = line.match(
         /^\s*-\s*\*\*UI coverage\*\*\s*:\s*(Required|Exempt)(?:\s*\(\s*reason\s*:\s*([^)]+?)\s*\))?/i,
@@ -168,11 +171,17 @@ function loadRequirements(root, options = {}) {
         };
       }
       const mXss = line.match(
-        /^\s*-\s*\*\*XSS applicability\*\*\s*:\s*(Applicable|Not applicable)(?:\s*\(\s*reason\s*:\s*([^)]+?)\s*\))?/i,
+        /^\s*-\s*\*\*XSS applicability\*\*\s*:\s*(Applicable|Exempt|Not applicable)(?:\s*\(\s*reason\s*:\s*([^)]+?)\s*\))?/i,
       );
       if (mXss) {
+        const rawXss = mXss[1].toLowerCase();
         xssApplicability = {
-          status: /^applicable$/i.test(mXss[1]) ? 'Applicable' : 'Not applicable',
+          status:
+            rawXss === 'applicable'
+              ? 'Applicable'
+              : rawXss === 'exempt'
+                ? 'Exempt'
+                : 'Not applicable',
           reason: mXss[2] ? mXss[2].trim() : null,
         };
       }
@@ -324,6 +333,10 @@ const VERIFIED_GUARD_HELPERS = new Set([
   'expectPerformanceBudget',
   'expectNetworkFaultRecovery',
   'expectMultiTabConcurrency',
+  'expectApiSchemaContract',
+  'expectBolaForbidden',
+  'expectMassAssignmentIgnored',
+  'expectIdempotentApiMutation',
 ]);
 
 const VERIFIED_FIXTURE_HELPERS = new Set(['expectExpectedError']);
@@ -336,7 +349,7 @@ const VERIFIED_DEEP_HELPERS = new Set([
 
 /**
  * Phân giải danh sách helper được import hợp lệ từ `support/ui-checks`, `support/deep-guards`,
- * `support/resilience-guards`, `deep-testing/*`, hoặc `fixtures/base.fixture` / `fixtures/test-fixtures`
+ * `support/resilience-guards`, `support/api-guards`, `deep-testing/*`, hoặc `fixtures/base.fixture` / `fixtures/test-fixtures`
  * (hỗ trợ cả ES `import`, CommonJS `require`, multiline và `as` / `:` alias).
  * Trả về `Map<localName, canonicalName>`.
  */
@@ -362,7 +375,11 @@ function extractVerifiedHelperImports(fileInput) {
       let allowedSet = null;
       if (/(?:^|\/|@)(?:support|deep-testing)\/ui-checks(?:\.[jt]s)?$/.test(modulePath)) {
         allowedSet = VERIFIED_UI_HELPERS;
-      } else if (/(?:^|\/|@)(?:support|deep-testing)\/(?:deep-guards|resilience-guards)(?:\.[jt]s)?$/.test(modulePath)) {
+      } else if (
+        /(?:^|\/|@)(?:support|deep-testing)\/(?:deep-guards|resilience-guards|api-guards)(?:\.[jt]s)?$/.test(
+          modulePath,
+        )
+      ) {
         allowedSet = VERIFIED_GUARD_HELPERS;
       } else if (/(?:^|\/|@)(?:fixtures\/(?:base\.fixture|test-fixtures)|deep-testing(?:\/index)?)(?:\.[jt]s)?$/.test(modulePath)) {
         allowedSet = VERIFIED_DEEP_HELPERS;

@@ -1313,3 +1313,108 @@ test_cases: test-cases/REQ-001.md
     },
   );
 });
+
+// ===========================================================================
+// Plan 15 Phase 2: Capability <-> Guard Verification Engine (TC-15-03, TC-15-04)
+// ===========================================================================
+
+test('TC-15-03 & TC-15-04: gaps đối chiếu đầy đủ 11 Capabilities trong TC với Verified Helpers trong Spec và đồng bộ STATIC_RULE_MAPPING', () => {
+  const reqMd = `---
+id: REQ-301
+title: Deep Capabilities Suite
+status: Ready for Test
+test_cases: test-cases/REQ-301.md
+---
+# REQ-301: Deep Capabilities Suite
+- **Page exposure**: Customer
+- **UI coverage**: Exempt (reason: Tested per capability TC)
+- **XSS applicability**: Exempt (reason: Tested per capability TC)
+
+## Acceptance criteria
+### AC-001: All capabilities
+`;
+
+  const tcMd = `# Test cases: REQ-301
+## Traceability
+| Requirement | Acceptance criterion | Test case | Automation | Spec | Priority |
+|---|---|---|---|---|---|
+| REQ-301 | AC-001 | TC-001 | Yes | \`playwright/tests/deep.spec.ts\` | P1 |
+| REQ-301 | AC-001 | TC-002 | Yes | \`playwright/tests/deep.spec.ts\` | P1 |
+
+## Test cases
+### TC-001: Thiếu toàn bộ helper dù đã khai báo capabilities
+- **Capabilities**: persistence, resilience, concurrency, boundary, xss, ui-geometry, a11y, responsive, api-security, api-contract
+
+### TC-002: Đã gọi đầy đủ helper cho mọi capabilities
+- **Capabilities**: idempotency, persistence, resilience, concurrency, boundary, xss, ui-geometry, a11y, responsive, api-security, api-contract
+`;
+
+  const tests = [
+    spec('TC-001 - AC-001 missing all capability guards', {
+      reqId: 'REQ-301',
+      tags: ['@REQ-301'],
+      file: 'playwright/tests/deep.spec.ts',
+      assertionCount: 1,
+      assertionProfile: { kind: 'mixed', matchers: ['toBeVisible'] },
+    }),
+    spec('TC-002 - AC-001 satisfies all capability guards', {
+      reqId: 'REQ-301',
+      tags: ['@REQ-301'],
+      file: 'playwright/tests/deep.spec.ts',
+      assertionCount: 11,
+      assertionProfile: {
+        kind: 'mixed',
+        matchers: [
+          'helper:expectIdempotentApiMutation',
+          'helper:expectStatePersistence',
+          'helper:expectNetworkFaultRecovery',
+          'helper:expectMultiTabConcurrency',
+          'helper:expectBoundaryRejected',
+          'helper:expectSafeXssRender',
+          'helper:expectNoHorizontalScroll',
+          'helper:expectInteractiveA11y',
+          'helper:expectResponsiveIntegrity',
+          'helper:expectBolaForbidden',
+          'helper:expectApiSchemaContract',
+        ],
+      },
+    }),
+  ];
+
+  withRepo(
+    {
+      'requirements/REQ-301.md': reqMd,
+      'test-cases/REQ-301.md': tcMd,
+    },
+    (root) => {
+      const findings = gaps(root, { ...opts(tests), checkDeepCoverage: true });
+      const expectedMissingKinds = [
+        'missing-persistence-guard',
+        'missing-resilience-guard',
+        'missing-concurrency-guard',
+        'missing-boundary-guard',
+        'missing-xss-guard',
+        'missing-ui-geometry-guard',
+        'missing-a11y-guard',
+        'missing-responsive-guard',
+        'missing-api-security-guard',
+        'missing-api-contract-guard',
+      ];
+
+      for (const kind of expectedMissingKinds) {
+        const matches = findings.filter((f) => f.kind === kind);
+        assert.equal(matches.length, 1, `TC-001 phải phát sinh đúng 1 finding ${kind}, TC-002 không bị báo`);
+        assert.equal(matches[0].severity, 'major');
+        assert.match(matches[0].message, /TC-001/);
+      }
+
+      const tc2Findings = findings.filter((f) => f.message && f.message.includes('TC-002'));
+      assert.equal(tc2Findings.length, 0, 'TC-002 đã có đủ guard không được phát sinh finding nào');
+
+      const learnerRuleSet = new Set(STATIC_RULE_MAPPING.map((m) => m.findingKind));
+      for (const kind of expectedMissingKinds) {
+        assert.ok(learnerRuleSet.has(kind), `STATIC_RULE_MAPPING phải đăng ký ${kind}`);
+      }
+    },
+  );
+});

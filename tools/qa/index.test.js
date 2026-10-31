@@ -879,4 +879,17 @@ test('C08: Các lệnh truyền thống (coverage, gaps, drift, impact, matrix, 
   assert.equal(sumRes.status, 0, sumRes.stderr);
   assert.equal(fs.existsSync(path.join(root, sumOutRel)), true);
   assert.ok(JSON.parse(sumRes.stdout).metrics);
+
+  // 5. TC-15-05: Cờ --deep-coverage / --no-deep-coverage trên gaps và bị chặn trên learn
+  const deepRes = runCli(root, ['gaps', '--deep-coverage', '--json'], { env: fastEnv });
+  assert.equal(deepRes.status, 0, deepRes.stderr);
+  assert.ok(Array.isArray(JSON.parse(deepRes.stdout)));
+
+  const noDeepRes = runCli(root, ['gaps', '--no-deep-coverage', '--json'], { env: fastEnv });
+  assert.equal(noDeepRes.status, 0, noDeepRes.stderr);
+  assert.ok(Array.isArray(JSON.parse(noDeepRes.stdout)));
+
+  const learnWithDeep = runCli(root, ['learn', '--deep-coverage', '--json'], { env: fastEnv });
+  assert.equal(learnWithDeep.status, 2);
+  assert.match(JSON.parse(learnWithDeep.stdout).error, /--deep-coverage/);
 });
