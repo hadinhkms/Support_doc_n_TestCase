@@ -276,10 +276,22 @@ test_cases: test-cases/${reqId}-${slug}.md
 - Risk: Medium
 - Related pages/modules: \`/${slug}\`
 - Source: ${sourceDesc}
+- **Page exposure**: Authenticated
+- **UI coverage**: Required
+- **XSS applicability**: Applicable
 
 ## Business goal
 
 Mô tả mục tiêu nghiệp vụ của tính năng ${title}.
+
+## Coverage notes
+
+| Aspect | Status | Notes |
+|---|---|---|
+| UI/UX Geometry | Required | \`expectNoHorizontalScroll\`, \`expectNoTextOverflow\`, \`expectNotOccluded\`, \`expectInteractiveA11y\`, \`expectResponsiveIntegrity\` |
+| XSS Security | Applicable | \`expectSafeXssRender\` với \`XSS_PAYLOADS\` trên sink hiển thị |
+| Idempotency | Required | \`expectIdempotentSubmit\` chống gửi trùng khi thao tác liên tiếp |
+| State Persistence | Required | \`expectStatePersistence\` kiểm chứng trạng thái bền vững sau \`page.reload()\` |
 
 ## Acceptance criteria
 

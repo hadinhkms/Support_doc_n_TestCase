@@ -376,7 +376,7 @@ function extractVerifiedHelperImports(fileInput) {
       if (/(?:^|\/|@)(?:support|deep-testing)\/ui-checks(?:\.[jt]s)?$/.test(modulePath)) {
         allowedSet = VERIFIED_UI_HELPERS;
       } else if (
-        /(?:^|\/|@)(?:support|deep-testing)\/(?:deep-guards|resilience-guards|api-guards)(?:\.[jt]s)?$/.test(
+        /(?:^|\/|@)(?:support|deep-testing)\/(?:deep-guards|resilience-guards|state-boundary-guards|api-guards)(?:\.[jt]s)?$/.test(
           modulePath,
         )
       ) {

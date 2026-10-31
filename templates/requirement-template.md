@@ -11,16 +11,28 @@ test_cases: test-cases/REQ-XXX-<slug>.md
 
 # REQ-XXX: <Tên feature>
 
-- Status: Draft | Ready for Test | In Test | Done
-- Owner: <team/person>
-- Version: <version>
-- Risk: High | Medium | Low
-- Related pages/modules: <page, API, job>
-- Source: Product requirement | Design | API contract | Inferred from automation
+- **Status**: Draft | Ready for Test | In Test | Done
+- **Owner**: <team/person>
+- **Version**: <version>
+- **Risk**: High | Medium | Low
+- **Related pages/modules**: <page, API, job>
+- **Source**: Product requirement | Design | API contract | Inferred from automation
+- **Page exposure**: Public | Customer | Authenticated | Admin
+- **UI coverage**: Required | Exempt (reason: <...>)
+- **XSS applicability**: Applicable | Exempt (reason: <...>)
 
 ## Business goal
 
 <Người dùng nào cần gì và vì sao?>
+
+## Coverage notes
+
+| Aspect | Status | Notes |
+|---|---|---|
+| UI/UX Geometry | Required / Exempt | `expectNoHorizontalScroll`, `expectNoTextOverflow`, `expectNotOccluded`, `expectInteractiveA11y`, `expectResponsiveIntegrity` |
+| XSS Security | Applicable / Exempt | `expectSafeXssRender` với `XSS_PAYLOADS` trên vùng hiển thị (hoặc lý do Exempt) |
+| Idempotency | Required / Exempt | `expectIdempotentSubmit` / `expectIdempotentApiMutation` chống gửi trùng |
+| State Persistence | Required / Exempt | `expectStatePersistence` kiểm chứng trạng thái bền vững sau `page.reload()` |
 
 ## Scope
 
@@ -35,7 +47,6 @@ test_cases: test-cases/REQ-XXX-<slug>.md
 ## Actors and preconditions
 
 - Actor/role: <...>
-- Page exposure: `public` | `customer` (cần xét XSS nếu có input) | `admin/internal` (bỏ qua XSS trừ khi render dữ liệu từ customer)
 - Preconditions: <...>
 - Test data: <...>
 
