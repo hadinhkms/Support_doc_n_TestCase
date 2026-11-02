@@ -177,6 +177,10 @@
     {
       "path": ".master_process",
       "reason": "Liên kết Junction trỏ tới D:/_Master_process - quy trình chung, không sync từ Hub."
+    },
+    {
+      "path": "research",
+      "reason": "Research evidence packages theo Master Process (RES-xxx)."
     }
   ],
   "notes": [

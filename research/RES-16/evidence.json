@@ -1,0 +1,381 @@
+{
+  "schema_version": "1.0",
+  "research_id": "RES-16",
+  "stage": "PRE_PLAN",
+  "change_level": "L4",
+  "triggers": [
+    "architecture_change"
+  ],
+  "research_level": "R3",
+  "gate_decision": "CONDITIONAL",
+  "gate_reasons": [
+    "Open unknowns U-1 to U-6 carried forward into phase contracts"
+  ],
+  "overall_confidence": "MEDIUM",
+  "authors": {
+    "business": "@ba",
+    "technical": "@tl"
+  },
+  "status": "INCOMPLETE",
+  "stop_reason": "BLOCKING_UNKNOWN",
+  "requested_by": "Tech Lead & Senior BA",
+  "objective": "Evaluate testing capabilities, evidence contract, and reproduction baseline",
+  "question": "How to establish a robust evidence contract and reproduction baseline for testing professionalization?",
+  "depth": "DEEP",
+  "max_queries": 15,
+  "queries_used": 9,
+  "created_at": "2026-11-02",
+  "revalidate_by": "2027-11-02",
+  "linked_ids": [
+    "TECH-16-P0",
+    "REQ-16-P0"
+  ],
+  "questions": [
+    {
+      "id": "RQ1",
+      "text": "Can existing deep guards, UI checks, and runtime traps be reused for testing professionalization?"
+    },
+    {
+      "id": "RQ2",
+      "text": "What evidence manifest structure and reproduction protocol are required for auditability?"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F-1",
+      "rq_id": "RQ1",
+      "statement": "Existing UI checks and deep guards provide deterministic verification in playwright/tests/support.",
+      "knowledge_type": "FACT",
+      "confidence": "HIGH",
+      "evidence_ids": [
+        "E-1"
+      ]
+    },
+    {
+      "id": "F-2",
+      "rq_id": "RQ1",
+      "statement": "Runtime error trapping catches console.error, pageerror, and sanitizes secrets.",
+      "knowledge_type": "FACT",
+      "confidence": "HIGH",
+      "evidence_ids": [
+        "E-2"
+      ]
+    },
+    {
+      "id": "F-3",
+      "rq_id": "RQ1",
+      "statement": "Accessibility testing is operational via @axe-core/playwright in login.a11y.spec.ts.",
+      "knowledge_type": "FACT",
+      "confidence": "HIGH",
+      "evidence_ids": [
+        "E-3"
+      ]
+    },
+    {
+      "id": "F-4",
+      "rq_id": "RQ2",
+      "statement": "Visual regression testing requires baseline snapshot governance.",
+      "knowledge_type": "FACT",
+      "confidence": "HIGH",
+      "evidence_ids": [
+        "E-4"
+      ]
+    },
+    {
+      "id": "F-5",
+      "rq_id": "RQ2",
+      "statement": "Performance testing requires workload profiles and SRE SLO alignment.",
+      "knowledge_type": "FACT",
+      "confidence": "HIGH",
+      "evidence_ids": [
+        "E-5"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-1",
+      "source_title": "Codebase UI checks and deep guards",
+      "url": "",
+      "tier": 1,
+      "accessed_at": "2026-11-02",
+      "excerpt": "Comprehensive guards in playwright/tests/support/ui-checks.ts and deep-guards.ts.",
+      "version_context": "5f3124e",
+      "kind": "CODEBASE",
+      "path": "playwright/tests/support/ui-checks.ts",
+      "line": 25,
+      "commit": "5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02"
+    },
+    {
+      "id": "E-2",
+      "source_title": "Codebase Runtime Trap Fixture",
+      "url": "",
+      "tier": 1,
+      "accessed_at": "2026-11-02",
+      "excerpt": "Automatic trap and secret redaction in playwright/tests/fixtures/runtime-trap.ts.",
+      "version_context": "5f3124e",
+      "kind": "CODEBASE",
+      "path": "playwright/tests/fixtures/runtime-trap.ts",
+      "line": 1,
+      "commit": "5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02"
+    },
+    {
+      "id": "E-3",
+      "source_title": "Codebase Accessibility Specs",
+      "url": "",
+      "tier": 1,
+      "accessed_at": "2026-11-02",
+      "excerpt": "AxeBuilder scanning in playwright/tests/a11y/login.a11y.spec.ts.",
+      "version_context": "5f3124e",
+      "kind": "CODEBASE",
+      "path": "playwright/tests/a11y/login.a11y.spec.ts",
+      "line": 1,
+      "commit": "5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02"
+    },
+    {
+      "id": "E-4",
+      "source_title": "Playwright Visual Testing Documentation",
+      "url": "https://playwright.dev/docs/test-snapshots",
+      "tier": 1,
+      "accessed_at": "2026-11-02",
+      "excerpt": "Playwright test runner includes native support for visual comparisons via toHaveScreenshot.",
+      "version_context": "v1.55.0",
+      "kind": "WEB"
+    },
+    {
+      "id": "E-5",
+      "source_title": "k6 Thresholds Documentation",
+      "url": "https://grafana.com/docs/k6/latest/using-k6/thresholds/",
+      "tier": 1,
+      "accessed_at": "2026-11-02",
+      "excerpt": "Thresholds are pass/fail criteria used to specify the performance expectations of the system under test.",
+      "version_context": "v0.50",
+      "kind": "WEB"
+    }
+  ],
+  "conflicts": [],
+  "unknowns": [
+    {
+      "id": "U-1",
+      "description": "Artifact backend, access, retention, quota và deletion (Q-16-01)",
+      "blocking": true,
+      "priority": "P1",
+      "next_step": "Khóa quyết định ADR và backend artifact trong Phase 0 và Phase 1"
+    },
+    {
+      "id": "U-2",
+      "description": "Ứng dụng pilot, môi trường, synthetic dataset và expected (Q-16-02)",
+      "blocking": true,
+      "priority": "P1",
+      "next_step": "Xác định pilot app và synthetic seed data trong Phase 2"
+    },
+    {
+      "id": "U-3",
+      "description": "SLO, workload và môi trường chạy tải được phép (Q-16-03)",
+      "blocking": true,
+      "priority": "P1",
+      "next_step": "Spike k6 runner adapter và thống nhất SLO với SRE trong Phase 4"
+    },
+    {
+      "id": "U-4",
+      "description": "Topology, contract và async convergence (Q-16-04)",
+      "blocking": true,
+      "priority": "P1",
+      "next_step": "Đánh giá CDC và event bus topology trong Phase 7"
+    },
+    {
+      "id": "U-5",
+      "description": "Signer/CI trust, compatibility Node runner và receipt (Q-16-05)",
+      "blocking": true,
+      "priority": "P1",
+      "next_step": "Xác minh multi-runner trust và execution receipts trong Phase 0 và Phase 8"
+    },
+    {
+      "id": "U-6",
+      "description": "Phiên bản, license, vulnerability, ngân sách dependency (Q-16-06)",
+      "blocking": false,
+      "priority": "P2",
+      "next_step": "Rà soát dependency license và vulnerability trong các Phase 3-7"
+    }
+  ],
+  "plan_input": {
+    "context": "Testing Professionalization baseline and governance for PLAN-16",
+    "existing_implementation": [
+      {
+        "id": "CB-1",
+        "summary": "Deep guards, UI checks, and runtime trap exist in playwright/tests/support and fixtures.",
+        "evidence_ids": [
+          "E-1",
+          "E-2"
+        ]
+      }
+    ],
+    "reusable_components": [
+      {
+        "id": "REUSE-1",
+        "component": "UI Checks & Deep Guards",
+        "capability": "Geometry, persistence, and fault recovery guards",
+        "fit": "FULL",
+        "evidence_ids": [
+          "E-1"
+        ]
+      }
+    ],
+    "constraints": [
+      {
+        "id": "CON-1",
+        "statement": "All files must strictly obey Rule 15 code size budget (< 80% yellow zone).",
+        "hard": true,
+        "source_ids": [
+          "E-1"
+        ]
+      }
+    ],
+    "risks": [
+      {
+        "id": "RSK-1",
+        "statement": "False pass or missing evidence on parallel workers without namespace isolation.",
+        "severity": "MEDIUM",
+        "basis_ids": [
+          "E-2"
+        ]
+      }
+    ],
+    "alternatives": [
+      {
+        "id": "ALT-1",
+        "option": "External SaaS test evidence store",
+        "pros": [
+          "Out of the box dashboard"
+        ],
+        "cons": [
+          "High recurring cost and privacy exposure"
+        ],
+        "basis_ids": [
+          "E-1"
+        ]
+      }
+    ],
+    "assumptions": [],
+    "implications_for_plan": [
+      {
+        "id": "IMP-1",
+        "statement": "Dùng evidence hiện có, bổ sung manifest và receipt thay vì viết lại",
+        "basis_ids": [
+          "REUSE-1",
+          "CON-1"
+        ],
+        "affects": [
+          "ARCHITECTURE",
+          "TASKS"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-2",
+        "statement": "Tái hiện độc lập và before/after là tiêu chí trọng tâm người dùng",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "SCOPE",
+          "TESTS"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-3",
+        "statement": "Playwright hỗ trợ screenshot diff, cần baseline governance",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "ARCHITECTURE",
+          "TESTS"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-4",
+        "statement": "A11y đã có; mở rộng workflow, không tạo scan trùng",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "SCOPE"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-5",
+        "statement": "k6 là candidate; SLO và runner adapter phải spike trước",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "TASKS",
+          "RISK"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-6",
+        "statement": "Đã có HM fault probes; bổ sung property/mutation tổng quát",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "TESTS"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-7",
+        "statement": "Reuse API security, mở rộng kiểm soát ứng dụng theo ASVS",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "SCOPE",
+          "TESTS"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-8",
+        "statement": "Schema validator trước, Pact theo topology thực tế",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "ARCHITECTURE"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-9",
+        "statement": "Async, exploratory và flaky đã có phần nền cần operationalize",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "TASKS"
+        ],
+        "blocking": false
+      },
+      {
+        "id": "IMP-10",
+        "statement": "Không cài nguyên bộ skill bên ngoài vì trùng rule và traceability",
+        "basis_ids": [
+          "REUSE-1"
+        ],
+        "affects": [
+          "SCOPE",
+          "ARCHITECTURE"
+        ],
+        "blocking": false
+      }
+    ],
+    "reused_research": []
+  }
+}
