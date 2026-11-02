@@ -117,7 +117,7 @@ playwright/
 | [docs/test-data-management.md](docs/test-data-management.md) | Seed, cleanup, cô lập khi chạy song song, dữ liệu nhạy cảm |
 | [docs/flaky-test-policy.md](docs/flaky-test-policy.md) | Phân loại nguyên nhân, quy trình quarantine, ngưỡng cảnh báo |
 | [docs/hub-and-project-boundary.md](docs/hub-and-project-boundary.md) | Cái gì thuộc Hub, cái gì thuộc project, và cách chặn ghi đè business |
-| [docs/qa-research-references.md](docs/qa-research-references.md) | Danh mục link GitHub tham khảo về Agentic QA Skills & System Testing Architecture |
+| [docs/qa-research-references.md](docs/qa-research-references.md) | Danh mục link GitHub tham khảo về Agentic QA Skills, AI Web/Visual Testing, DOM/A11y & Architecture |
 
 ## Lệnh Playwright
 

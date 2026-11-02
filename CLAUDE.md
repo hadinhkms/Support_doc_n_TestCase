@@ -53,3 +53,8 @@ Chạy trong **`playwright/`**:
 
 `ship` = Hub sở hữu, đừng sửa tại chỗ. `seed` = bản khởi tạo, sửa thoải mái.
 `own` = business của project. Chi tiết: [docs/hub-and-project-boundary.md](docs/hub-and-project-boundary.md).
+
+## Tra cứu & Nghiên cứu Tri thức QA (Research References)
+
+Khi cần research thông tin về QA skills, AI Agent testing, Playwright best practices, visual/DOM/accessibility testing:
+Tham chiếu danh mục repository tại [docs/qa-research-references.md](docs/qa-research-references.md).

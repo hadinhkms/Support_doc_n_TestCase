@@ -49,6 +49,7 @@ Trước khi sửa đổi bất kỳ file nào trong `requirements/`, `test-case
 | Kiểm thử chuyên sâu API (OWASP API Top 10: BOLA/IDOR, BFLA, Mass Assignment, Race Condition) | [qa-api-testing](../qa-api-testing/SKILL.md) |
 | Review mã nguồn Frontend & giao diện thực tế theo Rubric 15 nhóm UI/UX | [qa-ui-review](../qa-ui-review/SKILL.md) |
 | Thực thi checklist test case: mark PASS/FAIL/BLOCKED/N/A/NOT RUN & bổ sung test case thiếu | [qa-test-execution](../qa-test-execution/SKILL.md) |
+| Nghiên cứu, tra cứu tri thức QA Skills, AI Testing, Visual/DOM/A11y & SOP | [docs/qa-research-references.md](../../../docs/qa-research-references.md) |
 
 ---
 

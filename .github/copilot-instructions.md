@@ -78,3 +78,14 @@ Khi người dùng cung cấp test automation hiện có:
 Tham chiếu mẫu đầy đủ: `requirements/REQ-001-sign-in.md` -> `test-cases/REQ-001-sign-in.md` -> `test-cases/REQ-001-sign-in.automation-plan.md` -> `playwright/tests/auth/login.spec.ts`. Theo đúng cấu trúc và mức chi tiết của bộ này.
 
 Ngôn ngữ tài liệu có thể là tiếng Việt; mã, ID, tên file và test title dùng tiếng Anh ổn định. Không đưa credential thật vào file; mọi giá trị nhạy cảm đi qua `requireEnv()` và được khai báo trong `playwright/.env.example`.
+
+## Nghiên cứu và Tham chiếu Tri thức QA (QA Research References)
+
+Khi người dùng yêu cầu nghiên cứu (research), đối chiếu chuẩn mực kỹ thuật, nâng cấp bộ kỹ năng cho AI Agent hoặc thiết kế kiến trúc/công cụ kiểm thử mới:
+- Tra cứu và tham chiếu trực tiếp danh mục repository tại [docs/qa-research-references.md](../docs/qa-research-references.md).
+- Phân nhóm tra cứu gồm:
+  1. **SKILL.md & MCP Testing**: `testdino-hq/playwright-skill`, `microsoft/playwright-cli`, `microsoft/playwright-mcp`, `lambdatest/agent-skills`, `testomatio/skills`, `FlorianBruniaux/claude-code-ultimate-guide`, `tugkanboz/awesome-ai-testing`.
+  2. **AI Visual & Agentic Web Testing**: `web-infra-dev/midscene` (`aiAssert`), `browserbase/stagehand` (`act`/`extract`/`observe`), `zerostep-ai/zerostep` (`ai()`).
+  3. **Kiểm thử DOM, Accessibility & Visual Regression**: `dequelabs/axe-core-npm` (`@axe-core/playwright`), `lost-pixel/lost-pixel`, `microsoft/playwright` (`examples/`), `DevExpress/testcafe`.
+  4. **Bách khoa toàn thư & Best Practices**: `goldbergyoni/javascript-testing-best-practices`, `TheJambo/awesome-testing`, `ZoranPandovski/awesome-testing-tools`, `atinfo/awesome-test-automation`.
+  5. **Kiến trúc Kiểm thử Hệ thống & Chaos**: `abhivaikar/howtheytest`, `kamranahmedse/developer-roadmap`, `dastergon/awesome-sre`, `dastergon/awesome-chaos-engineering`.
