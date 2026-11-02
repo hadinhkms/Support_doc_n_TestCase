@@ -62,6 +62,7 @@ function parseArgs(argv) {
     project: null,
     projectDir: null,
     checkBoundaryRules: null,
+    checkDeepCoverage: null,
     domain: null,
     req: null,
     tag: null,
@@ -86,6 +87,10 @@ function parseArgs(argv) {
       flags.checkBoundaryRules = false;
     } else if (arg === '--boundary-rules') {
       flags.checkBoundaryRules = true;
+    } else if (arg === '--no-deep-coverage') {
+      flags.checkDeepCoverage = false;
+    } else if (arg === '--deep-coverage') {
+      flags.checkDeepCoverage = true;
     } else if (arg.startsWith('--') && arg.includes('=')) {
       const eqIdx = arg.indexOf('=');
       const rawName = arg.slice(0, eqIdx);
@@ -148,6 +153,9 @@ function validateCommandFlags(command, flags, positional) {
     }
     if (flags.checkBoundaryRules !== null) {
       throw new Error('Cờ --boundary-rules / --no-boundary-rules không hỗ trợ cho lệnh learn.');
+    }
+    if (flags.checkDeepCoverage !== null) {
+      throw new Error('Cờ --deep-coverage / --no-deep-coverage không hỗ trợ cho lệnh learn.');
     }
   } else {
     if (flags.apply || flags.since !== null || flags.review !== null) {
@@ -462,6 +470,7 @@ function main(opts = {}) {
     requirementsDir: config.requirementsDir,
     testCasesDir: config.testCasesDir,
     checkBoundaryRules: flags.checkBoundaryRules !== null ? flags.checkBoundaryRules : config.checkBoundaryRules,
+    checkDeepCoverage: flags.checkDeepCoverage !== null ? flags.checkDeepCoverage : config.checkDeepCoverage,
     filterDomain: flags.domain,
     filterReq: flags.req,
     filterTag: flags.tag,

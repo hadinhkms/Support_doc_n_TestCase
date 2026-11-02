@@ -22,6 +22,7 @@
 - Technique: <EP/BVA/Decision table/State transition/Error guessing>
 - Automation: Yes | Candidate | No
 - Tags: `@smoke @p0 @security @a11y @ui` (khớp với Priority ở trên)
+- **Capabilities**: `persistence, boundary, idempotency, ui-geometry, a11y, responsive, xss, resilience, concurrency, api-security, api-contract` (chọn các chiều áp dụng)
 - Preconditions: <...>
 - Test data: <...>
 

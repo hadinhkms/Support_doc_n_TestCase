@@ -1199,3 +1199,93 @@ test('TC-14-P3-05c: extractVerifiedHelperImports nhận diện expectNetworkFaul
     'helper:expectMultiTabConcurrency',
   ]);
 });
+
+// ===========================================================================
+// Plan 15 Phase 1 & 4: Metadata Sync & API Deep Guards (TC-15-01, TC-15-02)
+// ===========================================================================
+
+test('TC-15-01: loadRequirements nhận diện đầy đủ Page exposure (Customer, Admin) và XSS applicability: Exempt (reason: ...)', () => {
+  const reqCustomerMd = `---
+id: REQ-201
+title: Customer Portal
+status: Ready for Test
+test_cases: test-cases/REQ-201.md
+---
+# REQ-201
+- **Page exposure**: Customer
+- **UI coverage**: Required
+- **XSS applicability**: Applicable
+### AC-001: View order
+`;
+  const reqAdminMd = `---
+id: REQ-202
+title: Admin Internal Tool
+status: Ready for Test
+test_cases: test-cases/REQ-202.md
+---
+# REQ-202
+- **Page exposure**: Admin
+- **UI coverage**: Exempt (reason: Headless API service)
+- **XSS applicability**: Exempt (reason: Internal admin RBAC with strict CSP)
+### AC-001: Sync catalog
+`;
+
+  withRepo(
+    {
+      'requirements/REQ-201.md': reqCustomerMd,
+      'requirements/REQ-202.md': reqAdminMd,
+    },
+    (root) => {
+      const reqs = loadRequirements(root);
+      const r201 = reqs.find((r) => r.id === 'REQ-201');
+      const r202 = reqs.find((r) => r.id === 'REQ-202');
+
+      assert.equal(r201.pageExposure, 'Customer');
+      assert.deepEqual(r201.xssApplicability, { status: 'Applicable', reason: null });
+
+      assert.equal(r202.pageExposure, 'Admin');
+      assert.deepEqual(r202.uiCoverage, { status: 'Exempt', reason: 'Headless API service' });
+      assert.deepEqual(r202.xssApplicability, {
+        status: 'Exempt',
+        reason: 'Internal admin RBAC with strict CSP',
+      });
+    },
+  );
+});
+
+test('TC-15-02: extractVerifiedHelperImports nhận diện 4 hàm từ support/api-guards và bắt thiếu await', () => {
+  const apiSpecLines = [
+    'import {',
+    '  expectApiSchemaContract as assertContract,',
+    '  expectBolaForbidden,',
+    '  expectMassAssignmentIgnored,',
+    '  expectIdempotentApiMutation,',
+    "} from '../support/api-guards';",
+    'test("TC-001 - AC-001 API security and contract checks", async ({ request }) => {',
+    '  const res = await request.get("/api/orders/1");',
+    '  assertContract(res, { expectedStatus: 200 });',
+    '  await expectBolaForbidden(res);',
+    '  await expectMassAssignmentIgnored(res, async () => {});',
+    '  await expectIdempotentApiMutation(async () => request.post("/api/orders"));',
+    '});',
+  ];
+
+  const verifiedMap = extractVerifiedHelperImports(apiSpecLines);
+  assert.equal(verifiedMap.get('assertContract'), 'expectApiSchemaContract');
+  assert.equal(verifiedMap.get('expectBolaForbidden'), 'expectBolaForbidden');
+  assert.equal(verifiedMap.get('expectMassAssignmentIgnored'), 'expectMassAssignmentIgnored');
+  assert.equal(verifiedMap.get('expectIdempotentApiMutation'), 'expectIdempotentApiMutation');
+
+  const profile = analyzeTestAssertions(apiSpecLines);
+  assert.equal(profile.kind, 'mixed');
+  assert.deepEqual(profile.matchers, [
+    'helper:expectApiSchemaContract',
+    'helper:expectBolaForbidden',
+    'helper:expectMassAssignmentIgnored',
+    'helper:expectIdempotentApiMutation',
+  ]);
+
+  const missing = findMissingAwaits(apiSpecLines, 1, undefined, verifiedMap);
+  assert.equal(missing.length, 1, 'assertContract thiếu await phải bị phát hiện');
+  assert.equal(missing[0].matcher, 'helper:expectApiSchemaContract');
+});

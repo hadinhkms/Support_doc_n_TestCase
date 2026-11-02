@@ -19,6 +19,108 @@ const { loadRequirements, loadTestCases, loadAutomatedTests } = require('./sourc
  */
 const SEVERITY_RANK = { blocker: 3, major: 2, minor: 1 };
 
+const CAPABILITY_GUARD_RULES = [
+  {
+    capability: 'persistence',
+    kind: 'missing-persistence-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectStatePersistence'),
+    messageLabel: 'bền vững trạng thái (persistence)',
+    helperHint: 'expectStatePersistence từ support/deep-guards',
+    action:
+      'Sử dụng expectStatePersistence từ support/deep-guards để chứng minh trạng thái không mất sau page.reload().',
+  },
+  {
+    capability: 'resilience',
+    kind: 'missing-resilience-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectNetworkFaultRecovery'),
+    messageLabel: 'chịu lỗi mạng (resilience)',
+    helperHint: 'expectNetworkFaultRecovery từ support/deep-guards',
+    action:
+      'Sử dụng expectNetworkFaultRecovery từ support/deep-guards để kiểm chứng form bảo toàn dữ liệu và khôi phục sau lỗi 5xx/rớt mạng.',
+  },
+  {
+    capability: 'concurrency',
+    kind: 'missing-concurrency-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectMultiTabConcurrency'),
+    messageLabel: 'đồng thời đa tab (concurrency)',
+    helperHint: 'expectMultiTabConcurrency từ support/deep-guards',
+    action:
+      'Sử dụng expectMultiTabConcurrency từ support/deep-guards để kiểm chứng chống ghi đè hoặc cách ly trạng thái giữa 2 tab.',
+  },
+  {
+    capability: 'boundary',
+    kind: 'missing-boundary-guard',
+    satisfies: (matchers) =>
+      matchers.includes('helper:expectBoundaryRejected') ||
+      matchers.includes('helper:expectMaxLengthEnforced'),
+    messageLabel: 'kiểm thử biên (boundary)',
+    helperHint: 'expectBoundaryRejected hoặc expectMaxLengthEnforced',
+    action:
+      'Sử dụng expectBoundaryRejected (support/deep-guards) hoặc expectMaxLengthEnforced (support/ui-checks) để kiểm chứng từ chối dữ liệu biên.',
+  },
+  {
+    capability: 'xss',
+    kind: 'missing-xss-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectSafeXssRender'),
+    messageLabel: 'chống thực thi XSS (xss)',
+    helperHint: 'expectSafeXssRender từ support/deep-guards',
+    action:
+      'Sử dụng expectSafeXssRender từ support/deep-guards với XSS_PAYLOADS để kiểm chứng escape an toàn trên vùng hiển thị.',
+  },
+  {
+    capability: 'ui-geometry',
+    kind: 'missing-ui-geometry-guard',
+    satisfies: (matchers) =>
+      matchers.some((m) =>
+        /^helper:expect(?:NoHorizontalScroll|NoHorizontalOverflow|NoTextOverflow|PairwiseNoOverlap|NoOverlap|ContainedIn|ContainedWithin|NotOccluded)$/.test(
+          m,
+        ),
+      ),
+    messageLabel: 'hình học giao diện (ui-geometry)',
+    helperHint: 'expectNoHorizontalScroll / expectNoTextOverflow / expectNotOccluded từ support/ui-checks',
+    action:
+      'Sử dụng các helper kiểm tra hình học từ support/ui-checks (expectNoHorizontalScroll, expectNoTextOverflow, expectNotOccluded...).',
+  },
+  {
+    capability: 'a11y',
+    kind: 'missing-a11y-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectInteractiveA11y'),
+    messageLabel: 'khả năng tiếp cận tương tác (a11y)',
+    helperHint: 'expectInteractiveA11y từ support/ui-checks',
+    action:
+      'Sử dụng expectInteractiveA11y từ support/ui-checks để kiểm chứng tên tiếp cận và vai trò tương tác.',
+  },
+  {
+    capability: 'responsive',
+    kind: 'missing-responsive-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectResponsiveIntegrity'),
+    messageLabel: 'tương thích đa khung nhìn (responsive)',
+    helperHint: 'expectResponsiveIntegrity từ support/ui-checks',
+    action:
+      'Sử dụng expectResponsiveIntegrity từ support/ui-checks để kiểm chứng bố cục nguyên vẹn qua Desktop, Tablet và Mobile.',
+  },
+  {
+    capability: 'api-security',
+    kind: 'missing-api-security-guard',
+    satisfies: (matchers) =>
+      matchers.includes('helper:expectBolaForbidden') ||
+      matchers.includes('helper:expectMassAssignmentIgnored'),
+    messageLabel: 'bảo mật API chuyên sâu (api-security)',
+    helperHint: 'expectBolaForbidden hoặc expectMassAssignmentIgnored từ support/api-guards',
+    action:
+      'Sử dụng expectBolaForbidden hoặc expectMassAssignmentIgnored từ support/api-guards để kiểm chứng chống BOLA/IDOR và Mass Assignment.',
+  },
+  {
+    capability: 'api-contract',
+    kind: 'missing-api-contract-guard',
+    satisfies: (matchers) => matchers.includes('helper:expectApiSchemaContract'),
+    messageLabel: 'hợp đồng schema API (api-contract)',
+    helperHint: 'expectApiSchemaContract từ support/api-guards',
+    action:
+      'Sử dụng expectApiSchemaContract từ support/api-guards để kiểm chứng kiểu dữ liệu bắt buộc và các trường cấm lộ.',
+  },
+];
+
 /** Đường dẫn hiển thị của một test, đã được sources.js tính sẵn từ gốc repo. */
 function specPath(options, t) {
   return `${t.path || t.file}:${t.line}`;
@@ -542,22 +644,40 @@ function gaps(root, options) {
       });
     }
     const tcDetail = t.tcId ? detailsByTc.get(t.tcId) : null;
+    const tcCapabilities =
+      tcDetail && Array.isArray(tcDetail.capabilities) ? tcDetail.capabilities : [];
+    const matchers = (t.assertionProfile && t.assertionProfile.matchers) || [];
     const requiresIdempotency = Boolean(
       t.requiresIdempotencyGuard ||
         (t.tags && t.tags.includes('@idempotency')) ||
-        (tcDetail && Array.isArray(tcDetail.capabilities) && tcDetail.capabilities.includes('idempotency')),
+        tcCapabilities.includes('idempotency'),
     );
     if (requiresIdempotency && !t.isSkipped && !isWip) {
-      const matchers = (t.assertionProfile && t.assertionProfile.matchers) || [];
-      if (!matchers.includes('helper:expectIdempotentSubmit')) {
+      if (
+        !matchers.includes('helper:expectIdempotentSubmit') &&
+        !matchers.includes('helper:expectIdempotentApiMutation')
+      ) {
         findings.push({
           severity: deepSeverity,
           kind: 'missing-idempotency-guard',
           where: specPath(options, t),
-          message: `${t.tcId || t.title} yêu cầu kiểm chứng chống gửi trùng (idempotency) nhưng chưa sử dụng helper expectIdempotentSubmit.`,
+          message: `${t.tcId || t.title} yêu cầu kiểm chứng chống gửi trùng (idempotency) nhưng chưa sử dụng helper expectIdempotentSubmit hoặc expectIdempotentApiMutation.`,
           action:
-            'Sử dụng expectIdempotentSubmit từ support/deep-guards để kiểm chứng khoá nút và chỉ gửi đúng 1 request mutation.',
+            'Sử dụng expectIdempotentSubmit (support/deep-guards) hoặc expectIdempotentApiMutation (support/api-guards) để kiểm chứng chống gửi trùng.',
         });
+      }
+    }
+    if (!t.isSkipped && !isWip && tcCapabilities.length > 0) {
+      for (const rule of CAPABILITY_GUARD_RULES) {
+        if (tcCapabilities.includes(rule.capability) && !rule.satisfies(matchers, t)) {
+          findings.push({
+            severity: deepSeverity,
+            kind: rule.kind,
+            where: specPath(options, t),
+            message: `${t.tcId || t.title} yêu cầu kiểm chứng ${rule.messageLabel} nhưng chưa sử dụng helper ${rule.helperHint}.`,
+            action: rule.action,
+          });
+        }
       }
     }
     if (t.isSkipped && !isWip) {
