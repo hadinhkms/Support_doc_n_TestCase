@@ -5,8 +5,9 @@ import { evidenceTest as test } from '../tests/fixtures/evidence.fixture';
 import { createEvidenceCollector, type EvidenceIo } from '../tests/support/evidence-collector';
 import { resolveInsideRoot, sha256 } from '../tests/support/evidence-integrity';
 import { evaluateExport, validateEvidenceManifest } from '../tests/support/evidence-manifest';
-import { verifyEvidenceBundle } from '../tests/support/evidence-receipt';
-import { REDACTED, redactArgv } from '../tests/support/evidence-redaction';
+import { decideVerdict, runLevelProblems, type RunReceipt } from '../tests/support/evidence-receipt';
+import { REDACTED, redactArgv, redactText } from '../tests/support/evidence-redaction';
+import { verifyEvidenceBundle } from '../tests/support/evidence-verify';
 import { readSourceIdentity, type RunContext } from '../tests/support/evidence-run';
 import {
   cloneBundle,
@@ -84,6 +85,17 @@ test.describe('@REQ-16-P1 nested retry', () => {
     evidence.attach('attempt.json', { retry: test.info().retry });
     expect(test.info().retry, 'first attempt fails on purpose').toBe(1);
   });
+});
+// Auto fixture teardown sau evidence (giống runtimeTrap) làm test fail SAU khi manifest đã ghi.
+const lateTest = test.extend<{ lateTrap: void }>({
+  lateTrap: [async ({}, use) => { await use(); throw new Error('late auto-fixture failure'); }, { auto: true }],
+});
+lateTest('TC-16-P1-3 - AC-16-P1-3 late auto-fixture failure', async ({ evidence }) => {
+  evidence.attach('state.json', { ok: true });
+});
+test('TC-16-P1-3 - AC-16-P1-3 worker hard-killed after capture', async ({ evidence }) => {
+  evidence.attach('state.json', { before: 'crash' });
+  process.exit(9);
 });
 `;
 
@@ -201,6 +213,22 @@ test.describe('@REQ-16-P1 Phase 1 - Evidence pipeline (TC-16-P1-1..3)', () => {
     ]);
     const leakyManifest = { ...manifests[0], execution: { ...manifests[0].execution, argv: ['test', `Bearer ${canary}`] } };
     expect(validateEvidenceManifest(leakyManifest).errors.join()).toContain('SECRET_LEAK_DETECTED');
+
+    // Dạng secret không có trong env/canary: phải được redact theo cấu trúc, không chỉ literal.
+    const shapes: [string, string][] = [
+      ['client_secret=abc123&x=1', `client_secret=${REDACTED}&x=1`],
+      ['{"accessToken":"opaque123"}', `{"accessToken":"${REDACTED}"}`],
+      ['{"password":"two words"}', `{"password":"${REDACTED}"}`],
+      ['id_token=opaque.not.jwt', `id_token=${REDACTED}`],
+      ['Authorization: Token xyz', `Authorization: ${REDACTED}`],
+      ['Authorization: Digest username="u", nonce="n"', `Authorization: ${REDACTED}`],
+      ['{"Authorization":"Token xyz"}', `{"Authorization":"${REDACTED}"}`],
+      ['<input name="csrf_token" value="c5rf">', `<input name="csrf_token" value="${REDACTED}">`],
+      ['<input type="password" value="hunter2">', `<input type="password" value="${REDACTED}">`],
+      ['pwd=p%40ss', `pwd=${REDACTED}`],
+    ];
+    expect(shapes.map(([raw]) => redactText(raw))).toEqual(shapes.map(([, redacted]) => redacted));
+    expect(redactText('inside the console log, nothing secret')).toBe('inside the console log, nothing secret');
     evidence.attach('nested-secrets-receipt.json', receipt);
   });
 
@@ -210,9 +238,15 @@ test.describe('@REQ-16-P1 Phase 1 - Evidence pipeline (TC-16-P1-1..3)', () => {
     evidence.attach('nested-faults-receipt.json', faults.receipt ?? { missing: true, output: faults.output });
     expect(faults.exitCode, faults.output).toBe(1);
     const receipt = faults.receipt!;
-    expect(receipt.counts).toMatchObject({ matched: 3, unexpected: 2, flaky: 1, attempts: 4 });
+    expect(receipt.counts).toMatchObject({ matched: 5, executed: 5, notRun: 0, unexpected: 4, flaky: 1, attempts: 6 });
     expect(receipt.verdict.evidence).toBe('INCOMPLETE');
-    expect(receipt.verdict.problems.join('\n')).toMatch(/COLLECTION_ERROR[\s\S]*PARTIAL_EVIDENCE/);
+    const problems = receipt.verdict.problems.join('\n');
+    expect(problems).toMatch(/COLLECTION_ERROR[\s\S]*PARTIAL_EVIDENCE/);
+    // Worker bị kill sau khi đã ghi artifact: thư mục attempt mồ côi phải bị báo, không im lặng.
+    expect(problems).toMatch(/ORPHANED_ATTEMPT: attempts\/\S+ has no indexed manifest/);
+    // Auto fixture fail sau khi manifest ghi 'passed' → mâu thuẫn với kết quả runner bị phát hiện.
+    expect(problems).toMatch(/OUTCOME_MISMATCH: \S+ says 'passed', runner says 'failed'/);
+    expect(receipt.cleanup.failures).toEqual([expect.stringMatching(/drop-user: cleanup boom$/)]);
 
     const manifests = readManifests(faults);
     const write = manifests.find((m) => m.identity.title.includes('write failure'))!;
@@ -259,6 +293,41 @@ test.describe('@REQ-16-P1 Phase 1 - Evidence pipeline (TC-16-P1-1..3)', () => {
     });
     expect(traversal).toMatch(/MANIFEST_UNREADABLE: \.\.\/\.\.\/\.\.\/package\.json: UNSAFE_PATH/);
     expect(traversal).toContain('JUNIT_UNREADABLE: UNSAFE_PATH');
+    const editReceipt = (r: string, edit: (receipt: RunReceipt) => void) => {
+      const receiptPath = path.join(r, 'run-receipt.json');
+      const receipt = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+      edit(receipt);
+      fs.writeFileSync(receiptPath, JSON.stringify(receipt));
+    };
+    // Manifest của run khác được "ghép" vào receipt (hash index cập nhật cho khớp) → stale.
+    const staleManifest = probe('stale-manifest', (r) => {
+      const file = path.join(r, manifestRel);
+      const m = JSON.parse(fs.readFileSync(file, 'utf8'));
+      m.identity.runId = 'some-older-run';
+      fs.writeFileSync(file, JSON.stringify(m));
+      editReceipt(r, (rc) => (rc.attempts[0].manifest!.sha256 = sha256(fs.readFileSync(file))));
+    });
+    expect(staleManifest).toContain('STALE_MANIFEST');
+    const escalated = probe('trust', (r) =>
+      editReceipt(r, (rc) => Object.assign(rc, { trust: 'TRUSTED_CANDIDATE', source: { ...rc.source, dirty: true } })),
+    );
+    expect(escalated).toContain('TRUST_ESCALATION');
+    const untrusted = cloneBundle(healthy, 'untrusted');
+    editReceipt(untrusted, (rc) => (rc.trust = 'INVESTIGATION_ONLY'));
+    expect(verifyEvidenceBundle(untrusted, { requireTrusted: true }).problems.join()).toContain('UNTRUSTED_EVIDENCE');
+    const cancelled = probe('cancelled', (r) =>
+      editReceipt(r, (rc) => {
+        rc.execution.runnerStatus = 'interrupted';
+        rc.counts.notRun = 2;
+      }),
+    );
+    expect(cancelled).toMatch(/RUN_NOT_FINISHED[\s\S]*TESTS_NOT_RUN[\s\S]*VERDICT_MISMATCH/);
+
+    // Empty / all-skipped / interrupted run không bao giờ ra COMPLETE.
+    expect(decideVerdict({ matched: 0 }, [])).toBe('INVALID_EMPTY_RUN');
+    expect(decideVerdict({ matched: 3, skipped: 3, expected: 0, unexpected: 0, flaky: 0 }, [])).toBe('INVALID_EMPTY_RUN');
+    expect(runLevelProblems('interrupted', { notRun: 48 })).toHaveLength(2);
+    expect(runLevelProblems('failed', { notRun: 0 })).toEqual([]);
 
     // Junction/symlink thư mục trỏ ra ngoài run root bị chặn.
     const escapeRoot = cloneBundle(healthy, 'escape');
@@ -271,6 +340,8 @@ test.describe('@REQ-16-P1 Phase 1 - Evidence pipeline (TC-16-P1-1..3)', () => {
     expect(validateEvidenceManifest(expired).errors.join()).toContain('EXPIRED_ARTIFACT_VIOLATION');
     expired.artifacts = [{ ...art, expiresAt: '2020-01-01T00:00:00Z', status: 'EXPIRED_UNAVAILABLE' }];
     expect(validateEvidenceManifest(expired).valid).toBe(true);
+    expired.artifacts = [{ ...art, expiresAt: 'garbage' }];
+    expect(validateEvidenceManifest(expired).errors.join()).toContain('INVALID_EXPIRES_AT');
 
     // Disk full / permission denied / trùng namespace qua IO injection trên collector.
     const probeRoot = path.join(faults.dir, 'collector-probes');

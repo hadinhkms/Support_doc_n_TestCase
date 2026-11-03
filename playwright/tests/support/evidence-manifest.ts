@@ -126,6 +126,11 @@ function checkArtifacts(m: EvidenceManifest, errors: string[]): void {
     if (art.sensitivity !== 'SHAREABLE' && art.sensitivity !== 'RESTRICTED') {
       errors.push(`INVALID_SENSITIVITY: '${art.path}'`);
     }
+    if (art.status !== 'ACTIVE' && art.status !== 'EXPIRED_UNAVAILABLE') errors.push(`INVALID_ARTIFACT_STATUS: '${art.path}'`);
+    if (art.expiresAt !== null && Number.isNaN(Date.parse(art.expiresAt))) {
+      errors.push(`INVALID_EXPIRES_AT: '${art.path}'`);
+      continue;
+    }
     const expired = art.expiresAt !== null && new Date(art.expiresAt).getTime() < Date.now();
     if (expired && art.status !== 'EXPIRED_UNAVAILABLE') {
       errors.push(`EXPIRED_ARTIFACT_VIOLATION: '${art.path}' is past TTL but status is '${art.status}'`);
@@ -160,7 +165,10 @@ export function validateEvidenceManifest(input: unknown): ValidationResult {
   } else if (redactArgv(m.execution.argv).some((arg, i) => arg !== m.execution.argv[i])) {
     errors.push('SECRET_LEAK_DETECTED: execution.argv contains unredacted sensitive values');
   }
-  if (!STATUSES.has(m.outcome?.status)) errors.push("Missing or invalid 'outcome.status'");
+  if (!STATUSES.has(m.outcome?.status) || !STATUSES.has(m.outcome?.expectedStatus)) {
+    errors.push("Missing or invalid 'outcome.status/expectedStatus'");
+  }
+  if (m.status !== 'COMPLETE' && m.status !== 'PARTIAL') errors.push(`INVALID_STATUS: '${String(m.status)}'`);
   checkArtifacts(m, errors);
   const collectionErrors = m.collection?.errors;
   if (!Array.isArray(collectionErrors)) errors.push("Missing 'collection.errors'");

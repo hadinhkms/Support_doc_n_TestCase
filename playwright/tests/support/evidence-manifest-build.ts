@@ -59,7 +59,7 @@ export function buildAttemptManifest(input: {
     identity: {
       runId: ctx.runId,
       testId: id.testId,
-      title: id.title,
+      title: redactText(id.title, input.secrets),
       file: id.file,
       project: id.project,
       trace: traceIds([id.title, ...id.tags]),

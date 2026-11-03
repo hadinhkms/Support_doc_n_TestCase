@@ -1,10 +1,11 @@
 # Phase 1 — Nền tảng Evidence
 
-> **Trạng thái:** `IMPLEMENTED BUT UNVERIFIED` · **Cấp độ:** L3 · **Ngày:** 2026-11-03
+> **Trạng thái:** `IMPLEMENTED BUT UNVERIFIED` (đã chạy phiên review/QA/UAT rehearsal; chờ ký độc lập) · **Cấp độ:** L3 · **Ngày:** 2026-11-03
 > **Người soạn:** Codex, một phiên; BA/TL chưa đồng tác giả hoặc soát chéo độc lập.
-> **Triển khai:** Claude Code, một phiên (2026-11-03) trên `2299037` + working tree chưa commit.
+> **Triển khai:** Claude Code, một phiên (2026-11-03): `0629f67` + bản sửa finding review (xem §G, §I).
 > **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 0
-> §B2 đã triển khai (xem §I); chưa có Gate 3/4/4.5, chưa tick task, không tự ký.
+> Không lên `VERIFIED`/`COMPLETED`: chưa có chữ ký Gate 3/4/4.5 gắn danh tính, chưa có receipt `trust: CI`,
+> UAT pilot chưa chạy (03_ACCEPTANCE_GATES "No Self-Signoff"). Chưa tick task §B1/§F.
 
 ## A. Nghiệp Vụ (BA — A/R; Tech Lead — C)
 
@@ -60,10 +61,11 @@
 | `.github/workflows/playwright.yml` | Tạo/Sửa sau inventory | Module ≤250 / <190; role ngoài tests theo Rule 15 |
 | `playwright/deep-engine-tests/evidence-pipeline.spec.ts` | Tạo/Sửa sau inventory | Test ≤800 / <600 |
 - Bổ sung khi triển khai (PDR-16-P1-01, chờ duyệt) — `evidence.ts` giữ nguyên, logic mới tách theo T1.2:
-  `tests/support/evidence-{collector,integrity,manifest-build,receipt,reporter,run}.ts` (100–189 dòng),
+  `tests/support/evidence-{collector,integrity,manifest-build,receipt,reporter,run,verify}.ts` (89–191 dòng;
+  collector/manifest 191 > mục tiêu <190 nhưng < vùng vàng 200),
   `tests/fixtures/evidence.fixture.ts` (90), `deep-engine-tests/evidence-pipeline.harness.ts` (105),
   `deep-engine-tests/evidence-download-drill.spec.ts` (34); sửa `playwright.config.ts`, `deep-engine.config.ts`.
-- `.github/workflows/playwright.yml` 211 dòng: vượt mục tiêu <190 (trần 250); YAML ngoài phạm vi `qa:limits`.
+- `.github/workflows/playwright.yml` 216 dòng: vượt mục tiêu <190 (trần 250); YAML ngoài phạm vi `qa:limits`.
 - Thêm file/helper/data/schema mới phải cập nhật inventory trước code; không né hạn mức bằng nén dòng.
 - Ngoài tests: service <160/200; utils <120/150; mọi file mới phải dưới vùng vàng 80%.
 - Ship sửa tại Hub có thẩm quyền; seed/own theo sync-manifest, không ghi đè business project.
@@ -117,6 +119,23 @@
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.
 - Kỹ thuật soát bởi BA độc lập: PENDING.
 - Plan review/contract lock/closure cần chữ ký Master Authority; không thay bằng actor tự khai.
+- **Gate 3 (review phiên, 2026-11-03):** reviewer agent tách context, đọc code `0629f67`, không chạy/sửa.
+  Kết luận: P0 0, **P1 4** → đã sửa toàn bộ, có probe + mutation kiểm chứng:
+  (1) verdict bỏ qua run bị hủy/test không chạy/toàn skipped → `runLevelProblems`, `decideVerdict(counts)`;
+  (2) worker crash để lại attempt mồ côi → `ORPHANED_ATTEMPT`; (3) manifest ghi PASS khi auto fixture
+  fail sau đó → `OUTCOME_MISMATCH`; (4) redaction hụt `client_secret`, camelCase, `Authorization: <scheme>`,
+  giá trị có dấu cách, `<input>` nhạy cảm → regex theo cấu trúc. P2 đã sửa: enum/`expiresAt` trong validator,
+  redact observable/label/name/title, `EVIDENCE_TTL_DAYS=7` ở CI, drill tải theo pattern + `requireTrusted`,
+  cleanup fail hiện ở receipt, đếm `interrupted/notRun/executed`, kiểm `TRUST_ESCALATION`.
+  **P2 còn mở (cần owner quyết):** CI chưa có kho RESTRICTED riêng (bundle upload chung, `evaluateExport`
+  chưa enforce); thiếu contract/source hash, browser version, Correlation/State/Review block (evidence-contract §2);
+  `exitCode` suy từ runner status; synthetic binary phụ thuộc cờ caller; chưa có probe shard thật/upload fail;
+  rerun cùng `EVIDENCE_RUN_ID` để lại receipt cũ (PLAUSIBLE). P3: path ADS/device name Windows, TOCTOU.
+  Decision: **CHƯA KÝ** — reviewer là agent, không phải danh tính SCM độc lập; cần Tech Lead review lại bản sửa.
+- **Gate 4 (QA phiên):** rerun critical + full suite (§I.8–9), trust `LOCAL_UNTRUSTED`/`INVESTIGATION_ONLY`.
+  Decision: **CHƯA KÝ** — Gate 4 cần receipt `trust: CI` cùng revision và QA Lead khác người ký Gate 3.
+- **Gate 4.5 (UAT rehearsal):** chạy đủ 4 bước UAT-16-P1-1 trên harness (§I.10). Pilot app (U-2) chưa có →
+  không thể ACCEPTED; cần Principal BA/PO chạy trên pilot và ký.
 
 ## H. Nhật Ký Thay Đổi Kế Hoạch
 | PDR ID | Loại | Nội dung | Ảnh hưởng | Trạng thái |
@@ -141,7 +160,18 @@
      (`Executable doesn't exist ... chrome-headless-shell`), mọi HM dùng `page` fail; 3 test HM-10 không được
      schedule (`workerIndex: -1`). Đã chạy `npx playwright install chromium` (exit `0`) rồi chạy lại với
      `--workers=2` và `--workers=1`: cả hai crash do máy hết RAM (~700 MB free/15 GB; `FATAL ... out of memory`,
-     `browserType.launch: spawn UNKNOWN`, worker exit `0xC0000409`) trước khi assertion chạy. NOT VERIFIED — cần CI hoặc máy đủ RAM.
-- UAT-16-P1-1: NOT RUN (cần pilot app thật; harness chỉ kiểm công cụ).
+     `browserType.launch: spawn UNKNOWN`, worker exit `0xC0000409`) trước khi assertion chạy (mục 1–7: bản `0629f67`).
+- Sau sửa finding Gate 3 (base `0629f67` + working tree dirty → `INVESTIGATION_ONLY`; RAM ~6.4 GB free):
+  8. `npx playwright test -c deep-engine.config.ts evidence-pipeline.spec.ts --workers=1` → exit `0`, `3 passed (26.6s)`.
+     Mutation: tắt kiểm `OUTCOME_MISMATCH` → TC-16-P1-3 fail đúng assertion; đã khôi phục.
+  9. Full suite: `npm run test:deep-engine -- --workers=2` (PowerShell nuốt `--workers=2`; receipt ghi đúng argv thực
+     `playwright test -c deep-engine.config.ts`, 8 workers) → exit `0`, `30 passed (30.7s)`; counts
+     `matched=executed=expected=30, notRun=0`; receipt `verdict=COMPLETE`, trust `INVESTIGATION_ONLY`.
+  10. UAT rehearsal: (a) healthy control = mục 9; (b) fault: sửa 1 artifact trong bản sao bundle; (c) drill:
+      bản sạch `1 passed` exit `0`, bản lỗi exit `1` với `SIZE_MISMATCH ... expected 2661 bytes, got 2671`;
+      (d) tái chạy từ recipe (argv/cwd trong receipt, gõ tay) → `30 passed`, `verdict=COMPLETE`, khớp receipt gốc.
+  11. `npm run verify` exit `0`; `npm run qa:check` exit `0` (46 file trong ngưỡng); `node --test "tools/**/*.test.js"` 268/268.
+- UAT-16-P1-1 trên pilot app: NOT RUN (U-2 chưa chốt); mục 10 chỉ là rehearsal công cụ.
+- Còn thiếu để đóng phase: CI run trên commit sạch (quality + evidence-drill xanh), chữ ký Gate 3/4/4.5 độc lập.
 - Giữ fail attempt lẫn pass retry; reviewer rerun trên cùng revision trong receipt riêng.
 

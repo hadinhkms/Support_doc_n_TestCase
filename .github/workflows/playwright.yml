@@ -44,6 +44,9 @@ jobs:
       - name: Install Chromium for helper runtime checks
         run: npx playwright install --with-deps chromium
       - name: Verify Deep Test Engine and regression probes
+        # expiresAt của artifact khớp retention-days của bundle bên dưới.
+        env:
+          EVIDENCE_TTL_DAYS: '7'
         run: npm run test:deep-engine -- --workers=2
       - name: Upload helper failure evidence
         if: failure()
@@ -77,14 +80,16 @@ jobs:
           cache: npm
           cache-dependency-path: playwright/package-lock.json
       - run: npm ci
+      # Pattern (không cố định run_attempt): re-run riêng job drill vẫn thấy bundle của attempt trước.
       - uses: actions/download-artifact@v4
         with:
-          name: evidence-deep-engine-${{ github.run_attempt }}
+          pattern: evidence-deep-engine-*
           path: playwright/test-results/evidence-drill
       - name: Verify downloaded evidence
         env:
           EVIDENCE_DRILL_ROOT: ${{ github.workspace }}/playwright/test-results/evidence-drill
           EVIDENCE_EXPECTED_REVISION: ${{ github.sha }}
+          EVIDENCE_REQUIRE_TRUSTED: '1'
         run: npm run test:deep-engine -- evidence-download-drill.spec.ts
 
   # Gate traceability: requirement <-> test case <-> script phải khớp nhau.

@@ -11,13 +11,21 @@ export type Sensitivity = 'SHAREABLE' | 'RESTRICTED';
 export const REDACTED = '[REDACTED]';
 
 const SENSITIVE_KEY =
-  /(authorization|cookie|password|passwd|secret|token|api[-_]?key|session|sid|otp|credential)/i;
-const INLINE_PAIR =
-  /(\b(?:password|passwd|secret|token|access_token|refresh_token|otp|api[-_]?key|session|sid)\b"?\s*[:=]\s*"?)([^\s,"&;}]+)/gi;
+  /(authorization|cookie|password|passwd|pwd|secret|token|api[-_]?key|session|sid|otp|credential|csrf)/i;
+// Key nhạy cảm là một phần tên dài hơn (client_secret, accessToken, x-api-key...); value có
+// nháy thì lấy tới nháy đóng (cho phép khoảng trắng), không nháy thì tới ký tự phân cách.
+const KEY_PART =
+  '[A-Za-z0-9_.-]*(?:password|passwd|pwd|secret|token|api[-_]?key|session|otp|credential|csrf|authorization)[A-Za-z0-9_.-]*';
+const QUOTED_PAIR = new RegExp(`(${KEY_PART}["']?\\s*[:=]\\s*)(["'])((?:\\\\.|(?!\\2).)*)\\2`, 'gi');
+const INLINE_PAIR = new RegExp(`(${KEY_PART}\\s*[:=]\\s*)(?!["'\\[])([^\\s,&;}"'<>]+)`, 'gi');
+const AUTH_LINE = /(\b(?:proxy-)?authorization\s*[:=]\s*)[^\r\n]+/gi;
 const COOKIE_LINE = /(\b(?:set-)?cookie\s*:\s*)[^\r\n]+/gi;
+const SENSITIVE_INPUT =
+  /(<input\b[^>]*(?:type=["']?password|name=["'][^"']*(?:pass|pwd|token|secret|csrf|otp)[^"']*["'])[^>]*\bvalue=["'])[^"']*/gi;
 const JWT = /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{2,}\.[A-Za-z0-9_-]*/g;
-const SECRET_FLAG = /^--?(token|password|passwd|secret|api[-_]?key|otp|cookie|auth)$/i;
-const SECRET_ENV_NAME = /(PASSWORD|PASSWD|TOKEN|SECRET|API_KEY|APIKEY|OTP|COOKIE)/i;
+const SECRET_FLAG = /^--?([a-z-]*(token|password|passwd|secret|api[-_]?key|otp|cookie|auth|credential))$/i;
+// Không dùng PWD/SESSION/AUTH trơn: PWD (thư mục hiện tại), SESSIONNAME, SSH_AUTH_SOCK không phải secret.
+const SECRET_ENV_NAME = /(PASSWORD|PASSWD|_PWD$|_PASS$|TOKEN|SECRET|API_?KEY|PRIVATE_KEY|OTP|COOKIE|CREDENTIAL)/i;
 const MIN_SECRET_LENGTH = 6;
 const MAX_DEPTH = 20;
 
@@ -40,8 +48,11 @@ export function knownSecretValues(env: NodeJS.ProcessEnv = process.env): string[
 export function redactText(input: string, secrets: readonly string[] = []): string {
   if (!input) return input;
   let out = redactSensitiveText(input)
-    .replace(INLINE_PAIR, `$1${REDACTED}`)
+    .replace(AUTH_LINE, `$1${REDACTED}`)
     .replace(COOKIE_LINE, `$1${REDACTED}`)
+    .replace(SENSITIVE_INPUT, `$1${REDACTED}`)
+    .replace(QUOTED_PAIR, `$1$2${REDACTED}$2`)
+    .replace(INLINE_PAIR, `$1${REDACTED}`)
     .replace(JWT, REDACTED);
   for (const secret of secrets) {
     if (secret) out = out.split(secret).join(REDACTED);

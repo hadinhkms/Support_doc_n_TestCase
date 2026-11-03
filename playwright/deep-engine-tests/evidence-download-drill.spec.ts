@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { RECEIPT_FILE, verifyEvidenceBundle } from '../tests/support/evidence-receipt';
+import { RECEIPT_FILE } from '../tests/support/evidence-receipt';
+import { verifyEvidenceBundle } from '../tests/support/evidence-verify';
 
 /**
  * Download drill (evidence-contract §5, PLAN-16 T1.4): chạy trên runner/checkout MỚI sau khi
@@ -10,6 +11,7 @@ import { RECEIPT_FILE, verifyEvidenceBundle } from '../tests/support/evidence-re
  */
 const drillRoot = process.env.EVIDENCE_DRILL_ROOT;
 const expectedRevision = process.env.EVIDENCE_EXPECTED_REVISION;
+const requireTrusted = process.env.EVIDENCE_REQUIRE_TRUSTED === '1';
 
 function findReceiptRoots(root: string): string[] {
   return (fs.readdirSync(root, { recursive: true }) as string[])
@@ -24,9 +26,9 @@ if (drillRoot) {
       const roots = findReceiptRoots(drillRoot);
       expect(roots.length, 'no run-receipt.json in downloaded bundle').toBeGreaterThan(0);
       for (const root of roots) {
-        const result = verifyEvidenceBundle(root, { expectedRevision });
+        const result = verifyEvidenceBundle(root, { expectedRevision, requireTrusted });
         expect(result.problems, root).toEqual([]);
-        expect(result.receipt?.counts.matched, root).toBeGreaterThan(0);
+        expect(result.receipt?.counts.executed, root).toBeGreaterThan(0);
         expect(result.ok, root).toBe(true);
       }
     });

@@ -15,6 +15,7 @@ import {
   RECEIPT_SCHEMA_VERSION,
   checkIndexedEvidence,
   decideVerdict,
+  runLevelProblems,
   type AttemptIndexEntry,
   type RunReceipt,
 } from './evidence-receipt';
@@ -104,11 +105,31 @@ export default class EvidenceReporter implements Reporter {
     const tests = this.suite.allTests();
     const outcomes = tests.map((t) => t.outcome());
     const count = (o: string) => outcomes.filter((x) => x === o).length;
-    const junit = this.copyJunit(runRoot);
+    const counts: RunReceipt['counts'] = {
+      matched: tests.length,
+      executed: count('expected') + count('unexpected') + count('flaky'),
+      notRun: tests.filter((t) => t.results.length === 0).length,
+      expected: count('expected'),
+      unexpected: count('unexpected'),
+      flaky: count('flaky'),
+      skipped: count('skipped'),
+      interrupted: this.attempts.filter((a) => a.status === 'interrupted').length,
+      attempts: this.attempts.length,
+    };
+    let junit: RunReceipt['junit'] = null;
+    try {
+      junit = this.copyJunit(runRoot);
+    } catch (err) {
+      process.stderr.write(`[evidence] JUnit copy failed: ${(err as Error).message}\n`);
+    }
     const source = this.ctx.source;
     const base = { runId: this.ctx.runId, source, attempts: this.attempts };
     const indexed = checkIndexedEvidence(runRoot, base);
-    const problems = [...(this.options.junitFile && !junit ? ['JUNIT_MISSING'] : []), ...indexed.problems];
+    const problems = [
+      ...runLevelProblems(this.result.status, counts),
+      ...(junit ? [] : ['JUNIT_MISSING']),
+      ...indexed.problems,
+    ];
     const finishedAt = new Date().toISOString();
     const receipt: RunReceipt = {
       schemaVersion: RECEIPT_SCHEMA_VERSION,
@@ -126,16 +147,11 @@ export default class EvidenceReporter implements Reporter {
         exitCodeSource: 'derived-from-runner-status',
       },
       environment: { os: `${process.platform} ${os.release()}`, node: process.version, playwright: this.config.version },
-      counts: {
-        matched: tests.length,
-        expected: count('expected'),
-        unexpected: count('unexpected'),
-        flaky: count('flaky'),
-        skipped: count('skipped'),
-        attempts: this.attempts.length,
-      },
+      counts,
       junit,
-      verdict: { evidence: decideVerdict(tests.length, problems), problems },
+      // Cleanup fail độc lập outcome test và verdict evidence, nhưng phải thấy được ở cấp run.
+      cleanup: { failures: indexed.cleanupFailures },
+      verdict: { evidence: decideVerdict(counts, problems), problems },
     };
     const receiptPath = path.join(runRoot, RECEIPT_FILE);
     fs.writeFileSync(receiptPath, JSON.stringify(receipt, null, 2), { flag: 'wx' });

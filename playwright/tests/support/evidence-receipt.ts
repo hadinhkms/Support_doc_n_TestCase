@@ -1,4 +1,5 @@
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { resolveInsideRoot, sha256, verifyArtifactsOnDisk } from './evidence-integrity';
 import {
   validateEvidenceManifest,
@@ -50,20 +51,55 @@ export interface RunReceipt {
     exitCodeSource: 'derived-from-runner-status';
   };
   environment: Record<string, string>;
-  counts: Record<'matched' | 'expected' | 'unexpected' | 'flaky' | 'skipped' | 'attempts', number>;
+  counts: Record<RunCountKey, number>;
   junit: { path: string; sha256: string; bytes: number; sensitivity: Sensitivity } | null;
   attempts: AttemptIndexEntry[];
+  cleanup: { failures: string[] };
   verdict: { evidence: EvidenceVerdict; problems: string[] };
+}
+
+export type RunCountKey =
+  | 'matched'
+  | 'executed'
+  | 'notRun'
+  | 'expected'
+  | 'unexpected'
+  | 'flaky'
+  | 'skipped'
+  | 'interrupted'
+  | 'attempts';
+
+/**
+ * Vấn đề cấp run: run bị hủy/timeout hoặc còn test chưa chạy thì evidence không trọn vẹn,
+ * dù các manifest đã có đều hợp lệ (job CI bị cancel không được ra COMPLETE).
+ */
+export function runLevelProblems(runnerStatus: string, counts: Partial<Record<RunCountKey, number>>): string[] {
+  const problems: string[] = [];
+  if (runnerStatus !== 'passed' && runnerStatus !== 'failed') problems.push(`RUN_NOT_FINISHED: runner status '${runnerStatus}'`);
+  if ((counts.notRun ?? 0) > 0) problems.push(`TESTS_NOT_RUN: ${counts.notRun} matched test(s) never executed`);
+  return problems;
+}
+
+/** Thư mục attempt trên đĩa mà không có manifest được index (worker crash / kill cứng). */
+function orphanedAttempts(runRoot: string, attempts: AttemptIndexEntry[]): string[] {
+  const dir = path.join(runRoot, 'attempts');
+  if (!fs.existsSync(dir)) return [];
+  const indexed = new Set(attempts.filter((a) => a.manifest).map((a) => a.manifest!.path.split('/')[1]));
+  return fs
+    .readdirSync(dir)
+    .filter((name) => !indexed.has(name))
+    .map((name) => `ORPHANED_ATTEMPT: attempts/${name} has no indexed manifest (worker crash or kill?)`);
 }
 
 /** Kiểm từng manifest được index: nằm trong root, hash khớp, schema hợp lệ, artifact còn nguyên. */
 export function checkIndexedEvidence(
   runRoot: string,
   receipt: Pick<RunReceipt, 'runId' | 'source' | 'attempts'>,
-): { problems: string[]; unavailable: string[]; manifests: EvidenceManifest[] } {
-  const problems: string[] = [];
+): { problems: string[]; unavailable: string[]; manifests: EvidenceManifest[]; cleanupFailures: string[] } {
+  const problems: string[] = orphanedAttempts(runRoot, receipt.attempts);
   const unavailable: string[] = [];
   const manifests: EvidenceManifest[] = [];
+  const cleanupFailures: string[] = [];
   for (const entry of receipt.attempts) {
     if (entry.evidence === 'COLLECTION_ERROR') {
       problems.push(`COLLECTION_ERROR: ${entry.testId} r${entry.retryIndex} has no usable manifest`);
@@ -88,71 +124,24 @@ export function checkIndexedEvidence(
       manifest.identity?.runId !== receipt.runId ||
       manifest.source?.qaRevision !== receipt.source.qaRevision;
     if (stale) problems.push(`STALE_MANIFEST: ${entry.manifest.path} belongs to another run/revision`);
+    // Fixture finalize trước các auto fixture (vd runtimeTrap) teardown; kết quả cuối khác thì manifest sai.
+    if (manifest.outcome?.status !== entry.status) {
+      problems.push(`OUTCOME_MISMATCH: ${entry.manifest.path} says '${manifest.outcome?.status}', runner says '${entry.status}'`);
+    }
     const disk = verifyArtifactsOnDisk(runRoot, manifest.artifacts ?? []);
     problems.push(...disk.problems.map((p) => `${p.kind}: ${p.path} (${p.detail})`));
     unavailable.push(...disk.unavailable);
+    for (const c of manifest.cleanup ?? []) {
+      if (c.outcome === 'FAILED') cleanupFailures.push(`${entry.manifest.path}: ${c.label}: ${c.error}`);
+    }
     manifests.push(manifest);
   }
-  return { problems, unavailable, manifests };
+  return { problems, unavailable, manifests, cleanupFailures };
 }
 
-export function decideVerdict(matched: number, problems: string[]): EvidenceVerdict {
-  if (matched === 0) return 'INVALID_EMPTY_RUN';
+/** Không có test nào thực sự chạy (0 matched, hoặc toàn skipped/không chạy) → không được PASS. */
+export function decideVerdict(counts: Partial<Record<RunCountKey, number>>, problems: string[]): EvidenceVerdict {
+  const executed = (counts.expected ?? 0) + (counts.unexpected ?? 0) + (counts.flaky ?? 0);
+  if ((counts.matched ?? 0) === 0 || executed === 0) return 'INVALID_EMPTY_RUN';
   return problems.length > 0 ? 'INCOMPLETE' : 'COMPLETE';
-}
-
-export interface BundleVerification {
-  ok: boolean;
-  problems: string[];
-  unavailable: string[];
-  receipt: RunReceipt | null;
-  manifests: EvidenceManifest[];
-}
-
-/**
- * Verifier cho bundle đã tải về (download drill trên runner mới): đọc lại receipt từ đĩa,
- * kiểm revision kỳ vọng (stale), hash JUnit/manifest/artifact. Không bao giờ exec dữ liệu receipt.
- */
-export function verifyEvidenceBundle(
-  runRoot: string,
-  options: { expectedRevision?: string } = {},
-): BundleVerification {
-  const fail = (problem: string): BundleVerification => ({
-    ok: false,
-    problems: [problem],
-    unavailable: [],
-    receipt: null,
-    manifests: [],
-  });
-  let receipt: RunReceipt;
-  try {
-    receipt = JSON.parse(fs.readFileSync(resolveInsideRoot(runRoot, RECEIPT_FILE), 'utf8')) as RunReceipt;
-  } catch (err) {
-    return fail(`RECEIPT_UNREADABLE: ${(err as Error).message}`);
-  }
-  if (receipt.schemaVersion !== RECEIPT_SCHEMA_VERSION || !Array.isArray(receipt.attempts)) {
-    return fail(`UNSUPPORTED_RECEIPT: ${String(receipt.schemaVersion)}`);
-  }
-  const problems: string[] = [];
-  if (options.expectedRevision && receipt.source?.qaRevision !== options.expectedRevision) {
-    problems.push(`STALE_REVISION: receipt ${receipt.source?.qaRevision} != expected ${options.expectedRevision}`);
-  }
-  if (!receipt.junit) {
-    problems.push('JUNIT_MISSING');
-  } else {
-    try {
-      const junit = fs.readFileSync(resolveInsideRoot(runRoot, receipt.junit.path));
-      if (sha256(junit) !== receipt.junit.sha256) problems.push(`HASH_MISMATCH: ${receipt.junit.path}`);
-    } catch (err) {
-      problems.push(`JUNIT_UNREADABLE: ${(err as Error).message}`);
-    }
-  }
-  const indexed = checkIndexedEvidence(runRoot, receipt);
-  problems.push(...indexed.problems);
-  const verdict = decideVerdict(receipt.counts?.matched ?? 0, problems);
-  if (verdict !== receipt.verdict?.evidence) {
-    problems.push(`VERDICT_MISMATCH: receipt claims ${receipt.verdict?.evidence}, recomputed ${verdict}`);
-  }
-  const ok = problems.length === 0 && verdict === 'COMPLETE';
-  return { ok, problems, unavailable: indexed.unavailable, receipt, manifests: indexed.manifests };
 }

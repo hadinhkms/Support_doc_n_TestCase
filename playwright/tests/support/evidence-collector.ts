@@ -120,7 +120,7 @@ export function createEvidenceCollector(
     const ttlDays = opts.ttlDays ?? (Number(env.EVIDENCE_TTL_DAYS) || 0);
     const leakedSecrets = findSecretsInBytes(bytes, secrets).length;
     const artifact: EvidenceArtifact = {
-      name,
+      name: redactText(name, secrets),
       path: rel,
       sha256: sha256(bytes),
       bytes: bytes.length,
@@ -144,7 +144,8 @@ export function createEvidenceCollector(
   }
 
   /** Snapshot trạng thái TRƯỚC cleanup; cleanup fail được ghi riêng, không đổi outcome test. */
-  async function runCleanup(label: string, fn: () => unknown, before?: () => unknown) {
+  async function runCleanup(rawLabel: string, fn: () => unknown, before?: () => unknown) {
+    const label = redactText(rawLabel, secrets);
     if (before) await snapshot(`before-cleanup-${label}.json`, before);
     try {
       await fn();
@@ -181,7 +182,8 @@ export function createEvidenceCollector(
     attach,
     snapshot,
     cleanup: runCleanup,
-    observe: (o: Observable) => observables.push({ ...o, actual: redactText(o.actual, secrets) }),
+    observe: (o: Observable) =>
+      observables.push(redactValue({ ...o }, secrets) as Observable),
     finalize,
   };
 }
