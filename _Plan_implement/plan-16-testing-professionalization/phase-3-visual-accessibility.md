@@ -1,9 +1,14 @@
 # Phase 3 — Visual Regression & Accessibility
 
-> **Trạng thái:** `DRAFT` · **Cấp độ:** L3 · **Ngày:** 2026-11-02
+> **Trạng thái:** `IMPLEMENTED BUT UNVERIFIED` · **Cấp độ:** L3 · **Ngày:** 2026-11-03
 > **Người soạn:** Codex, một phiên; BA/TL chưa đồng tác giả hoặc soát chéo độc lập.
-> **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 1, 2
-> Các đường dẫn ở §B2 là đề xuất, chưa phải artifact đã triển khai.
+> **Triển khai:** Claude Code, một phiên (2026-11-03), trên `56dad3c` + thay đổi chưa commit (xem §I).
+> **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 1, 2 (cả hai đang `IMPLEMENTED BUT UNVERIFIED`)
+> Không lên `VERIFIED`/`COMPLETED`, vì:
+> - Plan chưa `PLAN_APPROVED` (Mốc 1).
+> - Gate 3/4/4.5 chưa có chữ ký Master Authority; repo chưa đăng ký, xem Phase 2 §G.
+> - Chưa có receipt `trust: CI`; chưa có pilot app.
+> Chưa tick §B1/§F. 2 file `ship` ở §B2 không sửa tại chỗ; đề xuất ở [phase-3-hub-proposals.md](phase-3-hub-proposals.md).
 
 ## A. Nghiệp Vụ (BA — A/R; Tech Lead — C)
 
@@ -38,7 +43,7 @@
 - Thao tác: chạy healthy control → kích hoạt lỗi có chủ đích → đọc report → tái chạy từ recipe.
 - Mong đợi: control pass, fault bị phát hiện đúng nguyên nhân và người khác truy nguyên được.
 - Truy vết: REQ-16-P3, BR-16-P3, AC-16-P3-1 đến AC-16-P3-3.
-- Kết quả hiện tại: NOT RUN; harness chỉ kiểm công cụ, pilot ứng dụng cần evidence riêng.
+- Kết quả hiện tại: NOT RUN. Mới có rehearsal công cụ trên trang tham chiếu (§I); pilot ứng dụng cần evidence riêng.
 
 ## B. Kỹ Thuật (Tech Lead — A/R; BA — C)
 
@@ -56,6 +61,13 @@
 | `.agents/skills/qa-ui-review/references/accessibility-workflow.md` | Tạo/Sửa sau inventory | Tài liệu chia theo chủ đề; skill entry gọn |
 | `playwright/visual.config.ts` | Tạo/Sửa sau inventory | Module ≤250 / <190; role ngoài tests theo Rule 15 |
 | `playwright/deep-engine-tests/visual-accessibility.spec.ts` | Tạo/Sửa sau inventory | Test ≤800 / <600 |
+- Thực tế triển khai (PDR-16-P3-01 và PDR-16-P3-02, chờ duyệt):
+  - 2 dòng `.agents` thuộc nhóm `ship`, nên không sửa tại satellite. Đề xuất ở [phase-3-hub-proposals.md](phase-3-hub-proposals.md).
+  - `playwright/visual.config.ts` (32 dòng): chỉ chạy `*.visual.spec.ts`; hiện chưa có spec nghiệp vụ nào.
+    Đã phân loại `seed` trong `sync-manifest.json`.
+  - Thêm `tests/support/visual-{env,baseline,assert}.ts` (60 / 134 / 91) và `tests/support/a11y-{flows,scan}.ts` (112 / 83).
+  - Thêm `deep-engine-tests/visual-accessibility.{harness,pages}.ts` (105 / 79). Spec `visual-accessibility.spec.ts` dài 167 dòng.
+  - `evidence-pipeline.harness.ts`: `runNested` có thêm `runLabel` để tách runId khi một thư mục chạy nhiều lần.
 - Thêm file/helper/data/schema mới phải cập nhật inventory trước code; không né hạn mức bằng nén dòng.
 - Ngoài tests: service <160/200; utils <120/150; mọi file mới phải dưới vùng vàng 80%.
 - Ship sửa tại Hub có thẩm quyền; seed/own theo sync-manifest, không ghi đè business project.
@@ -64,6 +76,14 @@
 - Version hóa input/output artifact; REQ/AC/TC → test ID → run ID → manifest/hash.
 - Phải tuân [evidence-contract.md](evidence-contract.md) và [reproduction-protocol.md](reproduction-protocol.md).
 - Không đổi contract ứng dụng ngoài scope; schema/API mới phải khóa trước Gate 2.
+- Đã triển khai (chưa khóa Gate 2):
+  - `visual-baselines/1` (`baselines.approved.json` cạnh ảnh): hash, người duyệt khác tác giả, lý do, env quan sát được,
+    mask có lý do và nguồn ứng viên (run/attempt/hash artifact).
+  - `visual-review/1`: attach mỗi lần so ảnh, kèm ảnh expected / actual / diff.
+  - `a11y-scan/1`: `conformanceClaim` luôn là `NONE`; checklist screen reader thủ công ở `NOT_RUN`.
+- Bất biến:
+  - Baseline chỉ được ghi qua `approveBaseline`, vì `updateSnapshots: 'none'`.
+  - Approval được kiểm cả trước và sau khi so, nên `--update-snapshots` ghi đè baseline sẽ bị bắt.
 
 ### B4. Dependencies
 - Dùng Playwright và axe sẵn có; dịch vụ visual bên ngoài là lựa chọn cần ADR. (RES-16).
@@ -109,14 +129,62 @@
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.
 - Kỹ thuật soát bởi BA độc lập: PENDING.
 - Plan review/contract lock/closure cần chữ ký Master Authority; không thay bằng actor tự khai.
+- Gate 3 / Gate 4 / Gate 4.5: **CHƯA CHẠY / CHƯA KÝ**. Developer chỉ tự kiểm (§I). Ký qua Master Authority đang bị chặn
+  (repo chưa đăng ký; vault được provision cho SID của một máy khác).
+- Giới hạn đã biết (developer tự khai):
+  - Baseline phụ thuộc OS/browser. Approval của harness được tạo trong lúc chạy trên máy local; chưa có baseline nghiệp vụ hay baseline CI.
+  - Tên người duyệt baseline là tự khai, chưa gắn danh tính.
+  - Chưa kiểm text zoom 200%, contrast của trạng thái hover/focus, high-contrast mode hay screen reader thật
+    (`SCREEN_READER_SCRIPT` vẫn `NOT_RUN`).
+  - `checkFormErrors` coi live region có sẵn từ trước là đủ, chưa đo cách screen reader thật đọc nó.
+  - Quan sát khi chạy (xác nhận lại P2 đã biết của Phase 1): chạy lại cùng runId thì reporter không ghi được receipt
+    (`EEXIST`) và receipt cũ vẫn nằm đó. Harness đã né bằng `runLabel`; bản thân reporter chưa sửa.
+- Trang tham chiếu dùng `page.setContent` (`document.write`), nên script phải bọc IIFE, nếu không `const`
+  của trang trước sẽ làm script lỗi.
 
 ## H. Nhật Ký Thay Đổi Kế Hoạch
 | PDR ID | Loại | Nội dung | Ảnh hưởng | Trạng thái |
 |---|---|---|---|---|
-| Chưa phát sinh | TECH/BUSINESS | Thay đổi §A–§G cần PDR và duyệt lại | Contract/hash | PENDING |
+| PDR-16-P3-01 | TECH | §B2: thêm 5 module support + harness/pages; `visual.config.ts` chưa có spec nghiệp vụ | Inventory | PENDING |
+| PDR-16-P3-02 | TECH | 2 file `ship` chuyển thành đề xuất Hub; T3.1 chỉ xong phần seed | Scope/boundary | PENDING |
 
 ## I. Bằng Chứng Thực Nghiệm
-- NOT RUN: đây là kế hoạch; chưa có implementation evidence.
 - Khi chạy: exact argv/cwd, exit code, counts/runtime, snippet log và full revisions/dirty identity.
+
+Developer tự kiểm ngày 2026-11-03.
+- Môi trường: Windows 11, Node v22.3, Playwright 1.63, chromium@153, axe-core 4.13.
+- QA revision `56dad3c76724df3f2b605a3cc2a513d8e1cae48e`, worktree **dirty** (trust `INVESTIGATION_ONLY`).
+- Đây là bằng chứng điều tra, chưa phải bằng chứng gate.
+
+1. `visual-accessibility.spec.ts` (HM-12) với `--workers=1`: 3 passed (35.9s).
+   - **TC-1:** run con 4 case trên baseline đã duyệt: 2 pass (UI đúng, timestamp đã mask đổi); 2 fail (nút lệch
+     12px, giá đổi), mỗi case có review `DIFF` và đủ 3 ảnh expected / actual / diff, hash khớp artifact.
+     Control: bỏ mask thì chính thay đổi timestamp gây `DIFF`.
+   - **TC-2:**
+     - Thiếu baseline (kể cả có `--update-snapshots=missing`) → `BLOCKED` + ảnh ứng viên, không ghi baseline.
+     - Approval bị từ chối khi tự duyệt, không có lý do, hoặc ứng viên bị giả.
+     - Kiểm theo dữ liệu: env lệch, mask chưa duyệt hoặc không lý do, approval hỏng, chưa duyệt.
+     - `--update-snapshots=all` với UI sai → `BASELINE_CHANGED`. Sau đó UI đúng vẫn bị chặn, kèm
+       `MASK_NOT_APPROVED` và `MASK_EMPTY`.
+   - **TC-3:** variant đúng → dialog / form / reflow / axe đều sạch, focus trở về `button#open`.
+     7 lỗi cài cố ý đều bị phát hiện đúng mã; `unlabeled` → axe `button-name`.
+     Report luôn có `conformanceClaim: NONE`, statement ở dòng đầu, 5 manual check vẫn `NOT_RUN`, và chặn được
+     "WCAG 2.1 AA compliant".
+2. Mutation, mỗi lần một file, sau đó khôi phục. Mỗi mutation làm fail đúng một probe:
+
+   | Mutation | Probe bị fail |
+   |---|---|
+   | Bỏ kiểm approval sau khi so | TC-2 `--update-snapshots=all` |
+   | Bỏ so hash baseline | TC-2 |
+   | Bỏ `MASK_EMPTY` | TC-2 |
+   | Bỏ `FOCUS_NOT_RESTORED` | TC-3 |
+   | Bỏ `LIVE_REGION_CREATED_LATE` | TC-3 |
+3. Full suite `playwright test -c deep-engine.config.ts --workers=2`: exit 0, 36/36 (2.8 phút).
+   Receipt `local-20261103-074642-44600`: counts 36/36/36, notRun 0, verdict `COMPLETE`.
+4. `npx playwright test -c visual.config.ts --list`: 0 test, exit 1, receipt `INVALID_EMPTY_RUN`. Đúng là chưa có spec
+   nghiệp vụ, và run rỗng không thành PASS.
+5. `npm run verify` exit 0 (53 test). `npm run qa:check` exit 0, sau khi phân loại `playwright/visual.config.ts`.
+   `node --test "tools/**/*.test.js"` 268/268.
+6. Chưa chạy: CI, review / QA / UAT độc lập, baseline nghiệp vụ trên pilot app, screen reader thật, 2 file ship (chờ Hub).
 - Giữ fail attempt lẫn pass retry; reviewer rerun trên cùng revision trong receipt riêng.
 

@@ -75,6 +75,10 @@
       "reason": "Cấu hình harness kiểm chứng độc lập cho Deep Test Engine (HM-00..HM-08)"
     },
     {
+      "path": "playwright/visual.config.ts",
+      "reason": "Cấu hình visual regression (PLAN-16 Phase 3) - project chốt browser/device và baseline của mình"
+    },
+    {
       "path": "playwright/deep-engine-tests",
       "reason": "Bộ spec tự kiểm chứng đột biến (HM-00..HM-08) cho Deep Test Engine"
     },

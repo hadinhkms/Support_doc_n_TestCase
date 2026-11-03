@@ -65,8 +65,9 @@ function childEnv(dir: string, runId: string, extra: Record<string, string>, iso
   return { ...env, ...extra, EVIDENCE_ROOT: path.join(dir, 'evidence'), EVIDENCE_RUN_ID: runId };
 }
 
-export function runNested(dir: string, args: string[], extraEnv: Record<string, string> = {}, isolate = false): NestedRun {
-  const runId = `nested-${path.basename(dir)}`;
+/** unLabel tách runId khi một thư mục chạy nhiều lần (receipt/attempt ghi `wx`, không ghi đè). */
+export function runNested(dir: string, args: string[], extraEnv: Record<string, string> = {}, isolate = false, runLabel = ''): NestedRun {
+  const runId = `nested-${path.basename(dir)}${runLabel ? `-${runLabel}` : ''}`;
   const result = spawnSync(process.execPath, [CLI, 'test', '-c', 'nested.config.ts', ...args], {
     cwd: dir,
     env: childEnv(dir, runId, extraEnv, isolate),
