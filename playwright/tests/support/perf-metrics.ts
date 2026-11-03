@@ -82,10 +82,12 @@ export function sampleProblems(samples: readonly PerfSample[], profile: PerfProf
 }
 
 export function computeStats(samples: readonly PerfSample[], profile: PerfProfile): PerfStats {
-  const measured = samples.filter((s) => s.scheduledMs >= profile.arrival.warmupSec * 1000);
+  // Chịu được profile hỏng (evaluateRun tính stats trước khi trả INVALID_RUN): không throw TypeError.
+  const warmupSec = profile.arrival?.warmupSec ?? 0;
+  const measured = samples.filter((s) => s.scheduledMs >= warmupSec * 1000);
   const ok = measured.filter((s) => s.outcome === 'ok' && typeof s.latencyMs === 'number' && Number.isFinite(s.latencyMs));
   const lat = ok.map((s) => s.latencyMs as number);
-  const windowSec = Math.max(profile.arrival.durationSec - profile.arrival.warmupSec, 1e-9);
+  const windowSec = Math.max((profile.arrival?.durationSec ?? 0) - warmupSec, 1e-9);
   return {
     samples: samples.length,
     measured: measured.length,
