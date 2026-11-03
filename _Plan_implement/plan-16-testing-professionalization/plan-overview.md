@@ -19,7 +19,7 @@ Không viết lại nền tảng đang có; inventory phân biệt existing, par
 | Phase 1 | [Nền tảng Evidence](phase-1-evidence-foundation.md) | 0 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
 | Phase 2 | [Tái hiện bug & xác minh bản sửa](phase-2-bug-reproduction.md) | 1 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
 | Phase 3 | [Visual Regression & Accessibility](phase-3-visual-accessibility.md) | 1, 2 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
-| Phase 4 | [Performance & tải](phase-4-performance.md) | 1, 2 | BA/TL cần chỉ định | DRAFT |
+| Phase 4 | [Performance & tải](phase-4-performance.md) | 1, 2 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
 | Phase 5 | [Property-based & chất lượng bộ test](phase-5-test-quality.md) | 1, 2 | BA/TL cần chỉ định | DRAFT |
 | Phase 6 | [Security toàn ứng dụng](phase-6-security.md) | 0, 1, 2 | BA/TL cần chỉ định | DRAFT |
 | Phase 7 | [Contract, Async & toàn vẹn dữ liệu](phase-7-contracts-async.md) | 0, 1, 2 | BA/TL cần chỉ định | DRAFT |
