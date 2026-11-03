@@ -47,8 +47,11 @@ export interface RecipeCheckOptions {
   readSpec?: (relPath: string) => Buffer | null;
 }
 
-// Không spawn qua shell; vẫn chặn ký tự shell để recipe không mang lệnh. `|` được giữ cho regex grep.
-const SHELL_META = /[;&`$<>\r\n\\]/;
+// Allowlist cho grep: đủ cho regex title (`|`, `[]`, `()`), không có nháy/%/$/; để kể cả khi một consumer
+// lỡ chạy qua shell cũng không ghép được lệnh. Bản thân recipeArgs không bao giờ dùng shell.
+const GREP_SAFE = /^[A-Za-z0-9 _.:@#[\]()|*+?^-]{1,200}$/;
+// Env có thể đổi hành vi runtime/runner — không cho recipe khai.
+const FORBIDDEN_ENV = /^(NODE_|PATH$|PW_|PLAYWRIGHT_|EVIDENCE_|DEBUG$)/;
 const ENV_NAME = /^[A-Z][A-Z0-9_]*$/;
 const SESSION_HINT = /storageState|\.auth[\\/]|"cookies"\s*:|STORAGE_STATE|SESSION_FILE/i;
 const isInt = (n: unknown, min: number, max: number) => Number.isInteger(n) && (n as number) >= min && (n as number) <= max;
@@ -70,10 +73,10 @@ function commandProblems(c: ReproRecipe['command']): string[] {
   if (!c) return ['MISSING_FIELD: command'];
   const problems: string[] = [];
   if (c.tool !== 'playwright-test') problems.push(`UNKNOWN_TOOL: ${String(c.tool)}`);
-  if (typeof c.spec !== 'string' || !isSafeRelativePath(c.spec) || !/\.spec\.ts$/.test(c.spec)) {
+  if (typeof c.spec !== 'string' || !isSafeRelativePath(c.spec) || !/\.spec\.ts$/.test(c.spec) || /(^|\/)node_modules\//.test(c.spec)) {
     problems.push(`UNSAFE_PATH: command.spec '${String(c.spec)}'`);
   }
-  if (c.grep !== null && (typeof c.grep !== 'string' || SHELL_META.test(c.grep) || c.grep.startsWith('-'))) {
+  if (c.grep !== null && (typeof c.grep !== 'string' || !GREP_SAFE.test(c.grep) || c.grep.startsWith('-'))) {
     problems.push('UNSAFE_ARG: command.grep');
   }
   if (!isInt(c.repeatEach, 3, 10)) problems.push(`REPEAT_EACH_OUT_OF_RANGE: ${String(c.repeatEach)} (3..10)`);
@@ -88,6 +91,7 @@ export function validateRecipe(input: unknown, options: RecipeCheckOptions = {})
   problems.push(...commandProblems(recipe.command));
   for (const name of Array.isArray(recipe.envNames) ? recipe.envNames : ['<missing>']) {
     if (typeof name !== 'string' || !ENV_NAME.test(name)) problems.push(`ENV_VALUE_EMBEDDED: '${String(name)}' is not a bare env name`);
+    else if (FORBIDDEN_ENV.test(name)) problems.push(`FORBIDDEN_ENV: '${name}' changes the runtime/runner`);
   }
   const text = JSON.stringify(recipe);
   if (SESSION_HINT.test(text)) problems.push('SESSION_STATE: recipe references a stored login/session');
@@ -104,8 +108,9 @@ export function validateRecipe(input: unknown, options: RecipeCheckOptions = {})
 }
 
 /** Argv cho `playwright test -c <config>` — chỉ từ field đã validate; recipe lỗi thì từ chối. */
-export function recipeArgs(recipe: ReproRecipe, options: RecipeCheckOptions = {}): string[] {
-  const problems = validateRecipe(recipe, options);
+export function recipeArgs(recipe: ReproRecipe, options: RecipeCheckOptions & { readSpec: RecipeCheckOptions['readSpec'] }): string[] {
+  // Không có readSpec thì không kiểm được specSha256 → không chạy.
+  const problems = options.readSpec ? validateRecipe(recipe, options) : ['SPEC_UNVERIFIED: readSpec is required to run'];
   if (problems.length > 0) throw new Error(`RECIPE_REJECTED: ${problems.join('; ')}`);
   const c = recipe.command;
   const args = [c.spec, `--repeat-each=${c.repeatEach}`, '--retries=0', `--workers=${c.workers}`];

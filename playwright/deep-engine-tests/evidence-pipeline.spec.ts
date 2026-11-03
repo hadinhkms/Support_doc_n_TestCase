@@ -226,6 +226,10 @@ test.describe('@REQ-16-P1 Phase 1 - Evidence pipeline (TC-16-P1-1..3)', () => {
       ['<input name="csrf_token" value="c5rf">', `<input name="csrf_token" value="${REDACTED}">`],
       ['<input type="password" value="hunter2">', `<input type="password" value="${REDACTED}">`],
       ['pwd=p%40ss', `pwd=${REDACTED}`],
+      ['db_pass=hunter2', `db_pass=${REDACTED}`],
+      ['https://qa-user:s3cr3tpass@db.app.test/x', `https://qa-user:${REDACTED}@db.app.test/x`],
+      ['-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n-----END RSA PRIVATE KEY-----', REDACTED],
+      ['tests passed=3', 'tests passed=3'],
     ];
     expect(shapes.map(([raw]) => redactText(raw))).toEqual(shapes.map(([, redacted]) => redacted));
     expect(redactText('inside the console log, nothing secret')).toBe('inside the console log, nothing secret');

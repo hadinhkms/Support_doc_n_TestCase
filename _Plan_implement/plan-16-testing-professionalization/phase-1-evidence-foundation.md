@@ -136,6 +136,19 @@
   Decision: **CHƯA KÝ** — Gate 4 cần receipt `trust: CI` cùng revision và QA Lead khác người ký Gate 3.
 - **Gate 4.5 (UAT rehearsal):** chạy đủ 4 bước UAT-16-P1-1 trên harness (§I.10). Pilot app (U-2) chưa có →
   không thể ACCEPTED; cần Principal BA/PO chạy trên pilot và ký.
+- **Gate 3 vòng 2 (2026-11-03, bản tập dượt, CHƯA KÝ):**
+  - Reviewer agent riêng soát lại các bản sửa ở `f22a1f9` và xác nhận 4 P1 cũ không tái phát: verdict khi
+    run bị interrupt hoặc có test không chạy; orphan attempt; `OUTCOME_MISMATCH`; redaction đã mở rộng.
+  - Finding mới (P3) đã sửa, chưa commit: redaction bỏ sót `scheme://user:pass@host`, `pass=`/`db_pass=` và khối
+    PEM private key. Đã thêm vào `evidence-redaction.ts` và bảng `shapes` của TC-16-P1-2. Có control âm
+    `tests passed=3`, giá trị này không được redact.
+  - Replay của Phase 2 dùng `runNested(..., isolate=true)`. Harness chỉ còn giữ biến hệ thống (Phase 2, review P2-3).
+  - P3 còn mở:
+    - `token: [abc]` (giá trị là mảng) chưa được redact dạng text.
+    - Attempt `NOT_COLLECTED` (không có manifest) không sinh problem nếu worker crash trước khi tạo thư mục attempt.
+    - Verifier chưa đối chiếu `counts` với `attempts`.
+- Ký gate qua Master Authority **đang bị chặn**: repo chưa có trong `projects-registry.json`, plan-16 chưa
+  `PLAN_APPROVED`, và phiên dev không được dùng khóa `gate3`/`gate4`. Chi tiết ở Phase 2 §G.
 
 ## H. Nhật Ký Thay Đổi Kế Hoạch
 | PDR ID | Loại | Nội dung | Ảnh hưởng | Trạng thái |

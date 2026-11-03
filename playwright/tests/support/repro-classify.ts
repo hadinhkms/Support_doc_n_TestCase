@@ -1,4 +1,3 @@
-import { sha256 } from './evidence-integrity';
 import type { AttemptStatus } from './evidence-manifest';
 
 /**
@@ -49,6 +48,8 @@ export interface ClassifyInput {
   required?: number;
   /** Trigger nhân tạo (barrier/fault injection): ghi vào limitation, không suy tần suất production. */
   artificialTrigger?: string;
+  /** Vấn đề cấp run (bundle không verify, attempt thiếu repro.json...) — có thì không Confirmed. */
+  runProblems?: string[];
 }
 
 export interface ReproClassification {
@@ -62,38 +63,11 @@ export interface ReproClassification {
   limitations: string[];
 }
 
-// eslint-disable-next-line no-control-regex
-const ANSI = /\u001b\[[0-9;]*m/g;
-const VOLATILE: [RegExp, string][] = [
-  [/\b\d{4}-\d{2}-\d{2}T[\d:.]+Z?\b/g, '<ts>'],
-  [/\b\d+(\.\d+)?\s?ms\b/g, '<ms>'],
-  [/(?:[A-Za-z]:)?[\\/][^\s:'"]+\.(?:ts|js|mjs)(?::\d+){0,2}/g, '<file>'],
-  [/\b[0-9a-f]{12,}\b/gi, '<hex>'],
-  [/:\d{2,5}\b/g, ':<port>'],
-  [/\b(req|state)-[A-Za-z0-9_.~-]+/g, '$1-<id>'],
-];
-
-/**
- * Signature ổn định của một lỗi: bỏ ANSI, thời gian, đường dẫn, id/port biến động, giữ
- * thông điệp assertion + Expected/Received để hai lần lỗi khác nguyên nhân không trùng nhau.
- */
-export function failureSignature(errors: readonly string[]): { text: string; hash: string } | null {
-  const first = errors.find((e) => e.trim().length > 0);
-  if (!first) return null;
-  const lines = first
-    .replace(ANSI, '')
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !/^at\s/.test(l) && !/^Call log:/.test(l));
-  const keep = [lines[0], ...lines.filter((l) => /^(Expected|Received)\b/.test(l))];
-  let text = keep.join(' | ').replace(/^Error:\s*/, '');
-  for (const [pattern, replacement] of VOLATILE) text = text.replace(pattern, replacement);
-  return { text, hash: sha256(Buffer.from(text, 'utf8')).slice(0, 16) };
-}
-
 const failed = (a: ReproAttempt) => a.status !== 'passed' && a.status !== 'skipped';
 
 function cleanAttempts(attempts: ReproAttempt[], problems: string[]): ReproAttempt[] {
+  const ids = attempts.map((a) => a.attemptId);
+  if (new Set(ids).size !== ids.length) problems.push('DUPLICATE_ATTEMPT: one attempt is counted more than once');
   const retries = attempts.filter((a) => a.retryIndex > 0);
   if (retries.length > 0) problems.push(`RETRY_ATTEMPTS_EXCLUDED: ${retries.length} retry attempt(s) are not clean runs`);
   const cut = attempts.filter((a) => a.status === 'interrupted');
@@ -128,14 +102,25 @@ function controlFailure(control: ReproAttempt[]): ReproClassification | null {
   };
 }
 
+/** Control chỉ có giá trị khi sạch, cùng run và không chung state với scenario. */
+function controlProblems(control: ReproAttempt[], raw: ReproAttempt[], scenario: ReproAttempt[]): string[] {
+  const problems: string[] = [];
+  cleanAttempts(raw, problems);
+  if (control.length === 0) return ['CONTROL_MISSING: no healthy control in the same run'];
+  const runs = new Set(scenario.map((a) => a.runId));
+  if (control.some((a) => !runs.has(a.runId)) || runs.size > 1) problems.push('CONTROL_OTHER_RUN: control and scenario are not one run');
+  const states = new Set(scenario.map((a) => a.stateId).filter(Boolean));
+  if (control.some((a) => a.stateId && states.has(a.stateId))) problems.push(`${SHARED_STATE}: control reuses a scenario state`);
+  return problems.map((p) => (p.startsWith('CONTROL_') ? p : `CONTROL_${p}`));
+}
+
 export function classifyReproduction(input: ClassifyInput): ReproClassification {
   const required = input.required ?? REQUIRED_CLEAN_ATTEMPTS;
-  const problems: string[] = [];
+  const problems = (input.runProblems ?? []).map((p) => `RUN_EVIDENCE: ${p}`);
   const limitations = input.artificialTrigger ? [`ARTIFICIAL_TRIGGER: ${input.artificialTrigger}`] : [];
-  const controlProblems: string[] = [];
-  const control = cleanAttempts(input.control, controlProblems);
+  const control = cleanAttempts(input.control, []);
   const fromControl = controlFailure(control);
-  if (fromControl) return { ...fromControl, problems: controlProblems, limitations };
+  if (fromControl) return { ...fromControl, problems: controlProblems(control, input.control, input.scenario), limitations };
   const attempts = cleanAttempts(input.scenario, problems);
   const fails = attempts.filter(failed);
   const signatures = new Set(fails.map((a) => a.signature));
@@ -150,15 +135,20 @@ export function classifyReproduction(input: ClassifyInput): ReproClassification 
     limitations,
   });
   if (!input.expectedSource) return result('SPEC_GAP', 'no authoritative expected result');
-  if (control.length === 0) problems.push('CONTROL_MISSING: no healthy control in the same run');
+  problems.push(...controlProblems(control, input.control, input.scenario));
   if (fails.some((a) => a.signatureText?.startsWith(ENVIRONMENT_TAG))) {
     return result('ENVIRONMENT_ISSUE', 'scenario failed on an environment precondition');
+  }
+  if (attempts.length === 0) {
+    problems.push('NO_ATTEMPTS: nothing executed for this scenario');
+    return result('OBSERVATION', 'no evidence (0/0); not a negative result');
   }
   if (fails.length === 0) return result('OBSERVATION', `not reproduced (0/${attempts.length})`);
   // Dữ liệu bẩn/trùng giữa các lần chạy là lỗi của test (mục 14 bước 1), chưa được quy cho app.
   if (problems.some((p) => p.startsWith(SHARED_STATE))) {
     return result('TEST_DEFECT', 'attempts reused one state; isolate data before judging the app');
   }
+  if (fails.some((a) => !a.signature)) problems.push('SIGNATURE_UNKNOWN: a failure carries no error message');
   if (signatures.size > 1) problems.push(`SIGNATURE_DIVERGENCE: ${signatures.size} distinct failure signatures`);
   if (fails.length < attempts.length || signatures.size > 1) {
     return result('INTERMITTENT_OBSERVATION', `reproduced ${fails.length}/${attempts.length}`);

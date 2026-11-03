@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { classifyReproduction, type ClassifyInput } from '../tests/support/repro-classify';
+import { failureSignature } from '../tests/support/repro-signature';
 import {
   attemptsFor,
   correlationTimeline,
@@ -14,7 +15,7 @@ import {
 import { verifyFix, type FixVerificationInput } from '../tests/support/repro-fix';
 import { recipeArgs, replayEnv, validateRecipe, type ReproRecipe } from '../tests/support/repro-recipe';
 import { cloneBundle, gitHead, newCanary } from './evidence-pipeline.harness';
-import { CONTRACT, draftRecipe, execRecipe, prepareReproDir, specReader } from './reproduction-pipeline.harness';
+import { CONTRACT, draftRecipe, execRecipe, prepareReproDir, specReader, withParentEnv } from './reproduction-pipeline.harness';
 
 /**
  * Phase 2 — Tái hiện bug & xác minh bản sửa (PLAN-16, TC-16-P2-1..3).
@@ -29,6 +30,7 @@ function classify(run: ReproRun, scenario: string, extra: Partial<ClassifyInput>
     control: attemptsFor(run, 'control'),
     expectedSource: CONTRACT.source,
     dualProof: { runtimeEvidence: run.evidenceOk, sourceAnchor: ANCHOR },
+    runProblems: run.problems,
     ...extra,
   });
 }
@@ -66,6 +68,12 @@ test.describe('@REQ-16-P2 Phase 2 - Bug reproduction & fix verification (TC-16-P
     const events = readAttemptJson<TimelineEvent[]>(repro.runRoot, repro.manifests.get(raceAttempt.attemptId)!, TIMELINE_ARTIFACT)!;
     const timeline = correlationTimeline(events, detail.requestIds);
     expect(timeline.problems).toEqual([]);
+    for (const a of attemptsFor(repro, 'reserve-race')) {
+      const evs = readAttemptJson<TimelineEvent[]>(repro.runRoot, repro.manifests.get(a.attemptId)!, TIMELINE_ARTIFACT)!;
+      const t = correlationTimeline(evs, repro.details.get(a.attemptId)!.requestIds);
+      expect(t.problems, a.attemptId).toEqual([]);
+      expect(t.events.filter((e) => e.event === 'barrier-release'), a.attemptId).toHaveLength(1);
+    }
     expect(timeline.events.find((e) => e.event === 'barrier-release')?.detail).toMatchObject({ releaseOrder: 2 });
     expect(timeline.events.filter((e) => e.event === 'write').map((e) => e.detail)).toEqual([
       { read: 10, wrote: 7 },
@@ -83,6 +91,40 @@ test.describe('@REQ-16-P2 Phase 2 - Bug reproduction & fix verification (TC-16-P
     expect(noControl.problems.join()).toContain('CONTROL_MISSING');
     expect(classify(repro, 'control').status, 'healthy control 0/3').toBe('OBSERVATION');
 
+    // Control chỉ có giá trị khi sạch, cùng run và có state riêng (review P1-1).
+    const control = attemptsFor(repro, 'control');
+    const scenario = attemptsFor(repro, 'order-total');
+    const badControls: [string, typeof control, RegExp][] = [
+      ['control from another run', control.map((a) => ({ ...a, runId: 'OLD-RUN' })), /CONTROL_OTHER_RUN/],
+      ['control without verified evidence', control.map((a) => ({ ...a, evidenceOk: false })), /CONTROL_EVIDENCE_INCOMPLETE/],
+      ['control cut short', [{ ...control[0], status: 'interrupted' as const }, ...control.slice(1)], /CONTROL_INTERRUPTED_ATTEMPTS/],
+      ['control shares scenario state', control.map((a, i) => ({ ...a, stateId: scenario[i].stateId })), /CONTROL_SHARED_STATE/],
+    ];
+    for (const [label, ctl, pattern] of badControls) {
+      const cls = classify(repro, 'order-total', { control: ctl });
+      expect(cls.status, label).toBe('OBSERVATION');
+      expect(cls.problems.join('; '), label).toMatch(pattern);
+    }
+    // Attempt không có signature / đếm trùng / run không verify → không Confirmed (review P3, P2-4).
+    const noSig = classify(repro, 'order-total', { scenario: scenario.map((a) => ({ ...a, signature: null })) });
+    expect(noSig.problems.join()).toContain('SIGNATURE_UNKNOWN');
+    const dup = classify(repro, 'order-total', { scenario: [...scenario, { ...scenario[0], stateId: 'state-dup' }] });
+    expect(dup.problems.join()).toContain('DUPLICATE_ATTEMPT');
+    const dropped = classify(repro, 'order-total', { runProblems: ['REPRO_DETAIL_MISSING: t1 r0 p3'] });
+    expect(dropped).toMatchObject({ status: 'OBSERVATION' });
+    expect(classify(repro, 'order-total', { scenario: [] }).problems.join()).toContain('NO_ATTEMPTS');
+
+    // Signature phân biệt assertion/locator/giá trị khác nhau, gộp thời gian/port/id biến động (review P1-2, P2-5).
+    const diff = (field: string, from: string, to: string) =>
+      `Error: expect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 1\n\n  Object {\n-   "${field}": ${from},\n+   "${field}": ${to},\n  }`;
+    const sig = (...e: string[]) => failureSignature(e)!.hash;
+    const text = (loc: string) => `Error: expect(locator).toHaveText(expected) failed\n\nLocator: getByTestId('${loc}')\nExpected: "17"\nReceived: "7"`;
+    expect(sig(diff('total', '17', '7'))).not.toBe(sig(diff('status', '"PAID"', '"OPEN"')));
+    expect(sig(text('total'))).not.toBe(sig(text('banner')));
+    expect(sig('Error: slot\n\nExpected: "10:30"\nReceived: "10:45"')).not.toBe(sig('Error: slot\n\nExpected: "10:30"\nReceived: "10:50"'));
+    expect(sig('Error: a\n\nExpected: 1\nReceived: 2', 'Error: b\n\nExpected: 1\nReceived: 3')).not.toBe(sig('Error: a\n\nExpected: 1\nReceived: 2'));
+    expect(sig('Error: down at http://127.0.0.1:51234/x after 812ms\n    at foo (C:/a/b.ts:1:2)')).toBe(sig('Error: down at http://127.0.0.1:60001/x after 95ms\n    at bar (D:/c.ts:9:9)'));
+
     // Các run sau chỉ cần control + order-total; grep chính xác để không rơi vào zero tests.
     const narrow = { ...recipe, command: { ...recipe.command, grep: 'TC-REF-[12] ' } };
     // Lỗi ngắt quãng xác định được (seed % 3): 1/3 → INTERMITTENT, không Confirmed.
@@ -90,8 +132,10 @@ test.describe('@REQ-16-P2 Phase 2 - Bug reproduction & fix verification (TC-16-P
     expect(classify(intermittent, 'order-total')).toMatchObject({ status: 'INTERMITTENT_OBSERVATION', numerator: 1, denominator: 3 });
 
     // Môi trường thiếu precondition: control fail → ENVIRONMENT_ISSUE, không quy cho app.
+    // Biến của shell cha không lọt vào replay (review P2-3): đặt tenant ở process cha, run con vẫn thiếu.
     const noTenant = { APP_BUILD_ID: 'ref-app@1', REPRO_ACTOR: 'qa-author' };
-    const envRun = execRecipe(prepareReproDir('env'), narrow, noTenant).repro;
+    const envRun = withParentEnv('REF_APP_TENANT', 'leaked-from-parent', () => execRecipe(prepareReproDir('env'), narrow, noTenant).repro);
+
     const envCls = classify(envRun, 'order-total');
     expect(envCls.status).toBe('ENVIRONMENT_ISSUE');
     expect(envCls.signatureText).toContain('[ENVIRONMENT] REF_APP_TENANT is not set');
@@ -187,11 +231,15 @@ test.describe('@REQ-16-P2 Phase 2 - Bug reproduction & fix verification (TC-16-P
     const base: FixVerificationInput = {
       scenario: 'order-total',
       targetSignature: totalSig,
+      expectedSource: CONTRACT.source,
+      dualProof: { runtimeEvidence: true, sourceAnchor: ANCHOR },
       author: 'dev-author',
       before,
       after,
       regression: ['control', 'reserve-race'],
       independentRerun: rerun,
+      // Worktree local đang dirty → INVESTIGATION_ONLY; gate thật chạy trên CI (trusted) không cần cờ này.
+      allowUntrusted: true,
     };
     expect(verifyFix(base)).toMatchObject({
       status: 'VERIFIED_FIXED',
@@ -227,9 +275,14 @@ test.describe('@REQ-16-P2 Phase 2 - Bug reproduction & fix verification (TC-16-P
       ['no regression selected', { regression: [] }, /REGRESSION_MISSING/],
       ['regression broken', { after: before, regression: ['reserve-race'] }, /REGRESSION_FAILED/],
       ['rerun by the author', { independentRerun: { ...rerun, actor: 'dev-author' } }, /NOT_INDEPENDENT/],
-      ['rerun is the after run', { independentRerun: after }, /NOT_INDEPENDENT/],
+      ['rerun is the after run', { independentRerun: { ...after, actor: 'qa-reviewer-2' } }, /NOT_INDEPENDENT: rerun is the after run/],
       ['rerun on another build', { independentRerun: before }, /RERUN_BUILD_MISMATCH/],
       ['no rerun', { independentRerun: null }, /INDEPENDENT_RERUN_MISSING/],
+      // Review P2-1/P2-2: before phải là Confirmed Bug; hash/revision phải biết; evidence phải trusted.
+      ['before is a test defect', { before: { ...before, attempts: before.attempts.map((a) => (a.scenario === 'order-total' ? { ...a, stateId: 'state-shared' } : a)) } }, /BEFORE_NOT_CONFIRMED: TEST_DEFECT/],
+      ['target as its own regression', { regression: ['control', 'order-total'] }, /REGRESSION_INVALID/],
+      ['expected hash unknown', { before: { ...before, expectedSha256: null }, after: { ...after, expectedSha256: null }, independentRerun: { ...rerun, expectedSha256: null } }, /AFTER_EXPECTED_UNKNOWN/],
+      ['untrusted evidence', { allowUntrusted: false, after: { ...after, trust: 'INVESTIGATION_ONLY' } }, /AFTER_UNTRUSTED_EVIDENCE/],
     ];
     for (const [label, patch, pattern] of probes) {
       const result = verifyFix({ ...base, ...patch });

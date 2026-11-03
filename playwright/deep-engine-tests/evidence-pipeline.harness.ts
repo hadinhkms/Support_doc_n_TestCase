@@ -51,21 +51,25 @@ export function prepareNestedRun(label: string, specs: Record<string, string>): 
   return dir;
 }
 
-/** Env sạch: bỏ context evidence + chỉ số worker của run cha để run con tự chốt identity. */
-function childEnv(dir: string, runId: string, extra: Record<string, string>): NodeJS.ProcessEnv {
+// Chỉ biến hệ thống cần để chạy node/git/browser; dùng khi replay recipe (env do recipe khai).
+const SYSTEM_ENV = /^(PATH|PATHEXT|SYSTEMROOT|SYSTEMDRIVE|WINDIR|COMSPEC|TEMP|TMP|TMPDIR|HOME|USERPROFILE|APPDATA|LOCALAPPDATA|PROGRAMDATA|PROGRAMFILES.*|HOMEDRIVE|HOMEPATH|PLAYWRIGHT_BROWSERS_PATH|LANG|NUMBER_OF_PROCESSORS|PROCESSOR_.*|OS|CI|GITHUB_.*|RUNNER_.*)$/i;
+
+/** Env sạch: bỏ context evidence + chỉ số worker của run cha; `isolate` chỉ giữ biến hệ thống. */
+function childEnv(dir: string, runId: string, extra: Record<string, string>, isolate: boolean): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {
     if (/^(EVIDENCE_|PW_|TEST_WORKER_INDEX|TEST_PARALLEL_INDEX|FORCE_COLOR)/.test(key)) continue;
+    if (isolate && !SYSTEM_ENV.test(key)) continue;
     env[key] = value;
   }
   return { ...env, ...extra, EVIDENCE_ROOT: path.join(dir, 'evidence'), EVIDENCE_RUN_ID: runId };
 }
 
-export function runNested(dir: string, args: string[], extraEnv: Record<string, string> = {}): NestedRun {
+export function runNested(dir: string, args: string[], extraEnv: Record<string, string> = {}, isolate = false): NestedRun {
   const runId = `nested-${path.basename(dir)}`;
   const result = spawnSync(process.execPath, [CLI, 'test', '-c', 'nested.config.ts', ...args], {
     cwd: dir,
-    env: childEnv(dir, runId, extraEnv),
+    env: childEnv(dir, runId, extraEnv, isolate),
     encoding: 'utf8',
     timeout: 90_000,
   });

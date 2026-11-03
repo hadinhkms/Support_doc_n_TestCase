@@ -126,8 +126,20 @@ export interface ReproExec {
   repro: ReproRun;
 }
 
-/** Chạy đúng argv recipe sinh ra (recipe bị từ chối thì ném lỗi, không chạy). */
+/** Chạy đúng argv recipe sinh ra (recipe bị từ chối thì ném lỗi, không chạy); env chỉ gồm biến hệ thống + env. */
 export function execRecipe(dir: string, recipe: ReproRecipe, env: Record<string, string>, verify: VerifyOptions = {}): ReproExec {
-  const run = runNested(dir, recipeArgs(recipe, { readSpec: specReader(dir) }), env);
+  const run = runNested(dir, recipeArgs(recipe, { readSpec: specReader(dir) }), env, true);
   return { run, repro: readReproRun(run.runRoot, verify) };
+}
+
+/** Đặt tạm một biến ở process cha (probe rò env), luôn khôi phục kể cả khi `fn` ném lỗi. */
+export function withParentEnv<T>(name: string, value: string, fn: () => T): T {
+  const previous = process.env[name];
+  process.env[name] = value;
+  try {
+    return fn();
+  } finally {
+    if (previous === undefined) delete process.env[name];
+    else process.env[name] = previous;
+  }
 }

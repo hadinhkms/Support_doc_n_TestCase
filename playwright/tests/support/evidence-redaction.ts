@@ -15,13 +15,16 @@ const SENSITIVE_KEY =
 // Key nhạy cảm là một phần tên dài hơn (client_secret, accessToken, x-api-key...); value có
 // nháy thì lấy tới nháy đóng (cho phép khoảng trắng), không nháy thì tới ký tự phân cách.
 const KEY_PART =
-  '[A-Za-z0-9_.-]*(?:password|passwd|pwd|secret|token|api[-_]?key|session|otp|credential|csrf|authorization)[A-Za-z0-9_.-]*';
+  '[A-Za-z0-9_.-]*(?:password|passwd|pwd|pass(?![a-z])|secret|token|api[-_]?key|session|otp|credential|csrf|authorization)[A-Za-z0-9_.-]*';
 const QUOTED_PAIR = new RegExp(`(${KEY_PART}["']?\\s*[:=]\\s*)(["'])((?:\\\\.|(?!\\2).)*)\\2`, 'gi');
 const INLINE_PAIR = new RegExp(`(${KEY_PART}\\s*[:=]\\s*)(?!["'\\[])([^\\s,&;}"'<>]+)`, 'gi');
 const AUTH_LINE = /(\b(?:proxy-)?authorization\s*[:=]\s*)[^\r\n]+/gi;
 const COOKIE_LINE = /(\b(?:set-)?cookie\s*:\s*)[^\r\n]+/gi;
 const SENSITIVE_INPUT =
   /(<input\b[^>]*(?:type=["']?password|name=["'][^"']*(?:pass|pwd|token|secret|csrf|otp)[^"']*["'])[^>]*\bvalue=["'])[^"']*/gi;
+// `scheme://user:pass@host` và khối PEM private key.
+const URL_USERINFO = /(\b[a-z][a-z0-9+.-]*:\/\/[^\s:/@]+:)[^\s@/]+@/gi;
+const PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)/g;
 const JWT = /\beyJ[A-Za-z0-9_-]{6,}\.[A-Za-z0-9_-]{2,}\.[A-Za-z0-9_-]*/g;
 const SECRET_FLAG = /^--?([a-z-]*(token|password|passwd|secret|api[-_]?key|otp|cookie|auth|credential))$/i;
 // Không dùng PWD/SESSION/AUTH trơn: PWD (thư mục hiện tại), SESSIONNAME, SSH_AUTH_SOCK không phải secret.
@@ -48,6 +51,8 @@ export function knownSecretValues(env: NodeJS.ProcessEnv = process.env): string[
 export function redactText(input: string, secrets: readonly string[] = []): string {
   if (!input) return input;
   let out = redactSensitiveText(input)
+    .replace(PRIVATE_KEY, REDACTED)
+    .replace(URL_USERINFO, `$1${REDACTED}@`)
     .replace(AUTH_LINE, `$1${REDACTED}`)
     .replace(COOKIE_LINE, `$1${REDACTED}`)
     .replace(SENSITIVE_INPUT, `$1${REDACTED}`)

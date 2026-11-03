@@ -63,10 +63,10 @@
 - Thực tế triển khai (PDR-16-P2-01 và PDR-16-P2-02, chờ duyệt):
   - 3 dòng đầu là `ship` (`.agents`, `.github/ISSUE_TEMPLATE`, `docs`), nên không sửa tại satellite.
     Đề xuất nằm ở [phase-2-hub-proposals.md](phase-2-hub-proposals.md).
-  - `repro-context.ts` được tách theo trách nhiệm thành `tests/support/repro-{classify,context,fix,recipe}.ts`
-    (173 / 119 / 105 / 124 dòng; module ≤ 250, đều < 190).
-  - Thêm `deep-engine-tests/reproduction-reference-app.ts` (126) và `reproduction-pipeline.harness.ts` (133).
-    Spec `reproduction-pipeline.spec.ts` dài 244 dòng (< 600).
+  - `repro-context.ts` được tách theo trách nhiệm thành `tests/support/repro-{classify,context,fix,recipe,signature}.ts`
+    (163 / 139 / 120 / 129 / 40 dòng; module ≤ 250, đều < 190). `repro-signature.ts` được tách ra khi sửa review P1-2.
+  - Thêm `deep-engine-tests/reproduction-reference-app.ts` (126) và `reproduction-pipeline.harness.ts` (145).
+    Spec `reproduction-pipeline.spec.ts` dài 297 dòng (< 600).
 - Thêm file/helper/data/schema mới phải cập nhật inventory trước code; không né hạn mức bằng nén dòng.
 - Ngoài tests: service <160/200; utils <120/150; mọi file mới phải dưới vùng vàng 80%.
 - Ship sửa tại Hub có thẩm quyền; seed/own theo sync-manifest, không ghi đè business project.
@@ -127,7 +127,34 @@
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.
 - Kỹ thuật soát bởi BA độc lập: PENDING.
 - Plan review/contract lock/closure cần chữ ký Master Authority; không thay bằng actor tự khai.
-- Gate 3 (review), Gate 4 (QA), Gate 4.5 (UAT): **CHƯA CHẠY / CHƯA KÝ**. Developer chỉ tự kiểm (§I), không thay cho review độc lập.
+- **Gate 3 (review) — đã chạy bản tập dượt, CHƯA KÝ.**
+  - Ngày 2026-11-03, một reviewer agent riêng đọc diff `0629f67..f22a1f9` và chạy lại các spec. Agent này
+    không phải principal `gate3` của Master Authority, nên kết quả chỉ là báo cáo.
+  - Reviewer tìm được 0 P0, **2 P1, 5 P2**, cùng một số P3. Các finding đều đã sửa trong working tree
+    (chưa commit), mỗi finding có probe riêng:
+    - **P1-1:** vấn đề phía control (khác run, evidence chưa verify, bị interrupt, chung state với scenario)
+      bị bỏ qua, nên vẫn ra CONFIRMED_BUG. Đã sửa: các vấn đề này giờ ra `CONTROL_*` và chặn Confirmed.
+    - **P1-2:** signature quá thô, diff `toEqual`, `Locator:` và soft assertion bị gộp làm một.
+      Đã sửa trong `repro-signature.ts`: giữ các dòng diff và Locator, ghép mọi error lại.
+    - **P2-1:** `verifyFix` chấp nhận evidence untrusted hoặc hash null. Đã sửa: hash null cho `*_UNKNOWN`;
+      `*_UNTRUSTED_EVIDENCE` trừ khi caller khai `allowUntrusted`.
+    - **P2-2:** before không cần là bug đã xác nhận. Đã sửa: thêm `BEFORE_NOT_CONFIRMED`, và `REGRESSION_INVALID`
+      khi regression chứa chính scenario.
+    - **P2-3:** env của replay không cô lập. Đã sửa: `execRecipe` chỉ giữ biến hệ thống; có probe rò env từ process cha.
+    - **P2-4:** attempt thiếu `repro.json` rơi khỏi mẫu số. Đã sửa: `runProblems`/`classifyRun` chặn Confirmed.
+    - **P2-5:** regex port gộp giờ `10:30`, regex hex gộp id ngắn. Đã sửa: port chỉ khi đứng sau host, hex từ 32 ký tự.
+    - **P3 đã sửa:** signature null, attempt đếm trùng, 0/0 attempt; grep dùng allowlist, chặn env `NODE_*`/`PATH`,
+      chặn spec trong `node_modules`, `recipeArgs` bắt buộc `readSpec`; probe rerun được tách theo từng nhánh;
+      kiểm timeline của mọi attempt race.
+  - P3 còn mở: Protocol §6 có ba hàng Negative control, Collision và Boundary chưa có trong model. Hiện chúng là
+    scenario regression do caller chọn.
+  - Bằng chứng sau khi sửa: xem §I mục 8.
+- Gate 4 (QA), Gate 4.5 (UAT): **CHƯA CHẠY / CHƯA KÝ**.
+- Ký gate qua Master Authority (`D:\_Master_Authority`) **đang bị chặn**, vì ba lý do:
+  - Repo này chưa có trong `projects-registry.json`.
+  - Plan-16 chưa ký `plan-review`, nên chưa `PLAN_APPROVED` (Mốc 1). Phase này đã được code khi plan còn `DRAFT`,
+    nên cần ký bù hoặc PDR.
+  - Phiên dev không được dùng khóa `gate3`/`gate4`.
 - Giới hạn đã biết (developer tự khai, reviewer cần xét):
   - Actor trong `repro.json` lấy từ `REPRO_ACTOR`, là tự khai, chưa gắn danh tính. `verifyFix` luôn ghi
     `INDEPENDENCE_SELF_DECLARED`.
@@ -178,4 +205,17 @@ Developer tự kiểm ngày 2026-11-03. Tất cả chạy trên Windows 11, Node
 6. `node --test "tools/**/*.test.js"`: 268/268. Lượt đầu có 2 fail `EBUSY rmdir` ở thư mục tạm, vì chạy song song
    với suite. Chạy lại riêng thì pass; `tools/` không bị sửa.
 7. Chưa chạy: CI (`trust: CI`), review/QA/UAT độc lập, pilot app, 3 file ship (chờ Hub).
+8. Sau khi sửa finding Gate 3 vòng tập dượt. Base `f22a1f90a335e2edad4ff3e66cbe6e1312e5c2aa`, worktree dirty,
+   nên trust là `INVESTIGATION_ONLY`.
+   - `reproduction-pipeline.spec.ts` + `evidence-pipeline.spec.ts` chạy với `--workers=1`: 6 passed (2.0 phút).
+   - Mutation, mỗi lần một file, sau đó khôi phục. Mỗi mutation làm fail đúng một probe:
+     | Mutation | Probe bị fail |
+     |---|---|
+     | Bỏ `CONTROL_OTHER_RUN` | TC-1 probe control |
+     | KEEP signature về bản cũ | TC-1 probe `toEqual` diff |
+     | Bỏ `BEFORE_NOT_CONFIRMED` | TC-3 probe "before is a test defect" |
+     | Tắt cô lập env của replay | TC-1 probe rò `REF_APP_TENANT` |
+   - Full suite `playwright test -c deep-engine.config.ts --workers=2`: exit 0, 33/33 (1.7 phút).
+     Receipt `local-20261103-065903-25084`: counts 33/33/33, notRun 0, verdict `COMPLETE`.
+   - `npm run verify` exit 0. `npm run qa:check` exit 0. `node --test "tools/**/*.test.js"` 268/268.
 

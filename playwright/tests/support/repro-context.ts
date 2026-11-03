@@ -1,8 +1,9 @@
 import * as fs from 'node:fs';
 import { resolveInsideRoot } from './evidence-integrity';
-import type { EvidenceManifest } from './evidence-manifest';
+import type { EvidenceManifest, WorktreeTrust } from './evidence-manifest';
 import { verifyEvidenceBundle, type VerifyOptions } from './evidence-verify';
-import { failureSignature, type ReproAttempt } from './repro-classify';
+import { classifyReproduction, type ClassifyInput, type ReproAttempt } from './repro-classify';
+import { failureSignature } from './repro-signature';
 
 /**
  * Đọc một run evidence (Phase 1) thành dữ liệu tái hiện: verify bundle trước, rồi mới tin
@@ -26,6 +27,7 @@ export interface ReproRun {
   runRoot: string;
   runId: string | null;
   qaRevision: string | null;
+  trust: WorktreeTrust | null;
   appBuild: string | null;
   actor: string | null;
   expectedSha256: string | null;
@@ -84,6 +86,7 @@ export function readReproRun(runRoot: string, options: VerifyOptions = {}): Repr
     runRoot,
     runId: bundle.receipt?.runId ?? null,
     qaRevision: bundle.receipt?.source.qaRevision ?? null,
+    trust: bundle.receipt?.trust ?? null,
     appBuild,
     actor: single(all.map((d) => d.actor), 'actor', problems),
     expectedSha256: single(all.map((d) => d.expectedSha256), 'expected hash', problems),
@@ -97,6 +100,23 @@ export function readReproRun(runRoot: string, options: VerifyOptions = {}): Repr
 }
 
 export const attemptsFor = (run: ReproRun, scenario: string) => run.attempts.filter((a) => a.scenario === scenario);
+
+/**
+ * Phân loại trực tiếp từ một run: control cùng run, và mọi vấn đề cấp run (bundle hỏng, attempt
+ * không ghi repro.json nên rơi khỏi mẫu số) đều chặn CONFIRMED_BUG.
+ */
+export function classifyRun(
+  run: ReproRun,
+  scenario: string,
+  input: Omit<ClassifyInput, 'scenario' | 'control'> & { controlScenario?: string },
+) {
+  return classifyReproduction({
+    ...input,
+    scenario: attemptsFor(run, scenario),
+    control: attemptsFor(run, input.controlScenario ?? 'control'),
+    runProblems: [...run.problems, ...(input.runProblems ?? [])],
+  });
+}
 
 export interface TimelineEvent {
   seq: number;
