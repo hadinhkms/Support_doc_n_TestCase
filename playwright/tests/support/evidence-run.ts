@@ -28,9 +28,12 @@ export interface RunContext {
   cwd: string;
   startedAt: string;
   source: SourceIdentity;
+  /** Env input cần để replay (tên khai qua `EVIDENCE_RECORD_ENV`), giá trị đã redact; tên secret bị bỏ. */
+  recordedEnv?: Record<string, string>;
 }
 
 const CONTEXT_ENV = 'EVIDENCE_RUN_CONTEXT';
+const SECRET_NAME = /(PASSWORD|PASSWD|TOKEN|SECRET|API_?KEY|PRIVATE|OTP|COOKIE|CREDENTIAL|SESSION)/i;
 const GIT_MAX_BUFFER = 64 * 1024 * 1024;
 
 function git(cwd: string, args: string[]): Buffer {
@@ -71,6 +74,16 @@ export function readSourceIdentity(cwd: string, env: NodeJS.ProcessEnv = process
   return id;
 }
 
+function recordEnv(env: NodeJS.ProcessEnv): Record<string, string> {
+  const secrets = knownSecretValues(env);
+  const names = (env.EVIDENCE_RECORD_ENV ?? '').split(',').map((n) => n.trim()).filter((n) => /^[A-Z][A-Z0-9_]*$/.test(n));
+  const out: Record<string, string> = {};
+  for (const name of names) {
+    if (env[name] !== undefined && !SECRET_NAME.test(name)) out[name] = redactText(env[name] as string, secrets);
+  }
+  return out;
+}
+
 function defaultRunId(env: NodeJS.ProcessEnv): string {
   if (env.GITHUB_RUN_ID) return `gh-${env.GITHUB_RUN_ID}-${env.GITHUB_RUN_ATTEMPT ?? '1'}`;
   const stamp = new Date().toISOString().replace(/[-:.]/g, '').replace('T', '-').slice(0, 15);
@@ -91,6 +104,7 @@ export function initEvidenceRun(configDir: string, env: NodeJS.ProcessEnv = proc
     cwd: process.cwd(),
     startedAt: new Date().toISOString(),
     source: readSourceIdentity(configDir, env),
+    recordedEnv: recordEnv(env),
   };
   env[CONTEXT_ENV] = JSON.stringify(ctx);
   return ctx;

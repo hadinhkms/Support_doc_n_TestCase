@@ -138,6 +138,7 @@ export default class EvidenceReporter implements Reporter {
       trust: source.dirty === false && source.qaRevision ? 'TRUSTED_CANDIDATE' : 'INVESTIGATION_ONLY',
       execution: {
         argv: this.ctx.argv,
+        recordedEnv: this.ctx.recordedEnv ?? {},
         cwd: this.ctx.cwd,
         startedAt: this.ctx.startedAt,
         finishedAt,

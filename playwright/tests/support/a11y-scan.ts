@@ -78,6 +78,12 @@ export function formatScanReport(r: AutomatedScanReport): string {
 
 /** Chặn mọi report/text tự nhận conformance (vd "WCAG 2.1 AA compliant") từ kết quả quét tự động. */
 export function conformanceClaimProblems(text: string): string[] {
-  const claim = /\b(WCAG[\s\d.]*(A{1,3})?\s*(conformant|compliant|certified)|fully accessible|conforms to WCAG)\b/i;
-  return claim.test(text) ? ['CONFORMANCE_OVERCLAIM: automated results must not be reported as WCAG conformance'] : [];
+  const claims = [
+    /\bWCAG[-\s\d.]*(level\s*)?(A{1,3}\s*)?[-\s]?(conformant|compliant|certified|approved)\b/i,
+    /\b(meets|satisfies|passes|achieves)\s+(all\s+)?(of\s+)?WCAG\b/i,
+    /\b(compliant|conformant|conforms?|complies)\s+(with|to)\s+(the\s+)?WCAG\b/i,
+    /\b(100\s?%|fully|completely)\s+accessible\b/i,
+    /\b(ADA|Section\s*508|EN\s*301\s*549)[-\s]compliant\b/i,
+  ];
+  return claims.some((c) => c.test(text)) ? ['CONFORMANCE_OVERCLAIM: automated results must not be reported as WCAG conformance'] : [];
 }

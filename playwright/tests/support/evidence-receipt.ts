@@ -42,6 +42,8 @@ export interface RunReceipt {
   trust: WorktreeTrust;
   execution: {
     argv: string[];
+    /** Env replay đã khai (EVIDENCE_RECORD_ENV), giá trị đã redact. */
+    recordedEnv?: Record<string, string>;
     cwd: string;
     startedAt: string;
     finishedAt: string;

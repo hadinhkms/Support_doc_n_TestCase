@@ -65,8 +65,9 @@
   - 2 dòng `.agents` thuộc nhóm `ship`, nên không sửa tại satellite. Đề xuất ở [phase-3-hub-proposals.md](phase-3-hub-proposals.md).
   - `playwright/visual.config.ts` (32 dòng): chỉ chạy `*.visual.spec.ts`; hiện chưa có spec nghiệp vụ nào.
     Đã phân loại `seed` trong `sync-manifest.json`.
-  - Thêm `tests/support/visual-{env,baseline,assert}.ts` (60 / 134 / 91) và `tests/support/a11y-{flows,scan}.ts` (112 / 83).
-  - Thêm `deep-engine-tests/visual-accessibility.{harness,pages}.ts` (105 / 79). Spec `visual-accessibility.spec.ts` dài 167 dòng.
+  - Thêm `tests/support/visual-{env,baseline,assert}.ts` (70 / 143 / 116) và `tests/support/a11y-{flows,scan}.ts` (166 / 89).
+  - Thêm `deep-engine-tests/visual-accessibility.{harness,pages}.ts` (128 / 105). Spec `visual-accessibility.spec.ts` dài 231 dòng.
+  - Phase 1 `evidence-run.ts`/`evidence-receipt.ts`/`evidence-reporter.ts`: thêm `recordedEnv` (QA P2, replay).
   - `evidence-pipeline.harness.ts`: `runNested` có thêm `runLabel` để tách runId khi một thư mục chạy nhiều lần.
 - Thêm file/helper/data/schema mới phải cập nhật inventory trước code; không né hạn mức bằng nén dòng.
 - Ngoài tests: service <160/200; utils <120/150; mọi file mới phải dưới vùng vàng 80%.
@@ -129,8 +130,56 @@
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.
 - Kỹ thuật soát bởi BA độc lập: PENDING.
 - Plan review/contract lock/closure cần chữ ký Master Authority; không thay bằng actor tự khai.
-- Gate 3 / Gate 4 / Gate 4.5: **CHƯA CHẠY / CHƯA KÝ**. Developer chỉ tự kiểm (§I). Ký qua Master Authority đang bị chặn
-  (repo chưa đăng ký; vault được provision cho SID của một máy khác).
+- Gate 3 (review): **CHƯA CHẠY**. Thiếu Gate 3 thì Gate 4 không đóng được (Master: "thiếu Gate 3 khi đóng Gate 4").
+- **Gate 4 (QA) + Gate 4.5 (UAT) — đã chạy bản tập dượt ngày 2026-11-03, CHƯA KÝ.**
+  - Thực hiện bởi một agent QA riêng, không phải principal `gate4` của Master Authority.
+  - Chạy trên HEAD `017bf80`, tree sạch, trust `TRUSTED_CANDIDATE`:
+    - spec 3/3 (`local-20261103-080221-7316`);
+    - full suite 36/36 (`local-20261103-080335-41892`);
+    - chạy lại spec từ argv/cwd của receipt: 3/3;
+    - verdict `COMPLETE`; `verify` và `qa:check` exit 0.
+  - Verdict theo AC: AC-1 **PARTIAL**, AC-2 **NOT MET**, AC-3 **PARTIAL**. Có 2 P1, 8 P2 và 5 P3, đều đã chạy probe xác nhận.
+  - **P1 — đã sửa** (chưa commit), mỗi lỗi có probe và mutation check:
+    1. Sửa tay `baselines.approved.json` (sha256/bytes) cho khớp ảnh mới thì regression vẫn pass.
+       - Đã sửa: approval phải có `sha256 === source.artifactSha256` (chính ứng viên đã review).
+       - **Còn hở:** sửa cả hai field vẫn lọt, vì manifest chưa có chữ ký. Cần chữ ký approval qua Master Authority,
+         hoặc CODEOWNERS cho `__baselines__/`.
+    2. `--ignore-snapshots` làm mọi case pass và review ghi `MATCH` giả. Đã sửa: `VISUAL_SNAPSHOTS_IGNORED` → `BLOCKED`.
+  - **P2 — đã sửa** (chưa commit). Mỗi lỗi có variant hoặc probe riêng và một mutation check:
+    - **Ngưỡng pixel:** `threshold: 0`. Probe variant `tint` (#000→#333) giờ bị bắt.
+    - **Tự duyệt:** so sau `normalizeActor` (NFKC, bỏ ký tự zero-width, gộp khoảng trắng, chữ thường).
+      Các alias `Dev-Author`, khoảng trắng thừa, zero-width và chữ full-width đều bị từ chối.
+    - **Mask:** chỉ tìm trong target, nên mask che chính target ra `MASK_EMPTY`. Diện tích mask tối đa 25%
+      (`MASK_TOO_LARGE`); `maskCoverage` được ghi vào review.
+    - **Dialog:** focus phải nằm trên control bên trong; control có `tabindex=-1` ra `CONTROL_NOT_TABBABLE`;
+      Tab phải đi qua mọi control (`FOCUS_CYCLE_INCOMPLETE`).
+    - **Form lỗi:** thông điệp bị ẩn ra `ERROR_MESSAGE_HIDDEN`. Live region chỉ được tính khi nội dung đổi sau submit
+      và hiện với công nghệ hỗ trợ: `aria-hidden` hoặc `role=status` cũ không đổi đều ra `ERROR_NOT_ANNOUNCED`.
+    - **Reflow:** bỏ dung sai +1px; thêm `REFLOW_CONTENT_CLIPPED` cho phần tử vượt mép viewport mà không có vùng cuộn
+      (bắt được `overflow-x:hidden` trên `html`/`body`).
+    - **Regex tự nhận WCAG:** thêm 5 mẫu (meets/compliant with/WCAG-compliant/100% accessible/ADA-compliant);
+      có 7 probe câu.
+    - **Replay:** `EVIDENCE_RECORD_ENV` ghi env replay (đã redact, bỏ tên secret) vào `receipt.execution.recordedEnv`.
+      TC-1 replay chỉ từ receipt ra cùng kết cục 2 pass / 3 fail.
+  - **UAT friction đã xử lý:**
+    - TC-1/TC-2 attach `nested-runs.json` (runId, runRoot, verdict, counts, recordedEnv của từng run con).
+    - Report của mọi variant a11y lỗi đều được attach.
+    - Thêm 9 variant: `no-focus-move`, `no-role`, `tabindex-trap`, `hidden-live`, `stale-status`, `hidden-msg`,
+      `no-invalid`, `no-error-focus`, `clipped`.
+    - Mỗi variant phải báo đúng mã ở check bị cài lỗi, và hai check còn lại phải sạch.  - **P3:**
+    - `--update-snapshots=changed` bị bắt nhưng đã phá ảnh đã duyệt trên đĩa.
+    - Baseline nằm trong junction.
+    - Đã sửa: bỏ ANSI trong `VISUAL_DIFF`; chọn attachment theo đúng tên; env key thêm `fontProbe`; có negative control cho mọi mã a11y.
+    - Còn mở: `--update-snapshots=changed` vẫn phá ảnh đã duyệt trên đĩa (dù bị chặn); baseline nằm trong junction.
+  - **UAT-16-P3-1** (người tiếp quản chỉ dùng tài liệu và code):
+    - (a) Healthy control chỉ chạy được qua harness, vì `visual.config.ts` chưa có spec.
+    - (b) Thêm fault mới phải đọc code harness. Report a11y của các variant lỗi không được attach.
+    - (c) `visual-review.json` cùng ba ảnh đọc được rõ, hash khớp. Nhưng receipt ngoài không trỏ tới bundle của run con
+      (phải đoán đường dẫn), và bundle tạm bị ghi đè.
+    - (d) Run ngoài replay được; run con thì không.
+    - Kết luận: truy nguyên được với các fault có sẵn; chưa truy nguyên được lỗi bất kỳ chỉ từ evidence.
+      → UAT **NOT ACCEPTED**; vẫn thiếu pilot app.
+- Ký qua Master Authority đang bị chặn (repo chưa đăng ký; vault được provision cho SID của một máy khác).
 - Giới hạn đã biết (developer tự khai):
   - Baseline phụ thuộc OS/browser. Approval của harness được tạo trong lúc chạy trên máy local; chưa có baseline nghiệp vụ hay baseline CI.
   - Tên người duyệt baseline là tự khai, chưa gắn danh tính.
@@ -186,5 +235,31 @@ Developer tự kiểm ngày 2026-11-03.
 5. `npm run verify` exit 0 (53 test). `npm run qa:check` exit 0, sau khi phân loại `playwright/visual.config.ts`.
    `node --test "tools/**/*.test.js"` 268/268.
 6. Chưa chạy: CI, review / QA / UAT độc lập, baseline nghiệp vụ trên pilot app, screen reader thật, 2 file ship (chờ Hub).
+7. QA / UAT tập dượt và kết quả sau khi sửa P1 (chi tiết ở §G):
+   - Agent QA chạy trên `017bf80`, tree sạch, `TRUSTED_CANDIDATE`: spec 3/3 (`local-20261103-080221-7316`) và full suite
+     36/36 (`local-20261103-080335-41892`), cả hai verdict `COMPLETE`.
+   - Sửa hai P1, rồi chạy spec: 3 passed (52.1s).
+   - Mutation, sau đó khôi phục:
+     - bỏ `VISUAL_SNAPSHOTS_IGNORED` → probe `--ignore-snapshots` của TC-2 fail;
+     - bỏ kiểm `sha256 === source.artifactSha256` → probe sửa tay approval fail.
+   - Full suite 36/36 (2.0 phút), receipt `local-20261103-081457-31764` verdict `COMPLETE`. Base `017bf80` nhưng tree dirty,
+     nên trust là `INVESTIGATION_ONLY`.
+   - `npm run verify` exit 0, `npm run qa:check` exit 0.
+8. Sau khi sửa 8 P2 (base `017bf80`, tree dirty, trust `INVESTIGATION_ONLY`):
+   - Spec HM-12 3/3 (1.1 phút).
+   - Mutation, mỗi lần một file, sau đó khôi phục. Mỗi mutation làm fail đúng một probe:
+
+     | Mutation | Probe bị fail |
+     |---|---|
+     | Bỏ `threshold: 0` | TC-1 `tint` |
+     | `normalizeActor` không chuẩn hoá | TC-2 alias tự duyệt |
+     | Bỏ `MASK_TOO_LARGE` | TC-2 |
+     | `focusOnControl` chấp nhận container | TC-3 `tabindex-trap` |
+     | Không lọc thông điệp bị ẩn | TC-3 `hidden-msg` |
+     | Bỏ `REFLOW_CONTENT_CLIPPED` | TC-3 `clipped` |
+     | Regex chỉ còn mẫu đầu | TC-3 câu tự nhận WCAG |
+     | Không ghi `recordedEnv` | TC-1 replay |
+   - Full suite 36/36 (2.4 phút), receipt `local-20261103-083418-39384` verdict `COMPLETE`.
+   - typecheck và lint sạch; `limits` 63 file < 80%; `qa:check` exit 0; tool tests 268/268.
 - Giữ fail attempt lẫn pass retry; reviewer rerun trên cùng revision trong receipt riêng.
 

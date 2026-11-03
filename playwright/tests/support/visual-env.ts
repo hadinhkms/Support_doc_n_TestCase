@@ -15,7 +15,8 @@ export const VISUAL_USE = {
 } as const satisfies NonNullable<PlaywrightTestConfig['use']>;
 
 export const VISUAL_EXPECT = {
-  toHaveScreenshot: { animations: 'disabled', caret: 'hide', scale: 'css', maxDiffPixels: 0 },
+  // threshold 0: mọi sai khác màu của một pixel đều tính (mặc định 0.2 cho lọt #000→#333). Env cố định nên không cần dung sai.
+  toHaveScreenshot: { animations: 'disabled', caret: 'hide', scale: 'css', maxDiffPixels: 0, threshold: 0 },
 } as const satisfies NonNullable<PlaywrightTestConfig['expect']>;
 
 /** Baseline chỉ được ghi qua approval; Playwright không tự ghi baseline thiếu. */
@@ -30,6 +31,8 @@ export interface VisualEnvKey {
   locale: string;
   timezone: string;
   colorScheme: string;
+  /** Độ rộng render của một chuỗi mẫu theo từng font family: bộ font hệ thống khác → giá trị khác. */
+  fontProbe: string;
 }
 
 /** Env quan sát được trong trang (không tin cấu hình khai báo): baseline chỉ hợp lệ khi khớp. */
@@ -39,6 +42,12 @@ export async function observeVisualEnv(page: Page): Promise<VisualEnvKey> {
     locale: navigator.language,
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     dark: window.matchMedia('(prefers-color-scheme: dark)').matches,
+    fonts: (() => {
+      const ctx = document.createElement('canvas').getContext('2d');
+      return ['Arial', 'sans-serif', 'serif', 'monospace']
+        .map((f) => { if (ctx) ctx.font = `16px ${f}`; return `${f}=${ctx?.measureText('AaBbQqWw0123').width.toFixed(2)}`; })
+        .join(',');
+    })(),
   }));
   const size = page.viewportSize();
   const browser = page.context().browser();
@@ -50,6 +59,7 @@ export async function observeVisualEnv(page: Page): Promise<VisualEnvKey> {
     locale: inPage.locale,
     timezone: inPage.timezone,
     colorScheme: inPage.dark ? 'dark' : 'light',
+    fontProbe: inPage.fonts,
   };
 }
 

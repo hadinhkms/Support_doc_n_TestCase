@@ -5,6 +5,7 @@ import { verifyEvidenceBundle } from '../tests/support/evidence-verify';
 import { approveBaseline, type MaskRule } from '../tests/support/visual-baseline';
 import { VISUAL_REVIEW_ARTIFACT } from '../tests/support/visual-assert';
 import type { VisualEnvKey } from '../tests/support/visual-env';
+import type { CardVariant } from './visual-accessibility.pages';
 import { prepareNestedRun, readManifests, runNested, type NestedRun } from './evidence-pipeline.harness';
 
 /**
@@ -17,7 +18,7 @@ const PAGES = posix(path.join(__dirname, 'visual-accessibility.pages'));
 const REPORTER = `${SUPPORT}/evidence-reporter.ts`;
 
 export const TIMESTAMP_MASK: MaskRule = { selector: '[data-testid="timestamp"]', reason: 'server clock, not under test' };
-export type VisualCase = [variant: 'good' | 'shifted' | 'price', stamp: string];
+export type VisualCase = [variant: CardVariant, stamp: string];
 
 const VISUAL_SPEC = `
 import { expectApprovedScreenshot } from '${SUPPORT}/visual-assert';
@@ -63,9 +64,31 @@ export interface VisualRun {
 let runCounter = 0;
 
 export function runVisual(dir: string, cases: VisualCase[], masks: MaskRule[], extraArgs: string[] = []): VisualRun {
-  const env = { REF_VISUAL_CASES: JSON.stringify(cases), REF_VISUAL_MASKS: JSON.stringify(masks) };
+  // EVIDENCE_RECORD_ENV: receipt ghi lại input replay (UAT bước d), không chỉ argv/cwd.
+  const env = { REF_VISUAL_CASES: JSON.stringify(cases), REF_VISUAL_MASKS: JSON.stringify(masks), EVIDENCE_RECORD_ENV: 'REF_VISUAL_CASES,REF_VISUAL_MASKS' };
   const run = runNested(dir, ['specs/visual.spec.ts', ...extraArgs], env, true, `r${++runCounter}`);
   return { run, manifests: readManifests(run) };
+}
+
+/** Replay đúng như receipt ghi: argv sau `playwright test -c nested.config.ts` + env đã ghi. */
+export function replayFromReceipt(dir: string, v: VisualRun): VisualRun {
+  const exec = v.run.receipt!.execution;
+  const prefix = ['playwright', 'test', '-c', 'nested.config.ts'];
+  if (prefix.some((p, i) => exec.argv[i] !== p)) throw new Error(`unexpected argv ${exec.argv.join(' ')}`);
+  const run = runNested(dir, exec.argv.slice(prefix.length), exec.recordedEnv ?? {}, true, `r${++runCounter}`);
+  return { run, manifests: readManifests(run) };
+}
+
+/** Chỉ mục run con cho evidence của test ngoài: người tiếp quản không phải đoán đường dẫn bundle. */
+export function nestedIndex(runs: VisualRun[]) {
+  const pwRoot = path.resolve(__dirname, '..');
+  return runs.map((v) => ({
+    runId: v.run.receipt?.runId ?? null,
+    runRoot: posix(path.relative(pwRoot, v.run.runRoot)),
+    verdict: v.run.receipt?.verdict.evidence ?? null,
+    counts: v.run.receipt?.counts ?? null,
+    recordedEnv: v.run.receipt?.execution.recordedEnv ?? {},
+  }));
 }
 
 export interface VisualReview {

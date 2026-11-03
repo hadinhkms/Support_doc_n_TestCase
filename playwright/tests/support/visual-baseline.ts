@@ -36,6 +36,8 @@ export interface ApprovalManifest {
 
 export const approvalPathFor = (baselineFile: string) => path.join(path.dirname(baselineFile), APPROVAL_FILE);
 const maskKey = (m: MaskRule) => `${m.selector}::${m.reason}`;
+/** So danh tính tự khai sau chuẩn hoá: NFKC, bỏ ký tự định dạng (zero-width), gộp khoảng trắng, chữ thường. */
+export const normalizeActor = (s: string) => s.normalize('NFKC').replace(/\p{Cf}/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
 
 export function readApprovals(baselineFile: string): { manifest: ApprovalManifest | null; problems: string[] } {
   const file = approvalPathFor(baselineFile);
@@ -84,6 +86,11 @@ export function checkBaseline(input: { file: string; env: VisualEnvKey; masks: r
     return { problems, approval };
   }
   problems.push(...approvalProblems(approval));
+  // Approval chỉ hợp lệ cho đúng ứng viên đã review: sửa tay sha256 cho khớp ảnh mới mà không qua
+  // approveBaseline bị bắt. Sửa cả hai field vẫn lọt — manifest chưa có chữ ký (xem Phase 3 §G).
+  if (approval.sha256 !== approval.source?.artifactSha256) {
+    problems.push('APPROVAL_INVALID: approved hash is not the reviewed candidate artifact');
+  }
   if (sha256(fs.readFileSync(input.file)) !== approval.sha256) {
     problems.push(`BASELINE_CHANGED: ${name} differs from the approved image`);
   }
@@ -110,7 +117,9 @@ export function approveBaseline(input: {
   source: BaselineApproval['source'];
 }): BaselineApproval {
   const problems = validateMasks(input.masks);
-  if (!input.approvedBy.trim() || input.approvedBy === input.author) problems.push('SELF_APPROVAL: approver must differ from author');
+  if (!normalizeActor(input.approvedBy) || normalizeActor(input.approvedBy) === normalizeActor(input.author)) {
+    problems.push('SELF_APPROVAL: approver must differ from author');
+  }
   if (!input.reason.trim()) problems.push('APPROVAL_WITHOUT_REASON');
   if (sha256(input.candidate) !== input.source.artifactSha256) problems.push('CANDIDATE_TAMPERED: bytes differ from evidence artifact');
   if (problems.length > 0) throw new Error(`APPROVAL_REJECTED: ${problems.join('; ')}`);
