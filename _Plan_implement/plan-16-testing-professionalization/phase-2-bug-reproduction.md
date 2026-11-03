@@ -82,6 +82,24 @@
     Chúng chỉ được tin sau khi `verifyEvidenceBundle` đạt.
   - `classifyReproduction` → các trạng thái §1 của protocol. `verifyFix` → `VERIFIED_FIXED` hoặc
     `FIX_IMPLEMENTED_UNVERIFIED`. Đây là trạng thái bug, không phải chữ ký gate.
+- Sau review Gate 3 (PDR-16-P2-03..05):
+  - **Signature** (`repro-signature.ts`):
+    - Giữ dòng thông điệp, `Locator:`, Expected/Received, các dòng diff `-`/`+`, và ghép mọi error của attempt.
+    - Chuẩn hoá: thời điểm, ms, đường dẫn, hex từ 32 ký tự, port khi đứng sau host, id `req-`/`state-`.
+  - **`classifyReproduction`:**
+    - Control phải sạch, cùng run và có state riêng (`CONTROL_*`).
+    - Có `runProblems`, nên bundle không verify hoặc attempt thiếu `repro.json` sẽ chặn Confirmed.
+    - Bắt `SIGNATURE_UNKNOWN`, `DUPLICATE_ATTEMPT`, `NO_ATTEMPTS`.
+    - `classifyRun(run, scenario, …)` là entry point theo run.
+  - **`verifyFix`:**
+    - Input bắt buộc thêm `expectedSource` và `dualProof`; tùy chọn `controlScenario` và `allowUntrusted`.
+    - Before phải ra `CONFIRMED_BUG`.
+    - Hash/revision/profile null cho `*_UNKNOWN`; evidence không trusted cho `*_UNTRUSTED_EVIDENCE`, trừ khi
+      `allowUntrusted` (khi đó chỉ ghi limitation).
+    - Regression không được chứa chính scenario.
+  - **`repro-recipe/1`:** grep dùng allowlist ký tự; chặn env `NODE_*`/`PATH`/`PW_`/`PLAYWRIGHT_`/`EVIDENCE_`/`DEBUG`;
+    chặn spec trong `node_modules`; `recipeArgs` bắt buộc `readSpec`.
+  - **Replay:** env cô lập, chỉ giữ biến hệ thống cộng với các tên mà recipe khai.
 
 ### B4. Dependencies
 - Không thêm dependency trước khi có hạn chế được chứng minh. (RES-16).
@@ -169,6 +187,9 @@
 |---|---|---|---|---|
 | PDR-16-P2-01 | TECH | §B2: tách `repro-context.ts` thành 4 module; thêm reference app + harness | Inventory | PENDING |
 | PDR-16-P2-02 | TECH | 3 file `ship` chuyển thành đề xuất Hub ([phase-2-hub-proposals.md](phase-2-hub-proposals.md)); T2.1 chỉ xong phần seed | Scope/boundary | PENDING |
+| PDR-16-P2-03 | TECH | Review P1-1/P1-2: điều kiện control (`CONTROL_*`) và thuật toán signature mới (`repro-signature.ts`, thêm vào §B2). Signature cũ không so được với signature mới | Contract classify/signature, inventory | PENDING |
+| PDR-16-P2-04 | TECH | Review P2-1/P2-2: input `verifyFix` đổi (bắt buộc `expectedSource`/`dualProof`; tùy chọn `allowUntrusted`), before phải `CONFIRMED_BUG`, evidence phải trusted | Contract fix verification | PENDING |
+| PDR-16-P2-05 | TECH | Review P2-3/P3: recipe dùng allowlist grep, `FORBIDDEN_ENV`, chặn `node_modules`, `recipeArgs` bắt buộc `readSpec`; replay env cô lập | Contract `repro-recipe/1` (thắt chặt; recipe cũ hợp lệ có thể bị từ chối) | PENDING |
 
 ## I. Bằng Chứng Thực Nghiệm
 - Khi chạy: exact argv/cwd, exit code, counts/runtime, snippet log và full revisions/dirty identity.

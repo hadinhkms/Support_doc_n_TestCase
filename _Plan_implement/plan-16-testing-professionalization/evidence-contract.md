@@ -19,7 +19,7 @@
 | Source | QA full SHA, app build/full SHA, source hash, contract hash | App từ xa không biết SHA: khai build ID và giới hạn |
 | Worktree | dirty flag, diff digest, untracked input digests | SHA đơn lẻ không mô tả dirty state |
 | Environment | OS, browser/runtime versions, config hash, locale/TZ/viewport | Không lưu toàn bộ environment variables |
-| Execution | argv, cwd, start/end UTC, timezone offset, exitCode | Command đã redact, giữ thứ tự arguments |
+| Execution | argv, cwd, start/end UTC, timezone offset, exitCode, recordedEnv | Command đã redact, giữ thứ tự arguments; `recordedEnv` chỉ gồm các tên khai trong `EVIDENCE_RECORD_ENV` (input replay), giá trị đã redact, tên dạng secret bị bỏ (PDR-16-P1-03) |
 | Metrics | passed/failed/skipped/interrupted/flaky, duration, matched count | Empty selection không được PASS |
 | State | synthetic seed/version, role/tenant aliases, preconditions | Không ghi credential/session thật |
 | Observable | expected source, actual, assertion locator/source anchor | HTTP success không chứng minh persistence |

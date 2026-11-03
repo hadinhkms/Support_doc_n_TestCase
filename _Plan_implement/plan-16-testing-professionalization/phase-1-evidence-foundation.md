@@ -74,6 +74,15 @@
 - Version hóa input/output artifact; REQ/AC/TC → test ID → run ID → manifest/hash.
 - Phải tuân [evidence-contract.md](evidence-contract.md) và [reproduction-protocol.md](reproduction-protocol.md).
 - Không đổi contract ứng dụng ngoài scope; schema/API mới phải khóa trước Gate 2.
+- Đã triển khai (chưa khóa Gate 2; thay đổi sau review/QA ghi ở §H):
+  - Manifest `1.1`: validator fail-closed; reader `1.0` của Phase 0 giữ nguyên.
+  - Receipt `run-receipt/1`:
+    - `counts` có thêm matched/executed/notRun/…; có `cleanup.failures`.
+    - Verdict tính lại được: `RUN_NOT_FINISHED`, `TESTS_NOT_RUN`, `ORPHANED_ATTEMPT`, `OUTCOME_MISMATCH`, `INVALID_EMPTY_RUN`.
+  - `execution.recordedEnv` (tùy chọn, PDR-16-P1-03): env replay theo allowlist `EVIDENCE_RECORD_ENV`, giá trị đã redact.
+    Thêm field tùy chọn, nên reader cũ vẫn đọc được.
+  - Redaction mở rộng (PDR-16-P1-04): `client_secret`/camelCase, `Authorization: <scheme>`, `<input>` nhạy cảm,
+    `scheme://user:pass@`, `pass=`, khối PEM private key.
 
 ### B4. Dependencies
 - Ưu tiên Node core và reporter hiện có; đánh giá storage SDK chỉ khi backend đã được duyệt. (RES-16).
@@ -155,6 +164,9 @@
 |---|---|---|---|---|
 | PDR-16-P1-01 | TECH | Thêm module/fixture/harness ngoài §B2 (liệt kê ở §B2); manifest schema `1.1` song song reader `1.0` của Phase 0 | File inventory, schema | PENDING |
 | PDR-16-P1-02 | TECH | Retention CI giữ 7 ngày như hiện hữu vì Q-16-P1 chưa chốt; chỉ dữ liệu synthetic | Retention | PENDING |
+| PDR-16-P1-03 | TECH | Receipt thêm `execution.recordedEnv` (allowlist `EVIDENCE_RECORD_ENV`, redact, bỏ tên secret) để replay được; cập nhật dòng Execution của [evidence-contract.md](evidence-contract.md). Nguồn: Phase 3 QA P2 | Receipt schema, evidence-contract §2 | PENDING |
+| PDR-16-P1-04 | TECH | Sửa theo review Gate 3 (vòng 1 và 2): verdict tính cả run bị hủy / test không chạy / orphan attempt / `OUTCOME_MISMATCH`; tách verifier `evidence-verify.ts`; mở rộng mẫu redaction | Verdict, redaction, inventory | PENDING |
+| PDR-16-P1-05 | TECH | Harness: `runNested(..., isolate, runLabel)`. `isolate` chỉ giữ env hệ thống (Phase 2 review P2-3); `runLabel` tách runId khi một thư mục chạy nhiều lần, vì reporter ghi `wx` (lỗi đã biết: chạy lại cùng runId không ghi đè receipt) | Harness | PENDING |
 
 ## I. Bằng Chứng Thực Nghiệm
 - Revision: `22990373675ab9ae54bd513094beaa3c4abe363c` + working tree **dirty** (chưa commit) → chỉ là

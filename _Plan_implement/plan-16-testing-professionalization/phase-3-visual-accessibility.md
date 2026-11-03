@@ -85,6 +85,23 @@
 - Bất biến:
   - Baseline chỉ được ghi qua `approveBaseline`, vì `updateSnapshots: 'none'`.
   - Approval được kiểm cả trước và sau khi so, nên `--update-snapshots` ghi đè baseline sẽ bị bắt.
+- Sau QA/UAT tập dượt (PDR-16-P3-03..06):
+  - **Dung sai so ảnh:** `maxDiffPixels: 0, threshold: 0`. Mọi sai khác pixel đều fail (PDR-16-P3-03, cần owner xác nhận
+    trước khi bật gate, vì baseline CI có thể cần dung sai khác).
+  - **Approval:**
+    - `sha256` phải bằng `source.artifactSha256`.
+    - Người duyệt được so với tác giả sau `normalizeActor` (NFKC, bỏ ký tự định dạng, gộp khoảng trắng, chữ thường).
+  - **Mask:** selector chỉ tìm trong target; tổng diện tích ≤ `MAX_MASK_AREA_RATIO` 25% (`MASK_TOO_LARGE`).
+    `visual-review/1` thêm `maskCoverage`.
+  - **Bỏ qua so ảnh:** `--ignore-snapshots` / `ignoreSnapshots` → `VISUAL_SNAPSHOTS_IGNORED`, kết quả `BLOCKED`.
+  - **Env key** thêm `fontProbe` (độ rộng render theo font family). Approval cũ không có field này sẽ ra `STALE_BASELINE_ENV`.
+  - **Mã a11y mới** (`a11y-flows`): `DIALOG_NO_CONTROLS`, `CONTROL_NOT_TABBABLE`, `FOCUS_CYCLE_INCOMPLETE`,
+    `ERROR_MESSAGE_HIDDEN`, `REFLOW_CONTENT_CLIPPED`.
+    - Focus phải nằm trên control, không tính container.
+    - Live region phải đổi nội dung sau submit và hiện với công nghệ hỗ trợ.
+    - Reflow không còn dung sai +1px.
+  - **Tự nhận conformance:** `conformanceClaimProblems` thêm các mẫu meets/compliant with/WCAG-compliant/100% accessible/ADA-compliant.
+  - **Replay:** run con ghi `EVIDENCE_RECORD_ENV`; test ngoài attach `nested-runs.json`.
 
 ### B4. Dependencies
 - Dùng Playwright và axe sẵn có; dịch vụ visual bên ngoài là lựa chọn cần ADR. (RES-16).
@@ -196,6 +213,10 @@
 |---|---|---|---|---|
 | PDR-16-P3-01 | TECH | §B2: thêm 5 module support + harness/pages; `visual.config.ts` chưa có spec nghiệp vụ | Inventory | PENDING |
 | PDR-16-P3-02 | TECH | 2 file `ship` chuyển thành đề xuất Hub; T3.1 chỉ xong phần seed | Scope/boundary | PENDING |
+| PDR-16-P3-03 | TECH | Dung sai so ảnh `threshold: 0` (trước là mặc định 0.2) theo QA P2. Owner cần xác nhận cho baseline CI/đa browser (Q-16-P3) | Tolerance (§D: dev không tự khóa) | PENDING |
+| PDR-16-P3-04 | TECH | QA P1: approval phải khớp hash ứng viên đã review; `--ignore-snapshots` bị chặn. Phần còn hở (sửa cả hai field) cần chữ ký approval hoặc CODEOWNERS | Contract `visual-baselines/1` | PENDING |
+| PDR-16-P3-05 | TECH | QA P2: mask chỉ tìm trong target, trần 25%; tự duyệt so sau chuẩn hoá; env key thêm `fontProbe` (approval cũ bị coi là stale) | Contract `visual-baselines/1`, `visual-review/1` | PENDING |
+| PDR-16-P3-06 | TECH | QA P2/UAT: mã a11y mới, live region phải đổi nội dung và hiện với AT, reflow bắt nội dung bị cắt, regex tự nhận rộng hơn; thêm 9 variant tham chiếu; `nested-runs.json`; replay qua `recordedEnv` (PDR-16-P1-03) | Contract a11y flows, harness | PENDING |
 
 ## I. Bằng Chứng Thực Nghiệm
 - Khi chạy: exact argv/cwd, exit code, counts/runtime, snippet log và full revisions/dirty identity.
