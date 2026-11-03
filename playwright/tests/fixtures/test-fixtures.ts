@@ -12,6 +12,9 @@ import {
   type RuntimeAllowRule,
   type RuntimeFailureSource,
 } from './base.fixture';
+import { mergeTests } from '@playwright/test';
+import { evidenceTest, type EvidenceFixtures } from './evidence.fixture';
+import type { EvidenceCollector } from '../support/evidence-collector';
 import { LoginPage } from '../pages/login.page';
 import { DashboardPage } from '../pages/dashboard.page';
 import { ApiClient } from '../api/api-client';
@@ -24,10 +27,11 @@ type Fixtures = {
 
 /**
  * Test object dùng chung cho toàn bộ spec.
- * Kế thừa `baseTest` (đã gắn sẵn `runtimeTrap` { auto: true }) và bổ sung
+ * Kế thừa `baseTest` (đã gắn sẵn `runtimeTrap` { auto: true }), fixture opt-in
+ * `evidence` (manifest/hash/redaction theo evidence-contract) và bổ sung
  * các page object / API helper theo nhu cầu của từng test.
  */
-export const test = baseTest.extend<Fixtures>({
+export const test = mergeTests(baseTest, evidenceTest).extend<Fixtures>({
   loginPage: async ({ page }, use) => {
     await use(new LoginPage(page));
   },
@@ -51,4 +55,6 @@ export {
   type RuntimeFailureRecord,
   type RuntimeAllowRule,
   type RuntimeFailureSource,
+  type EvidenceFixtures,
+  type EvidenceCollector,
 };

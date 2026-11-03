@@ -2,9 +2,12 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { STORAGE_STATE } from './tests/support/paths';
+import { initEvidenceRun } from './tests/support/evidence-run';
 
 // Nạp .env (nếu có). Giá trị đã set sẵn ở shell/CI luôn thắng file .env.
 dotenv.config({ path: path.resolve(__dirname, '.env'), override: false, quiet: true });
+// Run context cho fixture `evidence` (runId, command, QA revision + dirty identity).
+initEvidenceRun(__dirname);
 
 const isCI = !!process.env.CI;
 

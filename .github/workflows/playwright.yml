@@ -52,6 +52,40 @@ jobs:
           name: deep-engine-failure-evidence
           path: playwright/test-results/deep-engine/
           retention-days: 7
+      # Evidence bundle (receipt + JUnit + manifests) upload cả khi fail/cancel; tên theo attempt.
+      - name: Upload evidence bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-deep-engine-${{ github.run_attempt }}
+          path: playwright/test-results/evidence/
+          if-no-files-found: error
+          retention-days: 7
+
+  # Download drill: runner + checkout mới tải bundle về, kiểm hash/revision (PLAN-16 T1.4).
+  evidence-drill:
+    name: Evidence download drill
+    needs: quality
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: playwright/package-lock.json
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: evidence-deep-engine-${{ github.run_attempt }}
+          path: playwright/test-results/evidence-drill
+      - name: Verify downloaded evidence
+        env:
+          EVIDENCE_DRILL_ROOT: ${{ github.workspace }}/playwright/test-results/evidence-drill
+          EVIDENCE_EXPECTED_REVISION: ${{ github.sha }}
+        run: npm run test:deep-engine -- evidence-download-drill.spec.ts
 
   # Gate traceability: requirement <-> test case <-> script phải khớp nhau.
   # Chạy được mà không cần môi trường app.

@@ -1,9 +1,10 @@
 # Phase 1 — Nền tảng Evidence
 
-> **Trạng thái:** `DRAFT` · **Cấp độ:** L3 · **Ngày:** 2026-11-02
+> **Trạng thái:** `IMPLEMENTED BUT UNVERIFIED` · **Cấp độ:** L3 · **Ngày:** 2026-11-03
 > **Người soạn:** Codex, một phiên; BA/TL chưa đồng tác giả hoặc soát chéo độc lập.
+> **Triển khai:** Claude Code, một phiên (2026-11-03) trên `2299037` + working tree chưa commit.
 > **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 0
-> Các đường dẫn ở §B2 là đề xuất, chưa phải artifact đã triển khai.
+> §B2 đã triển khai (xem §I); chưa có Gate 3/4/4.5, chưa tick task, không tự ký.
 
 ## A. Nghiệp Vụ (BA — A/R; Tech Lead — C)
 
@@ -58,6 +59,11 @@
 | `playwright/tests/fixtures/test-fixtures.ts` | Tạo/Sửa sau inventory | Module ≤250 / <190; role ngoài tests theo Rule 15 |
 | `.github/workflows/playwright.yml` | Tạo/Sửa sau inventory | Module ≤250 / <190; role ngoài tests theo Rule 15 |
 | `playwright/deep-engine-tests/evidence-pipeline.spec.ts` | Tạo/Sửa sau inventory | Test ≤800 / <600 |
+- Bổ sung khi triển khai (PDR-16-P1-01, chờ duyệt) — `evidence.ts` giữ nguyên, logic mới tách theo T1.2:
+  `tests/support/evidence-{collector,integrity,manifest-build,receipt,reporter,run}.ts` (100–189 dòng),
+  `tests/fixtures/evidence.fixture.ts` (90), `deep-engine-tests/evidence-pipeline.harness.ts` (105),
+  `deep-engine-tests/evidence-download-drill.spec.ts` (34); sửa `playwright.config.ts`, `deep-engine.config.ts`.
+- `.github/workflows/playwright.yml` 211 dòng: vượt mục tiêu <190 (trần 250); YAML ngoài phạm vi `qa:limits`.
 - Thêm file/helper/data/schema mới phải cập nhật inventory trước code; không né hạn mức bằng nén dòng.
 - Ngoài tests: service <160/200; utils <120/150; mọi file mới phải dưới vùng vàng 80%.
 - Ship sửa tại Hub có thẩm quyền; seed/own theo sync-manifest, không ghi đè business project.
@@ -115,10 +121,27 @@
 ## H. Nhật Ký Thay Đổi Kế Hoạch
 | PDR ID | Loại | Nội dung | Ảnh hưởng | Trạng thái |
 |---|---|---|---|---|
-| Chưa phát sinh | TECH/BUSINESS | Thay đổi §A–§G cần PDR và duyệt lại | Contract/hash | PENDING |
+| PDR-16-P1-01 | TECH | Thêm module/fixture/harness ngoài §B2 (liệt kê ở §B2); manifest schema `1.1` song song reader `1.0` của Phase 0 | File inventory, schema | PENDING |
+| PDR-16-P1-02 | TECH | Retention CI giữ 7 ngày như hiện hữu vì Q-16-P1 chưa chốt; chỉ dữ liệu synthetic | Retention | PENDING |
 
 ## I. Bằng Chứng Thực Nghiệm
-- NOT RUN: đây là kế hoạch; chưa có implementation evidence.
-- Khi chạy: exact argv/cwd, exit code, counts/runtime, snippet log và full revisions/dirty identity.
+- Revision: `22990373675ab9ae54bd513094beaa3c4abe363c` + working tree **dirty** (chưa commit) → chỉ là
+  `INVESTIGATION_ONLY`, không dùng làm gate evidence. Máy: Windows 11, Node v22.3.0, Playwright 1.55.
+- Kết quả local (2026-11-03, cwd `playwright/` trừ khi ghi khác):
+  1. `npx playwright test -c deep-engine.config.ts evidence-contract.spec.ts evidence-pipeline.spec.ts evidence-download-drill.spec.ts --workers=2`
+     → exit `0`, `6 passed (24.2s)` (HM-09 ×3, HM-10 TC-16-P1-1..3); receipt `verdict=COMPLETE`.
+  2. Download drill mô phỏng: copy `test-results/evidence` → `EVIDENCE_DRILL_ROOT`, `EVIDENCE_EXPECTED_REVISION=HEAD`,
+     `npm run test:deep-engine -- evidence-download-drill.spec.ts` → exit `0`, `1 passed`. Chưa chạy trên runner CI mới.
+  3. Mutation: tắt xóa literal secret trong `redactText` → TC-16-P1-2 fail (`Expected SHAREABLE / Received RESTRICTED`); đã khôi phục.
+  4. `npm run verify` → exit `0` (typecheck + lint + limits + `--list` 53 tests).
+  5. `npm run qa:check` (gốc) → exit `0` (boundary, drift, gaps, limits strict: 45 file trong ngưỡng).
+  6. `npm test` (gốc) → exit `1`: `Cannot find module 'D:\_QA_Test_Automation\tools'` — `node --test tools/` không chạy được
+     trên Node 22.3 (CI dùng Node 20); không liên quan thay đổi này. Thay thế: `node --test "tools/**/*.test.js"` → `268 pass, 0 fail`.
+  7. `npm run test:deep-engine -- --workers=2` (toàn bộ) → exit `1`: Chromium chưa cài trên máy
+     (`Executable doesn't exist ... chrome-headless-shell`), mọi HM dùng `page` fail; 3 test HM-10 không được
+     schedule (`workerIndex: -1`). Đã chạy `npx playwright install chromium` (exit `0`) rồi chạy lại với
+     `--workers=2` và `--workers=1`: cả hai crash do máy hết RAM (~700 MB free/15 GB; `FATAL ... out of memory`,
+     `browserType.launch: spawn UNKNOWN`, worker exit `0xC0000409`) trước khi assertion chạy. NOT VERIFIED — cần CI hoặc máy đủ RAM.
+- UAT-16-P1-1: NOT RUN (cần pilot app thật; harness chỉ kiểm công cụ).
 - Giữ fail attempt lẫn pass retry; reviewer rerun trên cùng revision trong receipt riêng.
 
