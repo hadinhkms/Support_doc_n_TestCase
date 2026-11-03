@@ -62,8 +62,8 @@
 | `playwright/deep-engine-tests/performance-adapter.spec.ts` | Tạo/Sửa sau inventory | Test ≤800 / <600 |
 - Thực tế triển khai (PDR-16-P4-01..03, chờ duyệt):
   - 2 dòng đầu là `ship`, nên không sửa. Đề xuất ở [phase-4-hub-proposals.md](phase-4-hub-proposals.md).
-  - Thêm `tests/support/perf-{profile,metrics,loadgen,compare}.ts` (81 / 119 / 77 / 83 dòng).
-  - Thêm `deep-engine-tests/performance-{reference-app,adapter.harness}.ts` (38 / 108). Spec `performance-adapter.spec.ts` dài 148 dòng.
+  - Thêm `tests/support/perf-{profile,metrics,loadgen,compare}.ts` (122 / 149 / 91 / 98 dòng).
+  - Thêm `deep-engine-tests/performance-{reference-app,adapter.harness}.ts` (57 / 151). Spec `performance-adapter.spec.ts` dài 236 dòng.
 - Thêm file/helper/data/schema mới phải cập nhật inventory trước code; không né hạn mức bằng nén dòng.
 - Ngoài tests: service <160/200; utils <120/150; mọi file mới phải dưới vùng vàng 80%.
 - Ship sửa tại Hub có thẩm quyền; seed/own theo sync-manifest, không ghi đè business project.
@@ -87,6 +87,37 @@
     - Chỉ áp cho metric latency; dung sai 20% + 10 ms.
     - Bận nghĩa là độ trễ event loop p99 của generator > 50 ms.
   - Evidence mỗi attempt: profile, raw NDJSON, telemetry (gồm env), result, report text.
+- Sau review Gate 3 + QA Gate 4 tập dượt (PDR-16-P4-04..06):
+  - **Approval:**
+    - `approval.contentHash = approvalHash(workload + SLO)`; nội dung đổi sau khi duyệt → `APPROVAL_STALE`.
+    - Người duyệt được so với tác giả sau chuẩn hoá (chỉ giữ chữ và số).
+    - `approvedAt` phải là thời gian ISO, không ở tương lai.
+  - **SLO:**
+    - Mỗi metric có chiều cố định: latency/error/dropped `<=`, throughput `>=`. Giá trị phải hữu hạn, ≥ 0; error_rate ≤ 1.
+    - Bắt buộc có rule p95/p99, error_rate và dropped (`SPEC_GAP`).
+    - `maxErrorRate` thuộc [0, 1]; `requestTimeoutMs` là tùy chọn.
+  - **`workloadHash`:** JSON đã sắp key, không gồm `alias`. Đổi thuật toán, nên hash cũ không so được.
+  - **`PerfSample`:**
+    - Thêm `sentMs`. `latencyMs` tính **từ thời điểm lên lịch** (chống coordinated omission).
+    - Telemetry thêm `sendLagP95Ms` / `sendLagMaxMs`.
+  - **`evaluateRun`:**
+    - Raw phải đủ (seq 0..n-1, không trùng); warm-up được tính lại từ `scheduledMs`.
+    - Máy tạo tải bận (lag p99 > 50, send lag p95 > 50, send lag max > 250) → `INVALID_RUN` exit 2,
+      không còn cho verdict SLO.
+    - `error_rate` tính cả dropped; error rate null là vi phạm stop condition. `perf-result/1` thêm `workloadHash`.
+  - **Generator:**
+    - Validate profile trước request đầu tiên.
+    - URL ghép phải cùng origin; `redirect: 'manual'` (3xx tính là lỗi); có timeout cho từng request.
+  - **`compareRuns`:**
+    - Sàn `minRepeats` = 3, không hạ được; dung sai âm → `INVALID_OPTIONS`.
+    - Run bận → `INCONCLUSIVE_BUSY_ENV`.
+    - Độ trễ generator của candidate cao hơn baseline > 10 ms → `ENVIRONMENT_DRIFT`.
+    - Xét cả error_rate (+0.01). Dung sai tuyệt đối 5 ms (trước là 10 ms).
+  - **Harness:**
+    - App tham chiếu chạy ở **process riêng**.
+    - TC-1/2/3 attach `nested-runs.json`.
+    - Report ghi workload hash và fault.
+    - Replay đối chiếu hash `perf-profile.json`.
 
 ### B4. Dependencies
 - k6 là candidate, chưa chọn phiên bản; adapter test dùng subprocess thật của runner được chốt. (RES-16).
@@ -136,13 +167,53 @@
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.
 - Kỹ thuật soát bởi BA độc lập: PENDING.
 - Plan review/contract lock/closure cần chữ ký Master Authority; không thay bằng actor tự khai.
-- Gate 3 / Gate 4 / Gate 4.5: **CHƯA CHẠY / CHƯA KÝ**. Developer chỉ tự kiểm (§I).
+- **Gate 3 + Gate 4 + Gate 4.5 — đã chạy bản tập dượt ngày 2026-11-03, CHƯA KÝ.**
+  - Hai agent riêng chạy trên HEAD `fae0265`, tree sạch, `TRUSTED_CANDIDATE`. Không agent nào là principal của Master Authority.
+  - **Gate 3 (review, không tạo tải):** 0 P0, 4 P1, 8 P2, kèm P3.
+  - **Gate 4 (QA):**
+    - Spec 3/3 hai lần (`local-20261103-092803-28888`, `local-20261103-093005-26828`); full suite 39/39
+      (`local-20261103-093206-3112`); verdict `COMPLETE`.
+    - Verdict theo AC: AC-1 **PARTIAL**, AC-2 **MET** (công cụ, trên app tham chiếu), AC-3 **PARTIAL** (gần NOT MET).
+  - **P1 — đã sửa** (chưa commit), mỗi lỗi có probe và mutation check (§I mục 6):
+    1. Approval không gắn với nội dung → sửa SLO sau khi duyệt vẫn ra `SLO_MET`. Nay có `contentHash` / `APPROVAL_STALE`.
+    2. SLO không bao giờ fail (`p95 >= 0`, `Infinity`) cho exit 0 / `SLO_MET` qua runner thật.
+       Nay có ràng buộc chiều metric, và runner từ chối profile trước khi tạo tải.
+    3. Máy tạo tải bận vẫn cho verdict SLO. Nay `INVALID_RUN`.
+    4. Coordinated omission (latency tính từ lúc gửi). Nay tính từ lịch, kèm `sendLag`; có probe chặn event loop 120 ms.
+    5. Nhiễu bị kết luận là `REGRESSION_REPRODUCED` (generator chậm hơn nhưng dưới ngưỡng bận). Nay `ENVIRONMENT_DRIFT`,
+       và app chạy ở process riêng.
+    6. `route` (`@evil.example`) hoặc redirect vượt qua chặn host local. Nay validate trước, kiểm origin, `redirect: 'manual'`.
+  - **P2 — đã sửa:**
+    - dropped/error vô hình (thiếu rule; dropped không tính vào error_rate);
+    - raw thiếu/trùng/warm-up gán sai;
+    - option so sánh không có sàn;
+    - `NO_REGRESSION` bỏ qua lỗi tăng;
+    - không có timeout cho từng request;
+    - receipt ngoài không trỏ tới evidence của TC-2/TC-3;
+    - replay không ghim `profile.json`;
+    - đọc artifact thiếu thì throw TypeError;
+    - thiếu case biên;
+    - approval variant chỉ chạy trong process (nay có cả run thật cho unapproved và tautology).
+  - **P2/P3 còn mở:**
+    - `perfRecords` chỉ kiểm nhất quán (cùng `evaluateRun`), không phải cài đặt độc lập. Hash chưa ký, nên bản ghi lại
+      trọn vẹn và nhất quán sẽ lọt.
+    - Env key chỉ có os/node/cpus/cpuModel, tự khai.
+    - Throughput tính theo cửa sổ lịch.
+    - `localhost` phụ thuộc phân giải DNS.
+    - So sánh vẫn nhạy với tải máy. Đã chuyển sang fail-safe (`INCONCLUSIVE`), nhưng healthy↔healthy vẫn có thể ra
+      `INCONCLUSIVE` khi máy bận.
+  - **UAT-16-P4-1:** với nested run, (a)–(d) đạt: control exit 0; latency/errors exit 1 đúng metric; evidence đọc được;
+    replay cùng kết cục.
+    - Friction đã xử lý: recipe ghi trong comment harness; `nested-runs.json` từ receipt ngoài; report ghi fault và workload hash.
+    - Còn thiếu: npm script / doc chạy được (`docs/performance-testing.md` là ship, chờ Hub).
+    - → UAT **NOT ACCEPTED**: chưa có pilot app, Q-16-P4 chưa trả lời.
 - Giới hạn đã biết (developer tự khai):
   - Generator chạy đơn tiến trình và chỉ trên host local. Không có telemetry hệ thống đích (CPU/memory/DB của app),
     nên T4.4 mới có telemetry của phía generator.
   - Chưa có soak/spike thật; `kind` mới chỉ được validate.
   - "Môi trường bận" mới chỉ đo phía generator (độ trễ event loop). Tải của hệ thống đích hay noisy neighbour chưa đo.
-  - Dung sai so sánh (20% + 10 ms), ngưỡng bận (50 ms) và số lần lặp tối thiểu (3) là dev đặt.
+  - Dung sai so sánh (20% + 5 ms, error +0.01), ngưỡng bận (lag 50 / send lag 50 / max 250 ms), ngưỡng drift (10 ms)
+    và số lần lặp tối thiểu (3) là dev đặt.
     Theo §D, đây là quyết định của owner (PDR-16-P4-03).
   - SLO trong harness (p95 ≤ 100 ms, error ≤ 1%, dropped = 0) là SLO tham chiếu tổng hợp, có `source` giả lập.
     Không phải SLO thật của sản phẩm.
@@ -152,7 +223,10 @@
 |---|---|---|---|---|
 | PDR-16-P4-01 | TECH | §B2: thêm 4 module support + reference app/harness; 2 file `ship` chuyển thành đề xuất Hub (T4.1 chỉ xong phần seed) | Inventory, scope | PENDING |
 | PDR-16-P4-02 | TECH | §B4: không thêm k6; harness dùng generator Node core (chỉ local) làm runner kiểm công cụ; T4.2 chờ owner duyệt version/license sau spike | Dependency | PENDING |
-| PDR-16-P4-03 | BUSINESS | Ngưỡng do dev đặt (cần owner): dung sai so sánh 20% + 10 ms, bận khi event-loop lag > 50 ms, tối thiểu 3 lần lặp, SLO tham chiếu của harness | Threshold/SLO (§D) | PENDING |
+| PDR-16-P4-03 | BUSINESS | Ngưỡng do dev đặt (cần owner): dung sai so sánh 20% + 5 ms (đổi từ 10 ms sau QA) và error +0.01, bận khi lag p99 > 50 / send lag p95 > 50 / max > 250 ms, drift 10 ms, tối thiểu 3 lần lặp, SLO tham chiếu của harness | Threshold/SLO (§D) | PENDING |
+| PDR-16-P4-04 | TECH | Review/QA P1: approval gắn `contentHash`; ràng buộc chiều và bộ SLO bắt buộc (p95/p99, error_rate, dropped); `workloadHash` canonical (hash cũ không so được) | Contract `perf-profile/1` | PENDING |
+| PDR-16-P4-05 | TECH | Review/QA P1: latency tính từ lịch (chống coordinated omission), `sentMs` / send lag; máy bận → `INVALID_RUN`; error_rate tính cả dropped; raw phải đủ; validate/origin/redirect/timeout trong generator | Contract `perf-result/1`, raw sample schema | PENDING |
+| PDR-16-P4-06 | TECH | Review/QA P1/P2: `compareRuns` có sàn, `ENVIRONMENT_DRIFT`, xét cả error_rate; app tham chiếu ở process riêng; `nested-runs.json`, ghim hash profile khi replay | Contract compare, harness | PENDING |
 
 ## I. Bằng Chứng Thực Nghiệm
 - Khi chạy: exact argv/cwd, exit code, counts/runtime, snippet log và full revisions/dirty identity.
@@ -197,5 +271,20 @@ Developer tự kiểm ngày 2026-11-03.
 4. typecheck và lint sạch; `limits` 70 file < 80%; `qa:check` exit 0; tool tests 268/268.
 5. Chưa chạy: CI, review / QA / UAT độc lập, runner production (k6), telemetry hệ thống đích, soak/spike thật,
    môi trường thật (Q-16-P4).
+6. Sau khi sửa finding Gate 3/4 tập dượt (base `fae0265`, tree dirty, trust `INVESTIGATION_ONLY`):
+   - Spec HM-13 3/3 (2.3 phút) và 3/3 lần nữa trong full suite.
+   - Mutation, mỗi lần một file, sau đó khôi phục. Mỗi mutation làm fail đúng một probe:
+
+     | Mutation | Probe bị fail |
+     |---|---|
+     | Bỏ kiểm `contentHash` | TC-1 "SLO widened" |
+     | Bỏ ràng buộc chiều SLO | TC-1 run thật tautology |
+     | Latency tính từ `sentMs` | TC-2 probe coordinated omission |
+     | Bỏ kiểm máy bận | TC-2 |
+     | Error rate không tính dropped | TC-2 `slow` |
+     | Bỏ `ENVIRONMENT_DRIFT` | TC-3 |
+     | Bỏ sàn `minRepeats` | TC-3 |
+   - Full suite `--workers=2`: exit 0, 39/39 (3.6 phút). Receipt `local-20261103-095819-18592` verdict `COMPLETE`.
+   - typecheck và lint sạch; `limits` 70 file < 80%; `qa:check` exit 0; tool tests 268/268.
 - Giữ fail attempt lẫn pass retry; reviewer rerun trên cùng revision trong receipt riêng.
 
