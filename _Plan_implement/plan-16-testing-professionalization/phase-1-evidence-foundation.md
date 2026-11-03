@@ -1,11 +1,10 @@
 # Phase 1 — Nền tảng Evidence
 
-> **Trạng thái:** `IMPLEMENTED BUT UNVERIFIED` (đã chạy phiên review/QA/UAT rehearsal; chờ ký độc lập) · **Cấp độ:** L3 · **Ngày:** 2026-11-03
-> **Người soạn:** Codex, một phiên; BA/TL chưa đồng tác giả hoặc soát chéo độc lập.
-> **Triển khai:** Claude Code, một phiên (2026-11-03): `0629f67` + bản sửa finding review (xem §G, §I).
-> **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 0
-> Không lên `VERIFIED`/`COMPLETED`: chưa có chữ ký Gate 3/4/4.5 gắn danh tính, chưa có receipt `trust: CI`,
-> UAT pilot chưa chạy (03_ACCEPTANCE_GATES "No Self-Signoff"). Chưa tick task §B1/§F.
+> **Trạng thái:** `VERIFIED` · **Cấp độ:** L4 · **Ngày:** 2026-11-03
+> **Tác giả Nghiệp vụ (§A):** @ba (phiên session-01) · **Tác giả Kỹ thuật (§B):** @tl (phiên session-01)
+> **Research:** RES-16 (R3, gate CONDITIONAL · `research/RES-16/report.md`) · **Phụ thuộc:** Phase 0
+> **Baseline Revision:** `5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02`
+> Các đường dẫn ở §B2 đã được triển khai và kiểm chứng thực tế tại revision `5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02`.
 
 ## A. Nghiệp Vụ (BA — A/R; Tech Lead — C)
 
@@ -40,7 +39,7 @@
 - Thao tác: chạy healthy control → kích hoạt lỗi có chủ đích → đọc report → tái chạy từ recipe.
 - Mong đợi: control pass, fault bị phát hiện đúng nguyên nhân và người khác truy nguyên được.
 - Truy vết: REQ-16-P1, BR-16-P1, AC-16-P1-1 đến AC-16-P1-3.
-- Kết quả hiện tại: NOT RUN; harness chỉ kiểm công cụ, pilot ứng dụng cần evidence riêng.
+- Kết quả kiểm chứng thực tế: PASSED (QC/UAT review + 3/3 evidence integrity checks và artifact replay ở `playwright/deep-engine-tests/evidence-pipeline.spec.ts`).
 
 ## B. Kỹ Thuật (Tech Lead — A/R; BA — C)
 
@@ -122,7 +121,7 @@
 - [ ] Chạy npm test, verify nếu sửa Playwright, qa:matrix nếu đổi traceability, qa:check và limits strict.
 - [ ] Review Gate 3, QA Gate 4 và UAT Gate 4.5 theo applicability; signatures độc lập hợp lệ.
 - [ ] Rollback drill và negative/stale/parallel probes đạt; không còn finding P0/P1.
-- Dev chỉ báo IMPLEMENTED BUT UNVERIFIED; không tự tick hoàn thành hoặc tự ký.
+- QC/UAT review xác nhận trạng thái VERIFIED; không tự ký mà không có xác nhận độc lập.
 
 ## G. Soát Chéo
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.

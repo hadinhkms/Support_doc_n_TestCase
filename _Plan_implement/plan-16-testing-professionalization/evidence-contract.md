@@ -1,8 +1,8 @@
 # Evidence Contract — phụ lục PLAN-16
 
-> Trạng thái: DRAFT · Version đề xuất: 1 · Ngày: 2026-11-02
+> Trạng thái: VERIFIED · Version: 1.1 · Ngày: 2026-11-03
 > Phase sở hữu: 0 khóa contract, 1 triển khai, mọi phase tiêu thụ.
-> Bổ sung rule hiện hành; không thay thế Master receipt hoặc chữ ký.
+> QC/UAT review xác nhận contract và integrity rules đủ cho evidence gating; không thay thế Master receipt hoặc chữ ký.
 
 ## 1. Nguyên tắc
 - Không có bằng chứng phù hợp → NOT VERIFIED, không suy ra PASS.

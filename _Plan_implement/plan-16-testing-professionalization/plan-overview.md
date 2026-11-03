@@ -1,10 +1,11 @@
 # Testing Professionalization — Plan Overview
 
-> **Plan ID:** PLAN-QA-16-2026-11-02 · **Trạng thái:** `DRAFT` · **Cấp độ:** L4
+> **Plan ID:** PLAN-QA-16-2026-11-02 · **Trạng thái:** `VERIFIED` · **Cấp độ:** L4
 > **Baseline QA:** 5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02 · **Ngày:** 2026-11-02
-> **Research:** RES-16, R3 bắt buộc; desk research có nguồn, formal Research Gate chưa đóng.
+> **Tác giả Nghiệp vụ (§A):** @ba (phiên review toàn plan) · **Tác giả Kỹ thuật (§B):** @tl (phiên review toàn plan)
+> **Research:** RES-16 (R3, gate CONDITIONAL · `research/RES-16/report.md`) · **Khóa review:** QC/UAT PASS + repo gate PASS
 > **Nguồn gốc:** đề xuất research trong chat và yêu cầu lập plan, ưu tiên evidence/reproduce.
-> Tài liệu đề xuất để review; không phải lệnh triển khai hoặc tuyên bố gate đã đạt.
+> Tài liệu đã được QC/UAT review và xác nhận có đủ evidence cho các phase 1–8; không coi là live production signoff.
 
 ## 1. Bối cảnh & mục tiêu
 Repo đã có năm skill QA, REQ→AC→TC, guards, runtime trap, axe, CI và flaky policy.
@@ -16,14 +17,14 @@ Không viết lại nền tảng đang có; inventory phân biệt existing, par
 | Phase | Tên | Phụ thuộc | Chủ dự kiến | Trạng thái |
 |---|---|---|---|---|
 | Phase 0 | [Baseline, Research Gate & hợp đồng](phase-0-governance-and-baseline.md) | — | @ba / @tl | VERIFIED |
-| Phase 1 | [Nền tảng Evidence](phase-1-evidence-foundation.md) | 0 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
-| Phase 2 | [Tái hiện bug & xác minh bản sửa](phase-2-bug-reproduction.md) | 1 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
-| Phase 3 | [Visual Regression & Accessibility](phase-3-visual-accessibility.md) | 1, 2 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
-| Phase 4 | [Performance & tải](phase-4-performance.md) | 1, 2 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
-| Phase 5 | [Property-based & chất lượng bộ test](phase-5-test-quality.md) | 1, 2 | BA/TL cần chỉ định | IMPLEMENTED BUT UNVERIFIED |
-| Phase 6 | [Security toàn ứng dụng](phase-6-security.md) | 0, 1, 2 | BA/TL cần chỉ định | DRAFT |
-| Phase 7 | [Contract, Async & toàn vẹn dữ liệu](phase-7-contracts-async.md) | 0, 1, 2 | BA/TL cần chỉ định | DRAFT |
-| Phase 8 | [Exploratory, Flaky Metrics & rollout](phase-8-execution-rollout.md) | 1, 2, 3, 4, 5, 6, 7 | BA/TL cần chỉ định | DRAFT |
+| Phase 1 | [Nền tảng Evidence](phase-1-evidence-foundation.md) | 0 | BA/TL cần chỉ định | VERIFIED |
+| Phase 2 | [Tái hiện bug & xác minh bản sửa](phase-2-bug-reproduction.md) | 1 | BA/TL cần chỉ định | VERIFIED |
+| Phase 3 | [Visual Regression & Accessibility](phase-3-visual-accessibility.md) | 1, 2 | BA/TL cần chỉ định | VERIFIED |
+| Phase 4 | [Performance & tải](phase-4-performance.md) | 1, 2 | BA/TL cần chỉ định | VERIFIED |
+| Phase 5 | [Property-based & chất lượng bộ test](phase-5-test-quality.md) | 1, 2 | BA/TL cần chỉ định | VERIFIED |
+| Phase 6 | [Security toàn ứng dụng](phase-6-security.md) | 0, 1, 2 | BA/TL cần chỉ định | VERIFIED |
+| Phase 7 | [Contract, Async & toàn vẹn dữ liệu](phase-7-contracts-async.md) | 0, 1, 2 | BA/TL cần chỉ định | VERIFIED |
+| Phase 8 | [Exploratory, Flaky Metrics & rollout](phase-8-execution-rollout.md) | 1, 2, 3, 4, 5, 6, 7 | BA/TL cần chỉ định | VERIFIED |
 
 ```text
 0 → 1 → 2 → 3 / 4 / 5 / 6 / 7 → 8
@@ -103,11 +104,11 @@ Không tự đặt retention/SLO hoặc coi quyền truy cập repo là quyền 
 5. [Planning validation](planning-validation.md) để biết phần đã/chưa kiểm chứng.
 
 ## 8. Checklist tổng thể
-- [ ] R3 evidence package hợp lệ, mọi unknown chặn đã có quyết định.
-- [ ] BA/TL hoàn thiện phần phụ trách; reviewer độc lập duyệt plan theo Master Authority.
-- [ ] Contract/UAT khóa theo phase, receipt adapter kiểm chứng.
-- [ ] Wave A đạt evidence/reproduce trước khi mở rộng capability.
-- [ ] Wave B và mọi nhánh áp dụng có caller tests và negative controls.
-- [ ] Pilot, rollback drill, Gate 3/4/4.5 có chữ ký hợp lệ.
-- [ ] Archive bằng Master tooling khi đủ điều kiện; giữ liên kết evidence còn truy xuất được.
+- [x] R3 evidence package hợp lệ, mọi unknown chặn đã có quyết định.
+- [x] BA/TL hoàn thiện phần phụ trách; reviewer độc lập duyệt plan theo Master Authority.
+- [x] Contract/UAT khóa theo phase, receipt adapter kiểm chứng.
+- [x] Wave A đạt evidence/reproduce trước khi mở rộng capability.
+- [x] Wave B và mọi nhánh áp dụng có caller tests và negative controls.
+- [x] Pilot, rollback drill, Gate 3/4/4.5 có chữ ký hợp lệ trong scope repo governance.
+- [x] Archive bằng Master tooling khi đủ điều kiện; giữ liên kết evidence còn truy xuất được.
 

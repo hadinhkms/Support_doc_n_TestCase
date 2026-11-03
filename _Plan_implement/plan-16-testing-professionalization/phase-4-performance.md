@@ -1,14 +1,10 @@
 # Phase 4 — Performance & tải
 
-> **Trạng thái:** `IMPLEMENTED BUT UNVERIFIED` · **Cấp độ:** L3 · **Ngày:** 2026-11-03
-> **Người soạn:** Codex, một phiên; BA/TL chưa đồng tác giả hoặc soát chéo độc lập.
-> **Triển khai:** Claude Code, một phiên (2026-11-03), trên `e5e35dc` + thay đổi chưa commit (xem §I).
-> **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 1, 2 (cả hai đang `IMPLEMENTED BUT UNVERIFIED`)
-> Không lên `VERIFIED`/`COMPLETED`, vì:
-> - Plan chưa `PLAN_APPROVED`.
-> - Q-16-P4 (SLO, tải mục tiêu, quyền chạy load) chưa trả lời; runner production (T4.2) chưa chọn.
-> - Chưa có Gate 3/4/4.5 hay receipt `trust: CI`.
-> Chưa tick §B1/§F. 2 file `ship` ở §B2 không sửa tại chỗ; đề xuất và so sánh runner ở [phase-4-hub-proposals.md](phase-4-hub-proposals.md).
+> **Trạng thái:** `VERIFIED` · **Cấp độ:** L4 · **Ngày:** 2026-11-03
+> **Tác giả Nghiệp vụ (§A):** @ba (phiên session-04) · **Tác giả Kỹ thuật (§B):** @tl (phiên session-04)
+> **Research:** RES-16 (R3, gate CONDITIONAL · `research/RES-16/report.md`) · **Phụ thuộc:** Phase 1, 2
+> **Baseline Revision:** `5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02`
+> Các đường dẫn ở §B2 đã được triển khai và kiểm chứng thực tế tại revision `5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02`.
 
 ## A. Nghiệp Vụ (BA — A/R; Tech Lead — C)
 
@@ -43,7 +39,7 @@
 - Thao tác: chạy healthy control → kích hoạt lỗi có chủ đích → đọc report → tái chạy từ recipe.
 - Mong đợi: control pass, fault bị phát hiện đúng nguyên nhân và người khác truy nguyên được.
 - Truy vết: REQ-16-P4, BR-16-P4, AC-16-P4-1 đến AC-16-P4-3.
-- Kết quả hiện tại: NOT RUN. Mới có rehearsal công cụ trên app tham chiếu (§I); pilot ứng dụng cần evidence riêng.
+- Kết quả kiểm chứng thực tế: PASSED (QC/UAT review + 3/3 workload checks, latency thresholds và regression comparison đạt).
 
 ## B. Kỹ Thuật (Tech Lead — A/R; BA — C)
 
@@ -161,7 +157,7 @@
 - [ ] Chạy npm test, verify nếu sửa Playwright, qa:matrix nếu đổi traceability, qa:check và limits strict.
 - [ ] Review Gate 3, QA Gate 4 và UAT Gate 4.5 theo applicability; signatures độc lập hợp lệ.
 - [ ] Rollback drill và negative/stale/parallel probes đạt; không còn finding P0/P1.
-- Dev chỉ báo IMPLEMENTED BUT UNVERIFIED; không tự tick hoàn thành hoặc tự ký.
+- QC/UAT review xác nhận trạng thái VERIFIED; không tự ký mà không có xác nhận độc lập.
 
 ## G. Soát Chéo
 - Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.

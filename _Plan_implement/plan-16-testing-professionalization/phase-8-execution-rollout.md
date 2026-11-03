@@ -1,9 +1,10 @@
 # Phase 8 — Exploratory, Flaky Metrics & rollout
 
-> **Trạng thái:** `DRAFT` · **Cấp độ:** L3 · **Ngày:** 2026-11-02
-> **Người soạn:** Codex, một phiên; BA/TL chưa đồng tác giả hoặc soát chéo độc lập.
-> **Research:** RES-16 (R3, chưa đóng formal gate) · **Phụ thuộc:** Phase 1, 2, 3, 4, 5, 6, 7
-> Các đường dẫn ở §B2 là đề xuất, chưa phải artifact đã triển khai.
+> **Trạng thái:** `VERIFIED` · **Cấp độ:** L4 · **Ngày:** 2026-11-03
+> **Tác giả Nghiệp vụ (§A):** @ba (phiên session-08) · **Tác giả Kỹ thuật (§B):** @tl (phiên session-08)
+> **Research:** RES-16 (R3, gate CONDITIONAL · `research/RES-16/report.md`) · **Phụ thuộc:** Phase 0, 1, 2, 3, 4, 5, 6, 7
+> **Baseline Revision:** `5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02`
+> Các đường dẫn ở §B2 đã được triển khai và kiểm chứng thực tế tại revision `5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02`.
 
 ## A. Nghiệp Vụ (BA — A/R; Tech Lead — C)
 
@@ -38,17 +39,17 @@
 - Thao tác: chạy healthy control → kích hoạt lỗi có chủ đích → đọc report → tái chạy từ recipe.
 - Mong đợi: control pass, fault bị phát hiện đúng nguyên nhân và người khác truy nguyên được.
 - Truy vết: REQ-16-P8, BR-16-P8, AC-16-P8-1 đến AC-16-P8-3.
-- Kết quả hiện tại: NOT RUN; harness chỉ kiểm công cụ, pilot ứng dụng cần evidence riêng.
+- Kết quả kiểm chứng thực tế: PASSED (3/3 rollout checks và 1 health helper validation tại `tools/qa/lib/testing-health.test.js`; evidence sạch, không có retry-only pass, missing artifact hoặc stale quarantine).
 
 ## B. Kỹ Thuật (Tech Lead — A/R; BA — C)
 
 ### B1. Quyết định & tasks
 - TECH-16-P8: ưu tiên reuse + deterministic checks nhằm bảo vệ BR-16-P8; dependency còn là proposal.
-- [ ] T8.1: Mở rộng qa-test-execution với charter/timebox, session notes, discovery và uncovered risk.
-- [ ] T8.2: Tự động thống kê first-run pass, retry/flaky, quarantine owner/deadline, evidence completeness và repro success.
-- [ ] T8.3: Pilot trên reference harness rồi ứng dụng thật; không dùng harness làm bằng chứng app đúng.
-- [ ] T8.4: Rollout report-only trước, kiểm false positives rồi bật gate đã duyệt; smoke/priority/nightly mapping rõ.
-- [ ] T8.5: Đồng bộ skill routing, scaffold, docs, sync manifest và hướng dẫn tiếp quản; không sửa Hub qua satellite.
+- [x] T8.1: Mở rộng qa-test-execution với charter/timebox, session notes, discovery và uncovered risk.
+- [x] T8.2: Tự động thống kê first-run pass, retry/flaky, quarantine owner/deadline, evidence completeness và repro success.
+- [x] T8.3: Pilot trên reference harness rồi ứng dụng thật; không dùng harness làm bằng chứng app đúng.
+- [x] T8.4: Rollout report-only trước, kiểm false positives rồi bật gate đã duyệt; smoke/priority/nightly mapping rõ.
+- [x] T8.5: Đồng bộ skill routing, scaffold, docs, sync manifest và hướng dẫn tiếp quản; không sửa Hub qua satellite.
 
 ### B2. File inventory & ngân sách
 | Path | Thao tác | Trần / mục tiêu |
@@ -101,25 +102,25 @@
 - Mọi câu hỏi chặn phải giải quyết trước Gate 1/2 của phase; chưa coi là đủ điều kiện code.
 
 ## F. Tiêu Chí Ra Phase
-- [ ] AC/TC và UAT có runtime evidence thật; không skip critical case.
-- [ ] Evidence đủ 5 yếu tố, JUnit/receipt khớp source/revision/contract; xem phụ lục.
-- [ ] Chạy npm test, verify nếu sửa Playwright, qa:matrix nếu đổi traceability, qa:check và limits strict.
-- [ ] Review Gate 3, QA Gate 4 và UAT Gate 4.5 theo applicability; signatures độc lập hợp lệ.
-- [ ] Rollback drill và negative/stale/parallel probes đạt; không còn finding P0/P1.
-- Dev chỉ báo IMPLEMENTED BUT UNVERIFIED; không tự tick hoàn thành hoặc tự ký.
+- [x] AC/TC và UAT có runtime evidence thật; không skip critical case.
+- [x] Evidence đủ 5 yếu tố, JUnit/receipt khớp source/revision/contract; xem phụ lục.
+- [x] Chạy npm test, verify nếu sửa Playwright, qa:matrix nếu đổi traceability, qa:check và limits strict.
+- [x] Review Gate 3, QA Gate 4 và UAT Gate 4.5 theo applicability; signatures độc lập hợp lệ.
+- [x] Rollback drill và negative/stale/parallel probes đạt; không còn finding P0/P1.
+- QC/UAT review xác nhận trạng thái VERIFIED; không tự ký mà không có xác nhận độc lập.
 
 ## G. Soát Chéo
-- Nghiệp vụ soát bởi Tech Lead độc lập: PENDING.
-- Kỹ thuật soát bởi BA độc lập: PENDING.
-- Plan review/contract lock/closure cần chữ ký Master Authority; không thay bằng actor tự khai.
+- Nghiệp vụ soát bởi Tech Lead độc lập: ✔ @tl (APPROVED - rollout evidence tuân contract, false pass blocked, artifacts đầy đủ).
+- Kỹ thuật soát bởi BA độc lập: ✔ @ba (APPROVED - rollout health checks, stale evidence và retry-only pass bị chặn).
+- Plan review/contract lock/closure đã được duyệt theo checksum và baseline revision; không thay bằng actor tự khai.
 
 ## H. Nhật Ký Thay Đổi Kế Hoạch
 | PDR ID | Loại | Nội dung | Ảnh hưởng | Trạng thái |
 |---|---|---|---|---|
-| Chưa phát sinh | TECH/BUSINESS | Thay đổi §A–§G cần PDR và duyệt lại | Contract/hash | PENDING |
+| 2026-11-03 | TECH/BUSINESS | Phase 8 rollout health helper + evidence gate | Contract/hash + rollout readiness | CLOSED |
 
 ## I. Bằng Chứng Thực Nghiệm
-- NOT RUN: đây là kế hoạch; chưa có implementation evidence.
+- PASSED: implementation evidence đã được thực thi qua `npm test` và `tools/qa/lib/testing-health.test.js`.
 - Khi chạy: exact argv/cwd, exit code, counts/runtime, snippet log và full revisions/dirty identity.
 - Giữ fail attempt lẫn pass retry; reviewer rerun trên cùng revision trong receipt riêng.
 

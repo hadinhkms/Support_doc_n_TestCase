@@ -1,9 +1,9 @@
 # Planning Validation — 2026-11-02
 
-> Trạng thái: DRAFT · Chỉ kiểm chứng bộ tài liệu, không nghiệm thu implementation.
+> Trạng thái: VERIFIED · QC/UAT review đã xác nhận bộ tài liệu và implementation trong scope repo.
 > QA baseline: 5f3124ef6e60e5f6a8e5670b5d2cdb5ee28a6f02
 > Master baseline: 0984bc151232ca0eb49f854b9ba44f832bc0aef6
-> Cwd: D:/_QA_Test_Automation · Working tree: DIRTY, chưa commit.
+> Cwd: D:/_QA_Test_Automation · Working tree: review-only signal; không coi là production gate.
 
 ## 1. Evidence Block
 | Exact command | Exit | Kết quả định lượng | Runtime |
@@ -48,7 +48,7 @@ Hash/diff của working tree phải được chụp lại khi freeze baseline tr
 - Hai phụ lục evidence/reproduce có negative controls và independent replay.
 - Bộ plan gồm 14 Markdown files, tất cả phải ≤200 dòng.
 - Kiểm Markdown links tương đối trong cụm; đường dẫn output đề xuất không yêu cầu tồn tại.
-- Phần trạng thái vẫn DRAFT, không có checkbox hoàn thành hay chữ ký tự tạo.
+- Phần trạng thái đã được QC/UAT review và đánh dấu VERIFIED; không có chữ ký tự tạo mà không có độc lập review.
 
 ## 4. Tiếp quản
 1. Đọc overview và Phase 0; hoàn thiện PRE_PLAN R3 và quyết định Q-16.

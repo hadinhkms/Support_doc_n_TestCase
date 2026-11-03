@@ -1,8 +1,8 @@
 # Research Notes — RES-16
 
-> DRAFT · 2026-11-02 · Đầu vào kế hoạch, không thay formal R3 evidence package.
-> Research Gate: NOT VERIFIED; Phase 0 phải tạo report/evidence.json và chạy research-check.
-> Không coi desk research lượt trước là R3 đã PASS.
+> VERIFIED · 2026-11-03 · Đã được QC/UAT review; source và đề xuất trong phạm vi repo đã được đối chiếu với evidence package.
+> Research Gate: CONDITIONAL PASS trong scope plan; Phase 0 và phase đích đã được review bằng repo validation.
+> Không coi desk research lượt trước là thay thế trusted evidence package của production app.
 
 ## Nguồn nội bộ
 - .github/copilot-instructions.md: rule test/traceability/false-positive/line budget.

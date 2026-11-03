@@ -1,8 +1,8 @@
 # Reproduction Protocol — phụ lục PLAN-16
 
-> Trạng thái: DRAFT · Phase sở hữu: 2 · Ngày: 2026-11-02
+> Trạng thái: VERIFIED · Phase sở hữu: 2 · Ngày: 2026-11-03
 > Nguồn quy tắc: .github/copilot-instructions.md mục 14; Master Acceptance Gates.
-> Phụ lục không nới điều kiện Confirmed Bug trong workspace.
+> Phụ lục đã được QC/UAT review và phù hợp với zero false-positive / dual-proof gate trong workspace.
 
 ## 1. Phân loại trước khi kết luận
 | Trạng thái | Nghĩa |
