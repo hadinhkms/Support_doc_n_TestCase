@@ -185,6 +185,10 @@
     {
       "path": "research",
       "reason": "Research evidence packages theo Master Process (RES-xxx)."
+    },
+    {
+      "path": "tools/ci",
+      "reason": "CI glue của riêng repo: chọn test theo REQ bị PR ảnh hưởng (bug-hunting Phase 4). Hub chưa có."
     }
   ],
   "notes": [

@@ -2,7 +2,7 @@
 id: REQ-001
 title: Sign in with email and password
 status: Ready for Test
-version: 1.1
+version: 1.2
 risk: High
 owner: Auth squad
 slug: sign-in
@@ -13,7 +13,7 @@ test_cases: test-cases/REQ-001-sign-in.md
 
 - **Status**: Ready for Test
 - **Owner**: Auth squad / PO: @product-minh
-- **Version**: 1.1
+- **Version**: 1.2
 - **Risk**: High
 - **Related pages/modules**: `/login`, `/dashboard`, `POST /api/auth/login`, session cookie
 - **Source**: Product requirement
@@ -35,7 +35,7 @@ tấn công chính, nên được xếp Risk High.
 | Aspect | Status | Notes |
 |---|---|---|
 | UI/UX Geometry | Required | `expectNoHorizontalScroll`, `expectNoTextOverflow`, `expectNotOccluded`, `expectInteractiveA11y`, `expectResponsiveIntegrity` |
-| XSS Security | Applicable | `expectSafeXssRender` với `XSS_PAYLOADS` trên vùng thông báo lỗi đăng nhập |
+| XSS Security | Applicable | `expectSafeXssRender` với `XSS_PAYLOADS` trên lỗi validation `Email` (sink theo AC-003; không yêu cầu phản chiếu), không gửi request |
 | Idempotency | Required | `expectIdempotentSubmit` chống gửi trùng `POST /api/auth/login` khi nhấn đúp |
 | State Persistence | Required | `expectStatePersistence` kiểm chứng session bền vững sau `page.reload()` |
 
@@ -131,7 +131,7 @@ tấn công chính, nên được xếp Risk High.
 | Field/rule | Valid | Invalid | Boundary | Expected | Test cases |
 |---|---|---|---|---|---|
 | Email | `user@example.com` | `not-an-email`, rỗng | 254 ký tự (max), 255 | Lỗi validation tại trường, không submit | TC-004, TC-014 |
-| Password | 8-64 ký tự | rỗng, 7 ký tự | 8, 64, 65 | 7 và 65 -> lỗi validation; 8 và 64 -> chấp nhận | TC-012, TC-015 |
+| Password | 8-64 ký tự | rỗng, 7 ký tự | 8, 64, 65 | 7, 65 và rỗng -> lỗi validation; 8 và 64 -> chấp nhận | TC-012, TC-020 |
 | Failed attempts | 1-5 | - | 5, 6 | Lần 6 -> khoá 15 phút (AC-007) | TC-002, TC-009 |
 | Session idle | < 24h | - | 24h, 24h+1m | Quá 24h -> đẩy về `/login` | TC-005, TC-010 |
 | Layout & Responsive | Desktop/Tablet/Mobile | Tràn ngang, đè nút | 375px - 1440px | Hiển thị nguyên vẹn, đủ nhãn A11y | TC-016, TC-017 |
@@ -145,6 +145,23 @@ tấn công chính, nên được xếp Risk High.
 
 ## Open questions and assumptions
 
+- [ ] Q-003 (AC-007, TC-009): Khoá tính theo email, theo IP hay cả hai? Email không tồn tại có bị
+  đếm/khoá không (nếu có, thông báo khoá có làm lộ email tồn tại, trái AC-002)? Đăng nhập đúng trước
+  lần 6 có reset bộ đếm không? Cửa sổ 15 phút là trượt hay cố định? Văn bản thông báo và định dạng
+  thời gian mở khoá là gì? Đăng nhập đúng trong lúc khoá trả về gì?
+- [ ] Q-005 (TC-010, Rules `Session idle`): Hết hạn 24h là idle hay tuyệt đối, có gia hạn khi thao
+  tác không? Rule này chưa có AC riêng (TC-010 đang gắn AC-004 vốn chỉ nói về reload) — có cần AC mới?
+  Môi trường test có cách tua thời gian/rút ngắn TTL không?
+- [ ] Q-006 (AC-010, TC-019): Có giá trị nào người dùng nhập được server phản chiếu lên UI không
+  (vd. thông báo lỗi `role=alert` chứa email)? Payload XSS trong `Email` đều sai định dạng nên AC-003
+  chặn ở client. **Assumption (v1.2):** sink của TC-019 là lỗi validation `Email`; AC-010 chỉ yêu cầu
+  không thực thi mã nên không assert phản chiếu. Nếu có sink phía server, cần thêm TC riêng.
+- [ ] Q-007 (TC-014): Biên 254/255 đã chốt ở bảng `Rules and validation`. Còn mở: email chỉ có
+  khoảng trắng hoặc có khoảng trắng đầu-cuối thì trim hay báo lỗi?
+- [ ] Q-008 (TC-012, TC-020): Biên 7/8/64/65 và rỗng đã chốt ở bảng `Rules and validation`. Còn mở: password
+  chỉ có khoảng trắng có hợp lệ không; văn bản lỗi validation của trường Password là gì.
+- [ ] Q-009 (TC-004, TC-019): Lỗi validation `Email` có `data-testid="email-error"` không? Đang là
+  assumption trong automation plan; nếu không có, đổi locator theo `docs/selector-convention.md`.
 - [x] Q-004: Thông báo lỗi có phân biệt "email không tồn tại" không? -> **Không**, dùng chung một thông báo (đã chốt 2026-09-19).
 
 ## Evidence and confidence
@@ -160,3 +177,4 @@ tấn công chính, nên được xếp Risk High.
 |---|---|---|---|---|
 | 1.0 | 2026-09-19 | Bản đầu tiên | - | - |
 | 1.1 | 2026-10-23 | Nâng cấp chuẩn Deep Bug Hunting (AC-008..AC-010, TC-016..TC-019) | AC-003..AC-010 / TC-004..TC-019 | Full |
+| 1.2 | 2026-11-04 | Sửa thiết kế test: sink XSS theo AC-003, bỏ TC-015 (trùng TC-012), thêm TC-020 password rỗng, TC-021 so sánh phản hồi API chống dò email; ghi Q-003, Q-005..Q-009 | AC-002, AC-003, AC-010 / TC-002, TC-003, TC-012, TC-015, TC-019, TC-020, TC-021 | TC-002, TC-003, TC-004, TC-019 |

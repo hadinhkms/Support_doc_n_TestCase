@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-fixtures';
-import { standardUser, invalidCredentials } from '../data/users';
+import { standardUser, viewerUser, invalidCredentials } from '../data/users';
 import { captureJourneyStep } from '../support/evidence';
 import {
   expectNoHorizontalScroll,
@@ -62,9 +62,12 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
     'TC-002 - AC-002 wrong password is rejected without leaking which field is wrong',
     { tag: ['@p1', '@security'] },
     async ({ loginPage, page }) => {
-      const user = standardUser();
+      // Dùng tài khoản viewer: lần thử sai cộng dồn qua các project + retry có thể khoá (AC-007)
+      // tài khoản chính mà auth.setup.ts cần cho mọi test khác.
+      const user = viewerUser();
 
       await loginPage.goto();
+      const sessionCookiesBefore = await loginPage.sessionCookieNames();
       await loginPage.login(user.email, invalidCredentials.wrongPassword);
 
       await expect(loginPage.errorMessage).toBeVisible();
@@ -73,17 +76,21 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
       await expect(page).toHaveURL(/\/login/);
       // Side effect: không có session nào được tạo.
       await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeHidden();
+      expect(await loginPage.sessionCookieNames(), 'AC-002: không tạo cookie session').toEqual(sessionCookiesBefore);
     },
   );
 
   test(
     'TC-003 - AC-002 unknown email returns the same generic error as wrong password',
     { tag: ['@p1', '@security'] },
-    async ({ loginPage }) => {
+    async ({ loginPage, page }) => {
       await loginPage.goto();
+      const sessionCookiesBefore = await loginPage.sessionCookieNames();
       await loginPage.login(invalidCredentials.unknownEmail, invalidCredentials.wrongPassword);
 
       await expect(loginPage.errorMessage).toHaveText(/invalid email or password/i);
+      await expect(page).toHaveURL(/\/login/);
+      expect(await loginPage.sessionCookieNames(), 'AC-002: không tạo cookie session').toEqual(sessionCookiesBefore);
     },
   );
 
@@ -199,9 +206,18 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
   );
 
   test(
-    'TC-019 - AC-010 login error message safely escapes XSS payloads without script execution',
+    'TC-019 - AC-010 email validation error safely escapes XSS payloads without script execution',
     { tag: ['@p1', '@security'] },
     async ({ loginPage, page }) => {
+      // Payload XSS không phải email hợp lệ nên AC-003 chặn ở client: sink là lỗi validation Email,
+      // không phải thông báo server. AC-010 chỉ yêu cầu không thực thi mã -> không assert phản chiếu (Q-006).
+      const loginRequests: string[] = [];
+      page.on('request', (request) => {
+        if (request.method() === 'POST' && request.url().includes('/api/auth/login')) {
+          loginRequests.push(request.url());
+        }
+      });
+
       await loginPage.goto();
       await loginPage.passwordInput.fill(invalidCredentials.wrongPassword);
       await expectSafeXssRender(
@@ -211,10 +227,12 @@ test.describe('REQ-001 - Sign in', { tag: '@REQ-001' }, () => {
           await loginPage.submitButton.click();
         },
         {
-          sinkLocator: loginPage.errorMessage,
+          sinkLocator: loginPage.emailValidationError,
           payloads: XSS_PAYLOADS.slice(0, 3),
+          expectReflectedText: false,
         },
       );
+      expect(loginRequests, 'AC-003: payload sai định dạng không được gửi lên server').toEqual([]);
     },
   );
 });

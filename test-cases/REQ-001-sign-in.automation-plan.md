@@ -1,6 +1,6 @@
 # Automation Plan: REQ-001 Sign in with email and password
 
-Requirement: `requirements/REQ-001-sign-in.md` (v1.0)
+Requirement: `requirements/REQ-001-sign-in.md` (v1.2)
 Test cases: `test-cases/REQ-001-sign-in.md`
 
 ## Candidate selection
@@ -19,7 +19,14 @@ Ngưỡng đề xuất automation: tổng từ 17/25, hoặc là P0/P1 critical 
 | TC-007 | 4 | 3 | 3 | 5 | 3 | 18 | Automate |
 | TC-008 | 4 | 3 | 4 | 5 | 4 | 20 | Automate |
 | TC-013 | 4 | 4 | 5 | 4 | 5 | 22 | Automate (sprint tới) |
-| TC-012 | 3 | 2 | 4 | 3 | 4 | 16 | Hoãn - chờ test id ở trường Password |
+| TC-012 | 3 | 2 | 4 | 3 | 4 | 16 | Hoãn - chờ test id ở trường Password (gộp TC-015 cũ, v1.2) |
+| TC-014 | 3 | 2 | 4 | 4 | 4 | 17 | Automate - `login.validation.spec.ts` |
+| TC-020 | 3 | 2 | 4 | 3 | 4 | 16 | Hoãn - chờ test id ở trường Password |
+| TC-021 | 4 | 5 | 4 | 4 | 4 | 21 | Automate - `login.security.spec.ts` |
+| TC-016 | 4 | 3 | 4 | 5 | 4 | 20 | Automate |
+| TC-017 | 3 | 3 | 4 | 5 | 4 | 19 | Automate |
+| TC-018 | 4 | 4 | 4 | 4 | 4 | 20 | Automate |
+| TC-019 | 4 | 4 | 5 | 5 | 5 | 23 | Automate - sink là lỗi validation Email (Q-006) |
 | TC-009 | 3 | 5 | 1 | 2 | 2 | 13 | Không automation |
 | TC-010 | 2 | 3 | 2 | 1 | 2 | 10 | Không automation |
 | TC-011 | 2 | 3 | 2 | 1 | 2 | 10 | Không automation |
@@ -32,7 +39,7 @@ thay vì để trôi. TC-009 tuy Risk 5 nhưng Stability và Feasibility quá th
 
 | Mục | Giá trị |
 |---|---|
-| Spec file | `playwright/tests/auth/login.spec.ts`, `playwright/tests/a11y/login.a11y.spec.ts` |
+| Spec file | `playwright/tests/auth/login.spec.ts`, `playwright/tests/auth/login.validation.spec.ts`, `playwright/tests/auth/login.security.spec.ts`, `playwright/tests/a11y/login.a11y.spec.ts` |
 | Test title | `TC-xxx - AC-yyy <mô tả ngắn>` |
 | Tag | `@smoke`, `@p0`..`@p3`, `@security`, `@a11y` |
 | Page object | `tests/pages/login.page.ts`, `tests/pages/dashboard.page.ts` |
@@ -45,7 +52,7 @@ thay vì để trôi. TC-009 tuy Risk 5 nhưng Stability và Feasibility quá th
 ## Automation readiness checklist
 
 - [x] Stable locator available - `getByRole` / `getByLabel`; riêng lỗi validation email dùng
-      `data-testid="email-error"` (đang là giả định, xem REQ-001 mục Open questions).
+      `data-testid="email-error"` (đang là giả định, xem REQ-001 Q-009).
 - [x] Test data can be seeded and cleaned up - dùng tài khoản cố định qua biến môi trường.
 - [x] No real secret/OTP/payment dependency.
 - [x] Expected result is deterministic.
@@ -56,7 +63,7 @@ thay vì để trôi. TC-009 tuy Risk 5 nhưng Stability và Feasibility quá th
 
 - `auth.setup.ts` là điểm hỏng tập trung: nếu tài khoản chính bị khoá (AC-007) thì toàn bộ
   suite fail theo. Giảm thiểu: TC-009 không automation và dùng tài khoản riêng khi test tay.
-- `data-testid="email-error"` chưa được xác nhận tồn tại. Nếu dev không thêm, TC-004 phải đổi
-  sang assert theo `role=alert` hoặc bị hoãn.
+- `data-testid="email-error"` chưa được xác nhận tồn tại (Q-009). Nếu dev không thêm, TC-004 và
+  TC-019 phải đổi locator theo `docs/selector-convention.md` hoặc bị hoãn.
 - Quét axe (TC-007) có thể đỏ khi design đổi màu/contrast mà không phải lỗi hồi quy chức năng.
   Không tự nới lỏng rule - mở issue với design.

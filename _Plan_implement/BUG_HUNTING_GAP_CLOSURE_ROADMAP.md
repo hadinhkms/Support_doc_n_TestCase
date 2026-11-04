@@ -1,6 +1,7 @@
 # Bug-Hunting Gap Closure Roadmap
 
-> **Status:** PROPOSED — planning only; no application bug is confirmed.
+> **Status:** IN PROGRESS — Phases 0–4 in the main working tree (uncommitted), Phase 5 on branch
+> `claude/silly-knuth-1f43ce` (not merged). No application bug is confirmed.
 > **Scope:** Close demonstrated gaps without duplicating [Plan 16](./plan-16-testing-professionalization/plan-overview.md).
 > **Baseline:** Review on 2026-11-03; refreshed 2026-11-04 at `f94e424` in
 > [Phase 0](./bug-hunting-gap-closure/phase-0-baseline-and-decisions.md).
@@ -36,8 +37,8 @@ pass the workspace reproducibility and evidence gate.
 | 1 — Repair REQ-001 design | Resolve XSS reachability and boundary-case overlap. | 0 | Implemented (not run on target) |
 | 2 — Expand login coverage | Automate confirmed lockout, session, and input boundaries. | 1 | Partial (TC-014 done; rest blocked) |
 | 3 — API/security coverage | Apply existing guards to real, confirmed contracts. | 0; contract available | Partial (TC-021; rest deferred) |
-| 4 — CI and flaky visibility | Verify Plan 16 rollout; close only measured gaps. | 0 | Implemented; PR impact selection awaits owner |
-| 5 — Mutation pilot | Measure tests against eligible owned logic, if available. | 0; source and invariants available | N/A proposed |
+| 4 — CI and flaky visibility | Verify Plan 16 rollout; close only measured gaps. | 0 | Implemented (incl. PR impact selection) |
+| 5 — Mutation pilot | Measure tests against eligible owned logic, if available. | 0; source and invariants available | Framework scope, report-only, on branch (`3de1567`, not merged); owner must confirm scope |
 
 ```text
 0 → 1 → 2

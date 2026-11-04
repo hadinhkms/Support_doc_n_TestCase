@@ -1,6 +1,6 @@
 # Test Cases: REQ-001 Sign in with email and password
 
-Requirement: `requirements/REQ-001-sign-in.md` (v1.1)
+Requirement: `requirements/REQ-001-sign-in.md` (v1.2)
 Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 ## Traceability
@@ -20,12 +20,13 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 | REQ-001 | AC-006 | TC-011 | No | - | P2 |
 | REQ-001 | AC-002 | TC-012 | Candidate | - | P2 |
 | REQ-001 | AC-001 | TC-013 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
-| REQ-001 | AC-003 | TC-014 | Candidate | - | P2 |
-| REQ-001 | AC-002 | TC-015 | Candidate | - | P2 |
+| REQ-001 | AC-003 | TC-014 | Yes | `playwright/tests/auth/login.validation.spec.ts` | P2 |
 | REQ-001 | AC-006 | TC-016 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
 | REQ-001 | AC-008 | TC-017 | Yes | `playwright/tests/auth/login.spec.ts` | P2 |
 | REQ-001 | AC-009 | TC-018 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
 | REQ-001 | AC-010 | TC-019 | Yes | `playwright/tests/auth/login.spec.ts` | P1 |
+| REQ-001 | AC-002 | TC-020 | Candidate | - | P2 |
+| REQ-001 | AC-002 | TC-021 | Yes | `playwright/tests/auth/login.security.spec.ts` | P1 |
 
 ## Test data and environment
 
@@ -47,10 +48,12 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 - Type: Security | Priority: P1 | Technique: EP (lớp không hợp lệ)
 - Automation: Yes | Tags: `@p1 @security`
+- Test data: `TEST_VIEWER_EMAIL` — không dùng tài khoản của `auth.setup.ts` để lần thử sai không khoá nó (AC-007)
 
 | Step | Action | Expected result |
 |---|---|---|
 | 1 | Mở `/login`, nhập email đúng + password sai, submit | Hiển thị `Invalid email or password`, vẫn ở `/login` |
+| 2 | Đọc cookie của context | Không có cookie session mới so với trước khi submit (AC-002) |
 
 ### TC-003: Email không tồn tại trả về đúng thông báo như sai password
 
@@ -59,7 +62,8 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Mở `/login`, nhập email chưa đăng ký + password bất kỳ, submit | Giống hệt TC-002: `Invalid email or password` |
+| 1 | Mở `/login`, nhập email chưa đăng ký + password bất kỳ, submit | Giống hệt TC-002: `Invalid email or password`, vẫn ở `/login` |
+| 2 | Đọc cookie của context | Không có cookie session mới so với trước khi submit (AC-002) |
 
 ### TC-004: Email sai định dạng bị chặn ở client
 
@@ -135,14 +139,14 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 |---|---|---|
 | 1 | Mở `/login` bằng NVDA và submit sai credential | Đọc đúng nhãn và thông báo lỗi live region |
 
-### TC-012: Biên độ dài password (8 / 64 / 65 ký tự)
+### TC-012: Biên độ dài password (7 / 8 / 64 / 65 ký tự)
 
 - Type: Boundary | Priority: P2 | Technique: BVA
 - **Automation: Candidate** - chờ expose test id cho lỗi Password
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Nhập password 7, 8, 64, 65 ký tự | 7 và 65 báo lỗi; 8 và 64 hợp lệ |
+| 1 | Nhập password 7, 8, 64, 65 ký tự | 7 và 65 báo lỗi validation; 8 và 64 hợp lệ |
 
 ### TC-013: Thuộc tính bảo mật của cookie session
 
@@ -156,20 +160,12 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 ### TC-014: Kiểm thử độ dài email tại các điểm biên (254 và 255 ký tự)
 
 - Type: Functional | Priority: P2 | Technique: BVA
-- Automation: Candidate | Tags: `@wip @p2`
+- Automation: Yes | Tags: `@p2`
+- **Capabilities**: boundary
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Nhập email dài 254 và 255 ký tự | 254 hợp lệ; 255 báo lỗi validation |
-
-### TC-015: Kiểm thử độ dài mật khẩu tại các điểm biên mở rộng (7, 8, 64, 65 ký tự)
-
-- Type: Functional | Priority: P2 | Technique: BVA
-- Automation: Candidate | Tags: `@wip @p2`
-
-| Step | Action | Expected result |
-|---|---|---|
-| 1 | Nhập password 7, 8, 64, 65 ký tự | 7 và 65 báo lỗi; 8 và 64 chấp nhận |
+| 1 | Nhập email dài 254 và 255 ký tự (local-part 64 ký tự, domain gồm các label ≤ 63 ký tự để chỉ độ dài là biến) | 254: không có lỗi tại trường, request được gửi và server trả `Invalid email or password` (email không tồn tại); 255: lỗi validation tại trường, không gửi request |
 
 ### TC-016: Kiểm chứng bố cục hình học form đăng nhập và tên tiếp cận tương tác
 
@@ -201,7 +197,7 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 |---|---|---|
 | 1 | Điền credential hợp lệ và gọi `expectIdempotentSubmit` trên nút `Sign in` | Phát sinh tối đa 1 request `POST /api/auth/login` |
 
-### TC-019: Kiểm chứng escape an toàn chuỗi XSS trong thông báo lỗi đăng nhập
+### TC-019: Kiểm chứng escape an toàn chuỗi XSS trong lỗi validation Email
 
 - Type: Security | Priority: P1 | Technique: Fault Injection (XSS)
 - Automation: Yes | Tags: `@p1 @security`
@@ -209,7 +205,36 @@ Automation plan: `test-cases/REQ-001-sign-in.automation-plan.md`
 
 | Step | Action | Expected result |
 |---|---|---|
-| 1 | Chạy `expectSafeXssRender` với `XSS_PAYLOADS` trên trường `Email` và vùng `errorMessage` | Không thực thi script và không xuất hiện phần tử HTML độc hại trong `errorMessage` |
+| 1 | Chạy `expectSafeXssRender` với `XSS_PAYLOADS` trên trường `Email`, sink là lỗi validation `Email` (AC-003) | Không có dialog, không thực thi script, không có phần tử HTML độc hại trong sink |
+| 2 | Theo dõi request trong lúc submit các payload | Không có request `POST /api/auth/login` nào (AC-003) |
+
+- Ghi chú: payload sai định dạng email nên bị chặn ở client; không assert phản chiếu (xem Q-006).
+
+### TC-020: Password bắt buộc nhập
+
+- Type: Validation | Priority: P2 | Technique: EP (lớp không hợp lệ: rỗng)
+- **Automation: Candidate** - chờ expose test id cho lỗi Password (cùng blocker với TC-012)
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Mở `/login`, nhập email hợp lệ, để trống Password, submit | Lỗi validation tại trường Password, không gửi request `POST /api/auth/login` |
+
+- Ghi chú: password chỉ có khoảng trắng chưa có expected, xem Q-008.
+
+### TC-021: Phản hồi API đăng nhập không phân biệt sai password và email không tồn tại
+
+- Type: Security | Priority: P1 | Technique: Differential testing (user enumeration)
+- Automation: Yes | Tags: `@p1 @security`
+- Test data: `TEST_VIEWER_EMAIL` + password sai; `no-such-user@example.com` + password sai
+
+| Step | Action | Expected result |
+|---|---|---|
+| 1 | Đăng nhập qua UI bằng email đúng + password sai, bắt phản hồi `POST /api/auth/login` | Status < 500 (từ chối có chủ đích) |
+| 2 | Đăng nhập qua UI bằng email không tồn tại + password sai 2 lần, bắt cả 2 phản hồi | Cùng status với bước 1; trường khác nhau giữa 2 lần là nhiễu (requestId, timestamp) |
+| 3 | So sánh body bước 1 với bước 2 (JSON làm phẳng mọi cấp; không phải JSON so nguyên văn) | Cùng tập trường; mọi giá trị không phải nhiễu giống hệt, kể cả mã lỗi lồng nhau |
+
+- Ghi chú: chỉ so sánh hai phản hồi với nhau, không giả định body request/response (Q-004 chốt
+  rằng hai trường hợp không được phân biệt). Chưa phủ: chênh lệch thời gian phản hồi.
 
 ## Case không automation
 

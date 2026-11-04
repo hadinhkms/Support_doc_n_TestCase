@@ -30,4 +30,16 @@ export class LoginPage extends BasePage {
     await this.passwordInput.fill(password);
     await this.submitButton.click();
   }
+
+  /**
+   * Tên cookie mang session, nhận diện theo tên như TC-013 (thứ tự cookie không tất định).
+   * Bỏ cookie CSRF (`csrftoken`, `XSRF-TOKEN`): app có thể đặt/xoay nó cả khi đăng nhập thất bại.
+   */
+  async sessionCookieNames(): Promise<string[]> {
+    const cookies = await this.page.context().cookies();
+    return cookies
+      .filter((cookie) => /session|sid|token/i.test(cookie.name) && !/csrf|xsrf/i.test(cookie.name))
+      .map((cookie) => cookie.name)
+      .sort();
+  }
 }

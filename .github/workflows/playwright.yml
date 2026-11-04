@@ -133,6 +133,9 @@ jobs:
         shard: [1, 2]
     steps:
       - uses: actions/checkout@v4
+        with:
+          # PR checkout là merge commit; depth 2 có parent đầu (= base) để tính file đổi.
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -161,11 +164,20 @@ jobs:
           TEST_VIEWER_PASSWORD: ${{ secrets.TEST_VIEWER_PASSWORD }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: |
-          # PR -> chỉ smoke + P0 cho nhanh, trừ test đang quarantine (@wip)
-          # theo docs/flaky-test-policy.md. Nightly/manual -> đầy đủ, @wip vẫn chạy.
+          # PR -> smoke + P0, cộng toàn bộ test của REQ mà PR đụng tới (requirement, test case,
+          # spec hoặc module spec import), trừ test đang quarantine (@wip) theo
+          # docs/flaky-test-policy.md. Nightly/manual -> đầy đủ, @wip vẫn chạy.
+          set -o pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            GREP="--grep @smoke|@p0 --grep-invert @wip"
+            # Hai lệnh gán riêng: diff hoặc script lỗi thì bash -e dừng step (fail closed),
+            # không âm thầm rơi về chỉ smoke/p0.
+            CHANGED=$(git diff --name-only HEAD^1 HEAD)
+            IMPACT=$(printf '%s\n' "$CHANGED" | node ../tools/ci/pr-impact.js)
+            GREP="--grep @smoke|@p0${IMPACT:+|$IMPACT} --grep-invert @wip"
             PROJECTS="--project=chromium"
+            if [ "${{ matrix.shard }}" = "1" ]; then
+              echo "PR impact selection: \`${IMPACT:-none - smoke/p0 only}\`" >> "$GITHUB_STEP_SUMMARY"
+            fi
           elif [ "${{ github.event_name }}" = "schedule" ]; then
             GREP=""
             PROJECTS="--project=chromium --project=firefox --project=webkit"
@@ -206,11 +218,30 @@ jobs:
           pattern: blob-report-*
           merge-multiple: true
 
-      - run: npx playwright merge-reports --reporter=html,github ./all-blob-reports
+      # run-health-reporter ghi test-results/run-health.json (first-attempt pass / flaky / failed /
+      # empty) và bảng vào job summary, để retry-pass không lẫn vào pass lần đầu.
+      - run: npx playwright merge-reports --reporter=html,github,./tests/support/run-health-reporter.ts ./all-blob-reports
 
       - name: Upload HTML report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-html-report
           path: playwright/playwright-report
           retention-days: 14
+
+      - name: Upload run health
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-health
+          path: playwright/test-results/run-health.json
+          retention-days: 14
+
+      # Shard rỗng thoát 0, nên grep không khớp test nào sẽ xanh ở mọi shard. Chặn ở đây.
+      - name: Fail if no tests were executed
+        run: |
+          node -e "if (require('./test-results/run-health.json').empty) {
+            console.log('::error::No tests were executed - check the grep/project/shard selection.');
+            process.exit(1);
+          }"
