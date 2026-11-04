@@ -1,6 +1,6 @@
 # Phase 2 — Expand Login Risk Coverage
 
-> **Status:** PARTIAL — TC-014 automated; TC-009, TC-010, TC-012, TC-020 blocked (see below)
+> **Status:** PARTIAL / BLOCKED — TC-014 automated; negative-account isolation, target runs, and owner decisions remain open
 > **Depends on:** Phases 0 and 1
 > **Parent:** [Bug-Hunting Gap Closure Roadmap](../BUG_HUNTING_GAP_CLOSURE_ROADMAP.md)
 
@@ -28,8 +28,10 @@ or timing-dependent expectations.
 ## Open prerequisites
 
 - Owner-confirmed lockout/reset/expiry semantics from Phase 0.
-- Test environment that can safely reset the dedicated account.
+- A dedicated negative-test identity plus a safe reset/isolation path for account- and
+  per-IP-based limits; the current viewer identity is shared by TC-002 and TC-021.
 - A deterministic mechanism for time-dependent behavior; do not wait 15 minutes in CI.
+- A target environment and credentials provisioned for the intended test data.
 
 ## Exit gate
 
@@ -64,8 +66,9 @@ made 3 (TC-002) + 3 (TC-021) = 6 failed viewer attempts, enough to lock it per A
 test while the app is correct; a full local run made 4 + 4 = 8. TC-021 now runs only in the
 `chromium` project, giving nightly 3 + 1 = 4, local 4 + 1 = 5, PR/push 1 + 1 = 2. Still open:
 retries, or back-to-back runs within 15 minutes, can push the viewer past 5. TC-003, TC-014 and
-TC-021's unknown-email requests could trip a per-IP lockout (Q-003). Closing this needs a dedicated
-negative-test account with a reset path (tasks 1–2).
+TC-021's unknown-email requests could trip a per-IP lockout (Q-003). Closing this needs a dedicated negative-test account with a reset path (tasks 1–2). Until
+then, do not run retry/repeat campaigns for TC-002/TC-021 against the shared viewer account;
+limiting TC-021 to one project reduces the count but does not make the identity isolated.
 
 ### First-run triage note
 
@@ -86,17 +89,26 @@ mismatch (REQ-001 expects a field error), not a confirmed bug; raise it as a que
 | `playwright: npm run verify` | Exit 0 — typecheck, lint, limits; TC-014 listed in all 4 projects |
 | `npm run qa:matrix` | TC-014 → `login.validation.spec.ts:13` (Automated) |
 | `npm run qa:check` | Exit 0 — no findings |
-| `--repeat-each=3` on target | **Not run** — no target environment (`playwright/.env` absent, D-05) |
+| `--repeat-each=3` on target | **Not run** — no target environment (`playwright/.env` absent, D-05); negative probes also lack isolated account/reset |
 
 _Review 2026-11-04:_ attempt counts corrected against `.github/workflows/playwright.yml`
 (nightly is 3 projects, not 4; `mobile-chrome` runs only locally).
 
 ### Exit gate
 
-- [ ] Confirmed cases pass three clean repetitions — not run; needs the target app.
-- [ ] No shared account or residual lockout state affects other tests — the setup account no
-  longer receives failed attempts, but TC-002 and TC-021 still share the viewer account. Mitigated
-  (TC-021 on chromium only); closing it needs a dedicated negative-test account with a reset path.
+- [ ] Confirmed cases pass three clean repetitions — not run; needs target app and safe test data.
+- [ ] No shared account or residual lockout state affects other tests — setup account is no
+  longer used for wrong-password attempts, but TC-002 and TC-021 still share viewer identity.
+  Limiting TC-021 to chromium mitigates volume only; a dedicated account/reset path is required.
 - [x] Error and side-effect assertions match the approved requirement.
 - [x] Traceability, Playwright verification, strict limits, and root QA checks pass.
 - [x] Unavailable prerequisites are documented and those cases stay manual/candidate.
+
+### Remaining closure actions
+
+1. Obtain owner decisions Q-003 and Q-005 and resolve Q-007/Q-008 where they affect assertions.
+2. Provision isolated negative and lockout identities, including deterministic cleanup/reset and
+   an agreed per-IP strategy; avoid shared-account retries until this exists.
+3. Implement password boundary candidates only after a stable, accessible locator is available.
+4. Run eligible cases in a clean target environment with `--repeat-each=3`; otherwise keep
+   them explicitly manual/candidate and report the residual risk.

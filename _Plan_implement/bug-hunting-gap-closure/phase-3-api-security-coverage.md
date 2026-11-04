@@ -1,6 +1,6 @@
 # Phase 3 — API and Security Coverage
 
-> **Status:** PARTIAL — contract-backed slice automated (TC-021); rest deferred, no API contract
+> **Status:** PARTIAL / DEFERRED — TC-021 is present as a local test; no application execution or API contract
 > **Depends on:** Phase 0; confirmed API contract and target required
 > **Parent:** [Bug-Hunting Gap Closure Roadmap](../BUG_HUNTING_GAP_CLOSURE_ROADMAP.md)
 
@@ -50,6 +50,10 @@ downstream state, not just response status.
   the real UI, captures the browser's own `POST /api/auth/login` responses for wrong-password and
   unknown-email, and asserts the same status (< 500), the same flattened field set, and equal values for every
   field that is stable across two unknown-email baselines (see review fix). Request and response shapes are not assumed.
+- The `< 500` status assertion is an additional expectation not stated explicitly by AC-002.
+  Keep it only if the owner/API contract confirms that all responses under test must be
+  non-server-error responses; otherwise remove or document the approved expected status before
+  treating the assertion as contract-backed.
 - The spec is an application probe and is kept apart from the guard self-tests in
   `playwright/deep-engine-tests/` (task 5). It does not declare `api-security`, because that
   capability means BOLA/mass-assignment guards, which do not apply here.
@@ -89,17 +93,28 @@ with "no stable field to compare" in that case, instead of passing.
 
 | Check | Result |
 |---|---|
-| `playwright: npm run verify` | Exit 0 — TC-021 listed in all projects |
+| `playwright: npm run verify` | Exit 0 — typecheck, lint, limits; TC-021 listed in configured projects (skipped outside chromium by design) |
 | `npm run qa:matrix` | TC-021 → `login.security.spec.ts:49` (Automated) |
 | `npm run qa:check` | Exit 0 — no findings |
-| Run on target | **Not run** — no target environment |
+| Run on target | **Not run** — no target environment; TC-021 also increments the shared viewer's failed-attempt counter |
 
 ## Exit gate
 
-- [x] Every assertion has a contract-backed expected result (AC-002, Q-004).
+- [ ] Every assertion has a contract-backed expected result — AC-002 supports response
+  indistinguishability, but the additional `< 500` status assertion still needs owner/API
+  confirmation.
 - [ ] Positive control passes and unauthorized mutation is rejected — N/A until a mutating,
   role-protected endpoint is in scope; deferred.
 - [x] No sensitive data in logs/artifacts — failure output shows response fields only; the
   submitted password is never logged by the probe.
 - [x] Traceability and required QA gates pass.
 - [x] Missing contract parts are deferred; guard self-tests are not counted as product coverage.
+
+### Remaining closure actions
+
+1. Treat TC-021 as an unexecuted local probe, not verified application security coverage.
+2. Resolve the response-status expectation with the owner and provide the API contract/target.
+3. Replace the shared viewer identity with an isolated negative-test identity/reset path before
+   running the test repeatedly or in a retrying CI job (see Phase 2).
+4. Resume the deferred BOLA/BFLA, schema, mass-assignment, and mutation checks only when
+   authorized endpoints, roles, data, and expected outcomes are documented.

@@ -1,7 +1,8 @@
 # Phase 0 — Baseline and Decisions
 
-> **Status:** PARTIAL — Phase 1 unblocked; Phase 2 waits on owner answers Q-003, Q-005
-> **Depends on:** None · **Blocks:** Phases 1–5 · **Baseline revision:** `f94e424` (2026-11-04)
+> **Status:** PARTIAL — baseline refreshed; owner decisions and target environment are outstanding
+> **Depends on:** None · **Blocks:** behavior-dependent work in Phases 1–3; not Phase 4
+> **Baseline revision:** current `main` checkout (2026-11-04)
 > **Parent:** [Bug-Hunting Gap Closure Roadmap](../BUG_HUNTING_GAP_CLOSURE_ROADMAP.md)
 
 ## Objective
@@ -20,7 +21,8 @@ assertions. Existing plan status is not a substitute for current evidence or own
    - Which user-controlled value is reflected into which UI sink for XSS coverage.
    - Email/password boundary expectations where the product contract is not explicit.
 4. Record unresolved items as open questions; do not add expected-result assertions for them.
-5. Refresh the phase dependency/status table if current repository evidence materially differs.
+5. Refresh the phase dependency/status table when repository evidence materially differs;
+   distinguish local harness verification from application or hosted-CI verification.
 
 ## Deliverables
 
@@ -35,30 +37,34 @@ assertions. Existing plan status is not a substitute for current evidence or own
 - Phase 5 has eligible owned source and invariants, or is explicitly N/A.
 - No implementation is started for unresolved product behavior.
 
-## Baseline results (2026-11-04, `f94e424`)
+## Baseline results (2026-11-04, current checkout)
 
 All commands exited `0`. No product environment was available: `playwright/.env` is absent
 and `BASE_URL` falls back to `http://localhost:3000`, so no REQ-001 test was executed.
 
 | Command | Result |
 |---|---|
-| `qa:impact -- REQ-001` | 10 AC, 19 TC; specs `tests/auth/login.spec.ts`, `tests/a11y/login.a11y.spec.ts` |
+| `qa:impact -- REQ-001` | REQ-001 v1.2; 10 AC, 20 TC; 15 automated tests (TC-012/020 candidates; TC-009/010/011 manual) |
 | `qa:gaps` | OK, no findings |
 | `qa:drift` | OK, no findings |
-| `qa:summary` | WARNING: 90% AC automated (9/10), 13 automated tests, 10 pending decisions (7 blocking) |
-| `qa:coverage` | AC-007 has no automation (TC-009 manual); TC-010, TC-011 manual; TC-012, TC-014, TC-015 candidate |
+| `qa:summary` | WARNING: 90% AC automated (9/10), 15 automated tests, 10 pending decisions (7 blocking), 0 static findings |
+| `qa:coverage` | 1 requirement, 10 AC, 20 TC, 15 automated; AC-007 has no automation (TC-009 manual); TC-010/011 manual; TC-012/020 candidates |
 
 `qa:gaps`/`qa:drift` being clean means traceability is consistent, not that behavior is covered.
+The target remains unavailable (`playwright/.env` absent; default `BASE_URL` is localhost), so
+no application behavior has been verified.
 
 ## Findings
 
-- **F-0.1 XSS sink unreachable (Phase 1).** `expectSafeXssRender`
-  (`playwright/tests/support/deep-guards.ts:117`) requires the payload to be reflected in the sink.
-  TC-019 (`login.spec.ts:201`) types payloads into `Email` and uses `role=alert` as the sink,
-  but AC-003 blocks malformed email on the client, so the server error should never render.
-  TC-019 can pass only if AC-003 is violated. Open question: Q-006.
-- **F-0.2 Duplicate boundary cases (Phase 1).** TC-012 and TC-015 have identical steps and
-  expectations (password 7/8/64/65). Open question: Q-008.
+- **F-0.1 AC-010 is not established by the current TC-019 path (Phase 1).** AC-003 rejects
+  malformed email on the client. The current test checks that validation sink for unsafe nodes
+  without requiring reflection and asserts that no login POST occurs. This can check client-side
+  rejection, but does not demonstrate that a user-controlled value reaches an application sink
+  or that a reflected value is escaped. Q-006 remains an owner decision; do not count this as
+  verified XSS rendering coverage.
+- **F-0.2 Duplicate boundary cases (Phase 1; fixed in v1.2).** TC-012 and TC-015 had identical
+  steps and expectations (password 7/8/64/65). TC-015 is retired and TC-020 covers empty
+  password; Q-008 remains open only for whitespace/message behavior.
 - **F-0.3 Dangling decision reference.** TC-009 cites `Q-003`, which REQ-001 never recorded.
   Now recorded as open Q-003 with the lockout scope questions.
 - **F-0.4 Lockout may contradict AC-002.** If a non-existent email can be locked, the lockout
@@ -68,9 +74,9 @@ and `BASE_URL` falls back to `http://localhost:3000`, so no REQ-001 test was exe
 - **F-0.7 Over-asked boundaries (fixed 2026-11-04).** The first draft of Q-007/Q-008 re-asked the
   email 254/255 and password 7/8/64/65/empty boundaries, which REQ-001 `Rules and validation`
   already states. Narrowed to the unstated whitespace/message details; Phase 1 no longer waits on them.
-- **F-0.6 `decisions.json` looks out of date for REQ-001.** D-05 (target URL) and D-06 (REQ-001 owner/status)
-  are still `pending`, while REQ-001 now names an owner and status. Not changed here: the
-  decision owner needs to confirm or close them via `npm run decisions`.
+- **F-0.6 `decisions.json` needs owner reconciliation.** D-05 (target URL) and D-06
+  (REQ-001 owner/status) were pending in the recorded baseline. Do not close them based on
+  document text alone; the decision owner must confirm or close them via `npm run decisions`.
 
 ## Decision references and open questions
 
@@ -79,30 +85,37 @@ and `BASE_URL` falls back to `http://localhost:3000`, so no REQ-001 test was exe
 | Generic error message for wrong email/password | 1, 2 | Q-004 | Confirmed 2026-09-19 |
 | Lockout scope, counting, reset, expiry, message | 2 | Q-003 | Open |
 | Session expiry model and test hook | 2 | Q-005 | Open |
-| XSS sink for TC-019 | 1 | AC-003 + AC-010; Q-006 for a server sink | Assumption recorded; server sink open |
-| Email 254/255 boundary | 1, 2 | REQ-001 `Rules and validation` | Confirmed; whitespace open (Q-007) |
-| Password 7/8/64/65/empty boundary | 1, 2 | REQ-001 `Rules and validation` | Confirmed; whitespace/message open (Q-008) |
+| XSS sink and expected behavior for AC-010 | 1 | AC-003 + AC-010; Q-006 | Open; current client-validation test does not prove reflected rendering |
+| Email 254/255 boundary | 1, 2 | REQ-001 `Rules and validation` | Specified in requirement; independent product/owner confirmation and target execution unavailable; whitespace open (Q-007) |
+| Password 7/8/64/65/empty boundary | 1, 2 | REQ-001 `Rules and validation` | Specified in requirement; independent product/owner confirmation and target execution unavailable; whitespace/message open (Q-008) |
 | `email-error` test id | 1, 2 | Q-009 | Assumption |
 | Target environment URL | 2, 3 | D-05 | Pending |
 
 The questions are recorded in `requirements/REQ-001-sign-in.md` under `Open questions`.
-No assertion was added or changed for any open item.
+No expected result is inferred for an open item. Requirement text is not treated as independent
+proof that the sample product implements that behavior.
 
 ## Prerequisites for Phases 3 and 5
 
-- **Phase 3 — deferred** (later narrowed: one contract-backed slice, TC-021, was possible). No API contract (OpenAPI/JSON schema) for `POST /api/auth/login`
-  exists in the repo, and `API_BASE_URL`/`API_TOKEN` are not configured. Resume when the owner
-  provides both.
-- **Phase 5 — N/A (proposed).** The repo has no product source; the only mutable logic is the
-  framework itself and the Plan 16 reference apps under `playwright/deep-engine-tests/`,
-  already covered by Plan 16 Phase 5. The owner must confirm before the phase is closed.
-- **Phase 4 — can start.** It depends only on Plan 16 Phase 8 evidence
-  (`docs/testing-rollout.md`), which is in the repo.
+- **Phase 3 — bounded local slice only.** TC-021 compares AC-002 login responses, but no
+  application API contract or target is available; it has not been run against the product.
+  Defer schema, BOLA/BFLA, and mutation assertions until the owner supplies contract and
+  environment details.
+- **Phase 5 — N/A for product mutation testing at present.** This repository has no owned
+  product implementation. Framework/reference-app mutation work belongs to Plan 16 and must
+  not be represented as product mutation coverage. Reopen only when eligible source and
+  invariants are supplied.
+- **Phase 4 — independent of unresolved product decisions.** Local implementation can proceed
+  against Plan 16 Phase 8 evidence (`docs/testing-rollout.md`); hosted workflow validation is
+  still required.
 
 ## Exit gate status
 
-- [x] Every behavior needed by Phase 1 has an authoritative expected result (rules table, AC-003, AC-010).
+- [ ] Every behavior needed by Phase 1 has an authoritative expected result — AC-010 sink and
+  email-error locator remain unconfirmed; current TC-019 is not XSS-rendering proof.
 - [ ] Every behavior needed by Phase 2 has an authoritative expected result — waiting on Q-003, Q-005.
-- [x] Phase 3 has an API contract and target environment, or is explicitly deferred — deferred.
-- [ ] Phase 5 has eligible owned source and invariants, or is explicitly N/A — N/A proposed, needs owner confirmation.
+- [x] Phase 3 has an API contract and target environment, or is explicitly deferred — remaining
+  API scope is deferred; TC-021 is only a static/local test design.
+- [x] Phase 5 has eligible owned source and invariants, or is explicitly N/A — N/A for product
+  code, with reopening conditions documented.
 - [x] No implementation is started for unresolved product behavior.

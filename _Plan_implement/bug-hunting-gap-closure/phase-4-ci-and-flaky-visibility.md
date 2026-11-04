@@ -1,6 +1,6 @@
 # Phase 4 — CI Selection and Flaky Visibility
 
-> **Status:** IMPLEMENTED — flaky visibility, empty-selection gate, PR impact selection (owner-approved 2026-11-04)
+> **Status:** LOCALLY IMPLEMENTED — controlled-fixture and local workflow checks recorded; real PR and hosted Actions validation pending
 > **Depends on:** Phase 0; reconcile with Plan 16 Phase 8
 > **Parent:** [Bug-Hunting Gap Closure Roadmap](../BUG_HUNTING_GAP_CLOSURE_ROADMAP.md)
 
@@ -134,15 +134,26 @@ Both findings reproduced before fixing:
 | Workflow YAML parse (`js-yaml`) | OK |
 | `node --test "tools/**/*.test.js"` (incl. `tools/ci/pr-impact.test.js`, 9 cases) | 280/280 pass |
 | `qa:drift`, `qa:gaps`, `qa:limits` (`--strict`); matrix freshness | Exit 0; fresh |
-| `qa:boundary` | Local MAJOR: `.claude` unclassified — a git-excluded worktree folder from a parallel session, not part of this change and absent in CI checkouts |
+| `qa:boundary` | Historical local run reported `.claude` unclassified in a parallel worktree. Current root `qa:check` passes; this historical environment artifact is not a remaining blocker. |
 | PR diff on a real GitHub merge commit (`fetch-depth: 2`, `HEAD^1`) | **Not run** — needs a real PR |
 | Real GitHub Actions run of the new `report` steps | **Not run** — needs a push; local merge-reports path is covered by HM-15 |
-| Full `npm run test:deep-engine -- --workers=2` (as CI `quality`) | 51 passed, **2 failed** — both in `evidence-security.spec.ts` (HM-11, TC-16-P6-1 `ATTEMPT_ID_MISMATCH`, TC-16-P6-2 `sessionStorage` SecurityError). **Pre-existing:** the same 2 fail on clean `f94e424` with these changes stashed. Not caused by this phase. Fixed separately in `f462be4` on branch `claude/silly-knuth-1f43ce` (reported 9/9 with `--repeat-each=3`), not yet merged into this checkout. |
+| Full `npm run test:deep-engine -- --workers=2` (as CI `quality`), current `main` on 2026-11-04 | **Exit 1:** 54 passed, 2 failed out of 56. Both are in `evidence-security.spec.ts`: HM-11/TC-16-P6-1 reports `ATTEMPT_ID_MISMATCH`; HM-11/TC-16-P6-2 hits a `sessionStorage` `SecurityError`. These are current observed test failures, not confirmed application bugs; test/environment causes have not yet been ruled out. |
 
 ## Exit gate
 
 - [x] A controlled flaky case is surfaced distinctly from a first-attempt pass.
-- [x] A representative changed requirement/spec selects related critical tests (simulated
-  locally; the first real PR still has to confirm the merge-commit diff).
+- [ ] A representative changed requirement/spec selects related critical tests — local
+  simulation passes; the first real PR still has to confirm the merge-commit diff.
 - [x] Empty selection is explicit and cannot silently turn into a false-green run.
-- [x] Workflow checks pass without changing unrelated CI behavior (push/nightly/manual selection untouched).
+- [ ] Hosted workflow checks pass without changing unrelated CI behavior — local controlled
+  fixtures pass; real PR, push, nightly, and manual Actions runs remain unverified.
+
+### Remaining closure actions
+
+1. Triage both current deep-engine failures: rule out test/environment faults, make a focused
+   fix if indicated, and rerun the affected tests before rerunning the full suite. Do not report
+   an application bug from these harness failures.
+2. Validate changed-file impact using a real PR merge commit and confirm the selected tests.
+3. Push a controlled change and verify the hosted report job, uploaded `run-health.json`, empty
+   selection failure, and artifact behavior. Exercise push/nightly/manual paths as applicable.
+4. Keep this phase locally implemented but not fully accepted until these external checks pass.
