@@ -44,6 +44,31 @@ bắn đúng 1 lần). Hành vi reload còn Open question nên không assert.
 | `npm run check:framework` (SV, Hub framework) | pass |
 | `node tools/qa gaps --req=REQ-013`, `coverage --req=REQ-013` | không gap; 3 AC → 3 TC → 3 test automation |
 
+## Live Skill Discovery (bổ sung theo yêu cầu user)
+
+`AGENTS.md` của `_Automation-Project` và `_SV_Automation` (giống nhau) có quy tắc "Nguồn skill & Live Skill
+Discovery" ở mục 3A. Chỉ dùng skill **đã commit và push** lên `main` của `hadinhkms/Support_doc_n_TestCase`, lấy theo
+thứ tự:
+
+1. Clone cục bộ `D:/_QA_Test_Automation`, nhánh `origin/main` (`git fetch` → `ls-tree` → `show "origin/main:./<path>"`;
+   dạng `./` + dấu nháy đã thử chạy được trên cả PowerShell và Git Bash).
+2. GitHub raw (repo public, không cần token; đã kiểm HTTP 200).
+3. Bản copy `.agents/skills/` trong repo (CI, offline, agent không chạy được lệnh).
+
+Agent chọn skill theo `name` + `description` (kể cả skill mới chưa có trong danh sách), ghi commit hash khi kết quả
+dùng cho release/sign-off.
+
+**Đảm bảo Claude, Codex, Gemini đều đọc được:**
+
+| Repo | Claude Code | Codex | Gemini CLI |
+|---|---|---|---|
+| `_Automation-Project`, `_SV_Automation` | `CLAUDE.md` import `@./AGENTS.md` | `AGENTS.md` | `GEMINI.md` import `@./AGENTS.md` |
+| `_QA_Test_Automation` | `CLAUDE.md` (mục "Skill cho AI agent") | `AGENTS.md` (cùng mục) | **mới**: `GEMINI.md` import `@./AGENTS.md`, khai `ship` trong `sync-manifest.json` |
+
+AI khác (Cursor, Windsurf, Copilot…) chưa được đảm bảo: cần thêm entry point riêng trỏ về `AGENTS.md` khi dùng.
+Các repo vệ tinh khác nhận quy tắc ở lần `update:framework` tiếp theo (AGENTS.md là framework root file).
+Các repo vệ tinh khác nhận quy tắc này ở lần `update:framework` tiếp theo (AGENTS.md là framework root file).
+
 ## Phát hiện phụ
 
 - `JobSearchPage.locTheoTinhThanhInput` tìm **textbox** "Lọc theo tỉnh thành", nhưng QC hiện là **button**.

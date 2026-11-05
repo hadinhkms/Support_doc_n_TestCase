@@ -58,3 +58,17 @@ Chạy trong **`playwright/`**:
 
 Khi cần research thông tin về QA skills, AI Agent testing, Playwright best practices, visual/DOM/accessibility testing:
 Tham chiếu danh mục repository tại [docs/qa-research-references.md](docs/qa-research-references.md).
+
+## Skill cho AI agent (Claude, Codex, Gemini)
+
+Skill QA nằm ở `.agents/skills/<skill>/SKILL.md`; đây là **nguồn gốc** mà các repo khác lấy về.
+Mọi agent (Claude Code, Codex, Gemini CLI, …) chọn skill theo `name` + `description` trong
+front-matter của từng `SKILL.md`, rồi đọc `references/`, `templates/`, `workflows/` của skill đó.
+Danh sách và mục đích từng skill: bảng "Bộ Kỹ Năng AI Agent" trong [README.md](README.md).
+
+- Đang làm **trong repo này**: đọc thẳng `.agents/skills/` (kể cả thay đổi chưa commit).
+- Repo khác lấy skill từ bản **đã commit và push** trên `origin/main` (clone cục bộ → GitHub
+  `hadinhkms/Support_doc_n_TestCase` → bản copy trong repo đó), theo quy tắc "Nguồn skill & Live
+  Skill Discovery" trong `AGENTS.md` của Hub framework. Vì vậy skill mới chỉ tới repo khác sau khi push.
+- Entry point theo AI: Claude Code đọc `CLAUDE.md`, Codex đọc `AGENTS.md`, Gemini CLI đọc `GEMINI.md`
+  (import `AGENTS.md`). Thêm AI khác thì thêm entry point tương ứng trỏ về `AGENTS.md`.
