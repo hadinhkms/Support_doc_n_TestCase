@@ -20,10 +20,10 @@
     "qa:summary": "node tools/qa summary",
     "qa:fix": "node tools/qa fix",
     "qa:learn": "node tools/qa learn",
-    "test": "node --test tools/",
-    "test:watch": "node --test --watch tools/"
+    "test": "node --test \"tools/**/*.test.js\"",
+    "test:watch": "node --test --watch \"tools/**/*.test.js\""
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   }
 }

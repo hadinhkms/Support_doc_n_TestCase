@@ -31,7 +31,7 @@ const CATEGORIES = ['ship', 'seed', 'own'];
 const IGNORED = new Set([
   'node_modules', '.git', 'playwright-report', 'test-results', '.auth',
   'sync-manifest.json', 'package.json', 'package-lock.json', '.env',
-  '.ai', 'ai', 'scratch', 'tmp',
+  '.ai', 'ai', 'scratch', 'tmp', '.claude',
 ]);
 
 const COLOR = process.stdout.isTTY && !process.env.NO_COLOR;
