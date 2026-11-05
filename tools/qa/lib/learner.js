@@ -160,6 +160,12 @@ const STATIC_RULE_MAPPING = [
     targetCatalog: 'defect',
     description: 'Test khai capability api-contract nhưng thiếu expectApiSchemaContract',
   },
+  {
+    findingKind: 'missing-tracking-guard',
+    coverage: 'partial',
+    targetCatalog: 'defect',
+    description: 'Test khai capability tracking nhưng thiếu expectMixpanelEvent / expectNoMixpanelEvent',
+  },
 ];
 
 /**

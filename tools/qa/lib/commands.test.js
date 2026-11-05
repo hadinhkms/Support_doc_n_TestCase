@@ -1318,7 +1318,7 @@ test_cases: test-cases/REQ-001.md
 // Plan 15 Phase 2: Capability <-> Guard Verification Engine (TC-15-03, TC-15-04)
 // ===========================================================================
 
-test('TC-15-03 & TC-15-04: gaps đối chiếu đầy đủ 11 Capabilities trong TC với Verified Helpers trong Spec và đồng bộ STATIC_RULE_MAPPING', () => {
+test('TC-15-03 & TC-15-04: gaps đối chiếu đầy đủ 12 Capabilities trong TC với Verified Helpers trong Spec và đồng bộ STATIC_RULE_MAPPING', () => {
   const reqMd = `---
 id: REQ-301
 title: Deep Capabilities Suite
@@ -1343,10 +1343,10 @@ test_cases: test-cases/REQ-301.md
 
 ## Test cases
 ### TC-001: Thiếu toàn bộ helper dù đã khai báo capabilities
-- **Capabilities**: persistence, resilience, concurrency, boundary, xss, ui-geometry, a11y, responsive, api-security, api-contract
+- **Capabilities**: persistence, resilience, concurrency, boundary, xss, ui-geometry, a11y, responsive, api-security, api-contract, tracking
 
 ### TC-002: Đã gọi đầy đủ helper cho mọi capabilities
-- **Capabilities**: idempotency, persistence, resilience, concurrency, boundary, xss, ui-geometry, a11y, responsive, api-security, api-contract
+- **Capabilities**: idempotency, persistence, resilience, concurrency, boundary, xss, ui-geometry, a11y, responsive, api-security, api-contract, tracking
 `;
 
   const tests = [
@@ -1361,7 +1361,7 @@ test_cases: test-cases/REQ-301.md
       reqId: 'REQ-301',
       tags: ['@REQ-301'],
       file: 'playwright/tests/deep.spec.ts',
-      assertionCount: 11,
+      assertionCount: 12,
       assertionProfile: {
         kind: 'mixed',
         matchers: [
@@ -1376,6 +1376,7 @@ test_cases: test-cases/REQ-301.md
           'helper:expectResponsiveIntegrity',
           'helper:expectBolaForbidden',
           'helper:expectApiSchemaContract',
+          'helper:expectNoMixpanelEvent',
         ],
       },
     }),
@@ -1399,6 +1400,7 @@ test_cases: test-cases/REQ-301.md
         'missing-responsive-guard',
         'missing-api-security-guard',
         'missing-api-contract-guard',
+        'missing-tracking-guard',
       ];
 
       for (const kind of expectedMissingKinds) {

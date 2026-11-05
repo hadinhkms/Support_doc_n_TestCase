@@ -434,6 +434,7 @@ test('L07: Gate 2 Novelty xử lý exact duplicate, lexical Jaccard >= 0.65, mul
     'missing-responsive-guard',
     'missing-api-security-guard',
     'missing-api-contract-guard',
+    'missing-tracking-guard',
   ]);
   for (const m of STATIC_RULE_MAPPING) {
     assert.ok(validFindingKinds.has(m.findingKind));

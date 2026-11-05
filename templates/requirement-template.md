@@ -33,6 +33,7 @@ test_cases: test-cases/REQ-XXX-<slug>.md
 | XSS Security | Applicable / Exempt | `expectSafeXssRender` với `XSS_PAYLOADS` trên vùng hiển thị (hoặc lý do Exempt) |
 | Idempotency | Required / Exempt | `expectIdempotentSubmit` / `expectIdempotentApiMutation` chống gửi trùng |
 | State Persistence | Required / Exempt | `expectStatePersistence` kiểm chứng trạng thái bền vững sau `page.reload()` |
+| Tracking | Required / Not applicable | `expectMixpanelEvent` / `expectNoMixpanelEvent` theo mục `Tracking` bên dưới |
 
 ## Scope
 
@@ -67,6 +68,21 @@ test_cases: test-cases/REQ-XXX-<slug>.md
 
 Cột `Test cases` là bắt buộc: `node tools/qa gaps` dùng cột này để biết dòng rule nào
 chưa có case nào phủ. Để trống sẽ bị báo gap.
+
+## Tracking
+
+Bỏ mục này nếu feature không có yêu cầu analytics. Nếu có:
+
+- Tracking plan: `test-cases/REQ-XXX-<slug>.tracking-plan.md` (theo `templates/tracking-plan-template.md`;
+  đặt cạnh `.automation-plan.md`, không đặt trong `requirements/` vì tool coi mọi file ở đó là REQ)
+- Câu hỏi report chính: <ví dụ "conversion Sign in theo method">
+- Event bắt buộc phải có AC riêng, ví dụ:
+
+### AC-0xx: <Tên event> được bắn đúng một lần sau khi <hành động> thành công
+
+**Given** <precondition>
+**When** <action> và server xác nhận thành công
+**Then** event `<Object Action>` được gửi đúng 1 lần với property `<prop>` = <giá trị/kiểu>
 
 ## Non-functional expectations
 

@@ -341,10 +341,14 @@ const VERIFIED_GUARD_HELPERS = new Set([
 
 const VERIFIED_FIXTURE_HELPERS = new Set(['expectExpectedError']);
 
+/** Plan 17: helper verify event Mixpanel qua network (`support/mixpanel-capture`). */
+const VERIFIED_TRACKING_HELPERS = new Set(['expectMixpanelEvent', 'expectNoMixpanelEvent']);
+
 const VERIFIED_DEEP_HELPERS = new Set([
   ...VERIFIED_UI_HELPERS,
   ...VERIFIED_GUARD_HELPERS,
   ...VERIFIED_FIXTURE_HELPERS,
+  ...VERIFIED_TRACKING_HELPERS,
 ]);
 
 /**
@@ -381,6 +385,8 @@ function extractVerifiedHelperImports(fileInput) {
         )
       ) {
         allowedSet = VERIFIED_GUARD_HELPERS;
+      } else if (/(?:^|\/|@)(?:support|deep-testing)\/mixpanel-capture(?:\.[jt]s)?$/.test(modulePath)) {
+        allowedSet = VERIFIED_TRACKING_HELPERS;
       } else if (/(?:^|\/|@)(?:fixtures\/(?:base\.fixture|test-fixtures)|deep-testing(?:\/index)?)(?:\.[jt]s)?$/.test(modulePath)) {
         allowedSet = VERIFIED_DEEP_HELPERS;
       }

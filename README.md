@@ -28,7 +28,7 @@ npm run verify                # typecheck + lint + liệt kê test
 
 ## Bộ Kỹ Năng AI Agent (`.agents/skills/`)
 
-Workspace tích hợp 4 bộ kỹ năng chuyên sâu cho AI Coding & QA Agent theo kiến trúc **Progressive Disclosure**:
+Workspace tích hợp các bộ kỹ năng chuyên sâu cho AI Coding & QA Agent theo kiến trúc **Progressive Disclosure**:
 
 | Skill | Mục đích & Khi nào sử dụng |
 |---|---|
@@ -36,6 +36,7 @@ Workspace tích hợp 4 bộ kỹ năng chuyên sâu cho AI Coding & QA Agent th
 | [`qa-logic-gaps`](.agents/skills/qa-logic-gaps/SKILL.md) | Rà soát lỗ hổng độ phủ `REQ <-> AC <-> TC <-> Spec`, phát hiện assertion yếu (`PA-xx`), bẫy nghiệp vụ (`DH-xx`) và vận hành **Selective Learning** (`npm run qa:learn`). |
 | [`qa-api-testing`](.agents/skills/qa-api-testing/SKILL.md) | Thiết kế & tự động hóa kiểm thử API chuyên sâu (`APIRequestContext`, OWASP API Top 10: BOLA/IDOR, BFLA, Mass Assignment, Race Condition `Promise.all`, Read-After-Write/Reject). |
 | [`qa-ui-review`](.agents/skills/qa-ui-review/SKILL.md) | Review mã nguồn Frontend và giao diện thực tế theo Rubric 15 nhóm (Layout, Mobile, A11y, Interaction, Async state). |
+| [`qa-tracking-analytics`](.agents/skills/qa-tracking-analytics/SKILL.md) | Review tracking req/tracking plan Mixpanel: đề xuất event cần bắn theo flow (chạy flow thật nếu đã build, dùng REQ/Figma nếu chưa), checklist `TR-xx` (naming, timing, identity, PII), và xác định report khai thác được (Funnel, Retention, Flows, Breakdown). |
 
 ## Review UI/UX của ứng dụng
 

@@ -1289,3 +1289,36 @@ test('TC-15-02: extractVerifiedHelperImports nhận diện 4 hàm từ support/a
   assert.equal(missing.length, 1, 'assertContract thiếu await phải bị phát hiện');
   assert.equal(missing[0].matcher, 'helper:expectApiSchemaContract');
 });
+
+test('TC-17-P3-01: extractVerifiedHelperImports nhận diện helper tracking từ support/mixpanel-capture', () => {
+  const lines = [
+    'import {',
+    '  startMixpanelCapture,',
+    '  expectMixpanelEvent as expectEvent,',
+    '  expectNoMixpanelEvent,',
+    "} from '../support/mixpanel-capture';",
+    'test("TC-030 - AC-011 sign in fires tracking", async ({ page }) => {',
+    '  const capture = startMixpanelCapture(page);',
+    '  expectEvent(capture, "Sign In Completed", { count: 1 });',
+    '  await expectNoMixpanelEvent(capture, "Sign In Failed");',
+    '});',
+  ];
+
+  const verifiedMap = extractVerifiedHelperImports(lines);
+  assert.equal(verifiedMap.get('expectEvent'), 'expectMixpanelEvent');
+  assert.equal(verifiedMap.get('expectNoMixpanelEvent'), 'expectNoMixpanelEvent');
+  assert.equal(verifiedMap.has('startMixpanelCapture'), false, 'startMixpanelCapture không phải assertion');
+
+  const profile = analyzeTestAssertions(lines);
+  assert.equal(profile.kind, 'mixed');
+  assert.deepEqual(profile.matchers, ['helper:expectMixpanelEvent', 'helper:expectNoMixpanelEvent']);
+
+  const missing = findMissingAwaits(lines, 1, undefined, verifiedMap);
+  assert.equal(missing.length, 1, 'expectEvent thiếu await phải bị phát hiện');
+  assert.equal(missing[0].matcher, 'helper:expectMixpanelEvent');
+
+  const otherModule = extractVerifiedHelperImports([
+    "import { expectMixpanelEvent } from '../support/analytics';",
+  ]);
+  assert.equal(otherModule.size, 0, 'chỉ tin helper import từ support/mixpanel-capture');
+});

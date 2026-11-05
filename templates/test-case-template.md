@@ -17,12 +17,12 @@
 
 ### TC-001: <Mục tiêu kiểm thử>
 
-- Type: Functional | Validation | Boundary | Security | Accessibility | UI/UX | Regression
+- Type: Functional | Validation | Boundary | Security | Accessibility | UI/UX | Tracking | Regression
 - Priority: P0 | P1 | P2 | P3
 - Technique: <EP/BVA/Decision table/State transition/Error guessing>
 - Automation: Yes | Candidate | No
-- Tags: `@smoke @p0 @security @a11y @ui` (khớp với Priority ở trên)
-- **Capabilities**: `persistence, boundary, idempotency, ui-geometry, a11y, responsive, xss, resilience, concurrency, api-security, api-contract` (chọn các chiều áp dụng)
+- Tags: `@smoke @p0 @security @a11y @ui @tracking` (khớp với Priority ở trên)
+- **Capabilities**: `persistence, boundary, idempotency, ui-geometry, a11y, responsive, xss, resilience, concurrency, api-security, api-contract, tracking` (chọn các chiều áp dụng; `tracking` bắt buộc spec gọi `expectMixpanelEvent` hoặc `expectNoMixpanelEvent`)
 - Preconditions: <...>
 - Test data: <...>
 

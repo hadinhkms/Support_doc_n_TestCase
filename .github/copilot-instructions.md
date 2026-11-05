@@ -13,6 +13,7 @@ Khi người dùng yêu cầu viết test script hoặc test cases trong workspa
      - **Textbox số (Numeric input)**: Bắt buộc xét nhập chữ (`abc`), ký tự đặc biệt (`!@#`), paste chuỗi lẫn chữ (`12abc34`), số âm/thập phân (nếu chỉ nhận số nguyên dương), và biên giá trị `min - 1`, `min`, `max`, `max + 1`.
    - **Quy tắc XSS theo loại trang (`xss` — Page Exposure)**: Với các trang/module dành cho `public` hoặc `customer` (hoặc `XSS applicability: Applicable`) có ô nhập liệu hoặc query param hiển thị lại lên UI, bắt buộc xét thêm test case XSS (`Type: Security`, tag `@security`, capability `xss`) dùng `expectSafeXssRender(page, inputAction, { sinkLocator })` và `XSS_PAYLOADS` trong `playwright/tests/support/deep-guards.ts`. Với trang thuần `admin`/nội bộ (`Exempt`), ghi rõ lý do vào mục `Coverage notes`.
    - **Quy tắc kiểm thử UI/UX Geometry, Responsive & A11y (`ui-geometry`, `a11y`, `responsive`)**: Với `UI coverage: Required`, bắt buộc dùng bộ 5 hàm trong `playwright/tests/support/ui-checks.ts`: `expectNoHorizontalScroll(page)`, `expectNoTextOverflow(rootLocator)`, `expectNotOccluded(targetLocator)`, `expectInteractiveA11y(rootLocator)`, và `expectResponsiveIntegrity(page, { requiredLocators, optionalLocators })`. Không viết test chỉ có `toBeVisible()`/`toBeDefined()` (`weak-existence-assertion`).
+   - **Quy tắc tracking analytics (`tracking`)**: Requirement có yêu cầu analytics thì viết tracking plan theo `templates/tracking-plan-template.md` (lưu `test-cases/REQ-xxx-<slug>.tracking-plan.md`), mỗi event bắt buộc có AC + TC `Type: Tracking`, capability `tracking`. Spec phải gọi `expectMixpanelEvent` hoặc `expectNoMixpanelEvent` từ `playwright/tests/support/mixpanel-capture.ts`, nếu không `qa:gaps` báo `missing-tracking-guard`. Review tracking dùng skill `qa-tracking-analytics`.
    - **Quy tắc chụp bằng chứng hành trình (Journey Evidence & Flow Timeline)**: Với các test case kiểm thử hành trình người dùng xuyên suốt (Happy path, E2E User Journey, gắn tag `@journey`), chụp ảnh theo các mốc chuyển trạng thái quan trọng (**Milestone States**: Khởi tạo $\to$ Nhập liệu $\to$ Submit $\to$ Hoàn tất) qua helper `captureJourneyStep()` trong `playwright/tests/support/evidence.ts`. Tuyệt đối không chụp đại trà ở test negative/boundary để bảo đảm hiệu năng CI/CD. Hỗ trợ bật/tắt linh hoạt qua biến môi trường `CAPTURE_JOURNEY`.
 5. Tạo traceability `REQ -> AC -> TC -> script` và đánh priority P0-P3.
 6. Đánh giá candidate automation theo `docs/automation-strategy.md`; giải thích case nào không automation và lý do.
@@ -65,6 +66,17 @@ Khi người dùng yêu cầu review UI/UX hoặc mã frontend của ứng dụn
   dùng `qa-ui-review`. Nếu cần cả hai, giữ liên kết finding tới REQ/AC/TC và tránh báo trùng.
 - Chỉ sửa mã khi người dùng yêu cầu; dùng bản vá nhỏ phù hợp convention và kiểm chứng
   theo phạm vi thay đổi. Không tự tạo requirement hay gate CI từ sở thích thiết kế.
+
+## Review tracking và analytics (Mixpanel)
+
+Khi người dùng yêu cầu review tracking requirement, đề xuất event cần bắn, kiểm event một flow
+đang bắn hoặc xác định report có thể khai thác, dùng
+[skill qa-tracking-analytics](../.agents/skills/qa-tracking-analytics/SKILL.md).
+
+- Flow đã build thì chạy flow thật trên môi trường test và bắt event qua network/Live Events,
+  không dùng Figma. Chỉ khi mới có REQ thì mới dựng flow từ Figma hoặc mô tả trong REQ.
+- Thay đổi Lexicon, dashboard, cohort trên Mixpanel chỉ làm khi người dùng yêu cầu rõ.
+- Che PII trong payload đưa vào báo cáo; token Mixpanel đi qua `requireEnv()`.
 
 Khi người dùng cung cấp test automation hiện có:
 

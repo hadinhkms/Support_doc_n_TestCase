@@ -119,6 +119,17 @@ const CAPABILITY_GUARD_RULES = [
     action:
       'Sử dụng expectApiSchemaContract từ support/api-guards để kiểm chứng kiểu dữ liệu bắt buộc và các trường cấm lộ.',
   },
+  {
+    capability: 'tracking',
+    kind: 'missing-tracking-guard',
+    satisfies: (matchers) =>
+      matchers.includes('helper:expectMixpanelEvent') ||
+      matchers.includes('helper:expectNoMixpanelEvent'),
+    messageLabel: 'tracking analytics (tracking)',
+    helperHint: 'expectMixpanelEvent / expectNoMixpanelEvent từ support/mixpanel-capture',
+    action:
+      'Sử dụng startMixpanelCapture + expectMixpanelEvent (hoặc expectNoMixpanelEvent cho case không được bắn) từ support/mixpanel-capture để kiểm chứng event và property bắt buộc.',
+  },
 ];
 
 /** Đường dẫn hiển thị của một test, đã được sources.js tính sẵn từ gốc repo. */
