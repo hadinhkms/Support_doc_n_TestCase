@@ -1,8 +1,20 @@
-# QA Test Automation Workspace
+# QA Skills Hub
 
-Bộ khung này định nghĩa cách tiếp nhận requirement, thiết kế test case và chuyển các case phù hợp thành Playwright script.
+Repository này là **QA Hub dùng chung** cho các repository sản phẩm: cung cấp skills,
+chuẩn QA, template và tooling để các repo khác áp dụng nhất quán khi review
+requirement, thiết kế test và xây dựng automation.
 
-Có sẵn một **ví dụ mẫu chạy được end-to-end** qua toàn bộ luồng: [REQ-001](requirements/REQ-001-sign-in.md) → [test case](test-cases/REQ-001-sign-in.md) → [automation plan](test-cases/REQ-001-sign-in.automation-plan.md) → [script](playwright/tests/auth/login.spec.ts). Đọc bộ này trước khi viết requirement đầu tiên cho dự án thật.
+Các requirement, test case và Playwright spec nằm trong repo này là **fixture minh họa
+và tự kiểm chứng framework**, không phải backlog hoặc chuẩn coverage cho một sản phẩm
+cụ thể. Ví dụ [REQ-001](requirements/REQ-001-sign-in.md) → [test case](test-cases/REQ-001-sign-in.md)
+→ [automation plan](test-cases/REQ-001-sign-in.automation-plan.md) →
+[script](playwright/tests/auth/login.spec.ts) chỉ minh họa một luồng sign-in; repo sản
+phẩm cần tạo coverage theo requirement, rủi ro và kiến trúc của chính sản phẩm đó.
+
+Skills chuẩn nằm ở [`.agents/skills/`](.agents/skills/). Repo nhận nên dùng bản đã
+commit/push từ Hub theo quy trình live skill discovery của repo đó; không dùng dữ liệu
+fixture ở đây làm coverage report cho sản phẩm. Quy tắc sở hữu và đồng bộ xem
+[docs/hub-and-project-boundary.md](docs/hub-and-project-boundary.md).
 
 ## Bắt đầu
 
@@ -16,7 +28,11 @@ npm run verify                # typecheck + lint + liệt kê test
 
 `npm run verify` chạy được **không cần ứng dụng thật**. Muốn chạy test thật thì cần `BASE_URL` trỏ tới môi trường đang chạy.
 
-## Luồng làm việc chuẩn
+## Luồng QA chuẩn trong repo sản phẩm
+
+Các bước dưới đây áp dụng cho **repo sản phẩm sau khi nhận QA standards từ Hub**.
+Requirement, test case, test data và spec được tạo/sửa trong repo sở hữu sản phẩm;
+chỉ các chuẩn và tooling dùng chung mới được cập nhật ngược về Hub.
 
 1. Ghi requirement vào `requirements/<feature-id>-<slug>.md`.
 2. Tách requirement thành acceptance criteria có mã `AC-xxx`.
