@@ -8,7 +8,9 @@ description: >-
 
 # QA Logic Gaps Analysis Skill
 
-> **Live Source + Built-in Fallback:** Nếu trên máy tồn tại `D:/_QA_Test_Automation/.agents/skills/qa-logic-gaps/`, ưu tiên đọc `SKILL.md` và `references/*` trực tiếp từ `D:/_QA_Test_Automation/.agents/skills/qa-logic-gaps/` để lấy bản mới nhất; nếu không có trên máy, sử dụng ngay bản tích hợp sẵn tại thư mục hiện tại.
+Use the skill copy selected in the current workspace. When working in another
+repository, follow that repository's local QA instructions and tools; do not assume
+the Hub is installed at a fixed machine path.
 
 This skill provides a systematic two-layer methodology (**Automated Static Analysis** + **Deep Semantic Business Logic Audit**) augmented by a **Selective Learning Knowledge Base** to uncover **Logic Gaps** across `requirements/`, `test-cases/`, and `playwright/tests/`.
 
@@ -32,7 +34,7 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
    - **Script quality holes**: `spec-thieu-assertion` (0 `expect` calls), `assertion-thieu-await` (false-positive async matcher), `test-bi-skip-am-tham`, `spec-chi-assert-url` (navigation-only assertion heuristic)
 
 2. **Read Workspace Rules Before Any Edits**:
-   - Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying anything in `requirements/`, `test-cases/`, or `playwright/tests/`.
+   - Always read the target repository's `AGENTS.md` and `.github/copilot-instructions.md` before modifying anything in `requirements/`, `test-cases/`, or `playwright/tests/`.
 
 3. **Load Effective Knowledge Base (Shared `ship` + Project `own` Overlay)**:
    - Read the Selective Learning policy and shared catalogs (relative to this skill directory):
@@ -154,11 +156,11 @@ If the user asks to fix the discovered Logic Gaps:
 1. Update `requirements/REQ-xxx-*.md` (add missing ACs, rules, or `Open questions`).
 2. Update `test-cases/REQ-xxx-*.md` (add missing `TC-xxx` rows and update the `Traceability` table).
 3. Implement or strengthen Playwright tests in `playwright/tests/` (ensure `@REQ-xxx` on `test.describe`, title `TC-xxx - AC-yyy <description>`, and priority tag `@p0`..`@p3`).
-   - **Respect Code Size Budgets Before Adding Tests/Helpers (Workspace Rule 15)**: Never bloat a `.spec.ts` into $\ge 640$ lines (80% warning zone of 800) or a Page Object / Fixture / Support / Data / `ApiClient` file inside `tests/` into $\ge 200$ lines (80% warning zone of `module` ceiling 250; outside `tests/`: `service` $< 160/200$, `utils` $< 120/150$). If adding remediation tests or methods would reach the 80% threshold, proactively split into a companion spec (e.g., `<feature>.validation.spec.ts` or `<feature>.security.spec.ts` carrying `{ tag: '@REQ-xxx' }`) or sub-Page Object first, keep lines $\le 500$ chars and average line length $\le 100$ chars, and never use `*.ai-test.*` / `*.scratch.*` filenames.
+   - **Respect Code Size Budgets Before Adding Tests/Helpers (Workspace Rule 15)**: The spec ceiling is 800 lines and its 80% warning zone starts at 640; keep each new or expanded spec below 600 lines as required by the canonical workspace instructions. A Page Object / Fixture / Support / Data / `ApiClient` file inside `tests/` has a 250-line ceiling and a 200-line warning point; outside `tests/`, `service` has a 200-line ceiling / 160-line warning point and `utils` has a 150-line ceiling / 120-line warning point. If adding remediation tests or methods would reach the applicable threshold, proactively split into a companion spec (e.g., `<feature>.validation.spec.ts` or `<feature>.security.spec.ts` carrying `{ tag: '@REQ-xxx' }`) or sub-Page Object first, keep lines $\le 500$ chars and average line length $\le 100$ chars, and never use `*.ai-test.*` / `*.scratch.*` filenames.
 4. Validate strictly before finishing (and self-split any file flagged by `qa:limits` before handing off):
    - Run `npm run verify` inside `playwright/` (typecheck + ESLint `max-lines`/`max-len` + `limits` + `--list`)
    - Run `npm run qa:matrix` at repository root
-   - Run `npm run qa:limits -- --strict` and `npm run qa:check` at repository root (must pass with 0 `blocker`/`major` findings; in external repos without `tools/qa`, run `python D:/_Master_process/master.py audit <repo> --changed-only` and verify line counts $< 80\%$)
+   - Run `npm run qa:limits -- --strict` and `npm run qa:check` at repository root (must pass with 0 `blocker`/`major` findings). In external repos without `tools/qa`, use the documented audit tool if available; resolve organization-specific audit paths from environment/configuration, never assume a fixed drive. If no tool is available, report that limitation and verify changed-file line limits manually.
    - Run `npm test` at repository root
 
 ---

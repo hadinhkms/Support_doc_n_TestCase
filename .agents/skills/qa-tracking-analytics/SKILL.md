@@ -9,9 +9,9 @@ description: >-
 
 # QA Tracking & Analytics Review Skill
 
-> **Live Source + Built-in Fallback:** Nếu trên máy tồn tại
-> `D:/_QA_Test_Automation/.agents/skills/qa-tracking-analytics/`, ưu tiên đọc bản ở đó;
-> nếu không, dùng bản tích hợp tại thư mục hiện tại.
+Use the skill copy selected in the current workspace. When reviewing another
+repository, follow its local QA instructions and available integrations; do not
+assume the Hub is installed at a fixed machine path.
 
 Skill này trả lời 3 câu hỏi cho một flow hoặc một tracking requirement:
 

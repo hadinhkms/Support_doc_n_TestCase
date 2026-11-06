@@ -10,7 +10,9 @@ description: >-
 
 # QA Deep API Testing Skill
 
-> **Live Source + Built-in Fallback:** Nếu trên máy tồn tại `D:/_QA_Test_Automation/.agents/skills/qa-api-testing/`, ưu tiên đọc `SKILL.md` và `references/*` trực tiếp từ `D:/_QA_Test_Automation/.agents/skills/qa-api-testing/` để lấy bản mới nhất; nếu không có trên máy, sử dụng ngay bản tích hợp sẵn tại thư mục hiện tại.
+Use the skill copy selected in the current workspace. When working in another
+repository, follow that repository's local QA instructions and tools; do not assume
+the Hub is installed at a fixed machine path.
 
 This skill provides an end-to-end methodology for designing, automating, and auditing **Standard & Deep API Tests** across `requirements/`, `test-cases/`, and `playwright/tests/` using Playwright's `APIRequestContext` and `ApiClient`.
 
@@ -34,7 +36,8 @@ Load these reference guides when designing test cases or writing Playwright API 
    npm run qa:gaps
    npm run qa:limits
    ```
-   Always read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) before modifying `requirements/`, `test-cases/`, or `playwright/tests/` (strictly enforce Rule 15 line limits: `Util/Helper ≤ 150`, `Service/ApiClient ≤ 200`, `Module/Fixture ≤ 250`, `Test/Spec ≤ 800`, and split proactively at the `≥ 80%` yellow zone `120/160/200/650` before adding new logic).
+   Always read the target repository's `AGENTS.md` and `.github/copilot-instructions.md` before modifying `requirements/`, `test-cases/`, or `playwright/tests/`. In this workspace, Rule 15 sets ceilings of `Util/Helper ≤ 150`, `Service/ApiClient ≤ 200`, `Module/Fixture ≤ 250`, and `Test/Spec ≤ 800`; its 80% warning points are `120/160/200/640`. Keep new or expanded specs below 600 lines as required by the canonical workspace instructions.
+   For asynchronous producer-consumer contracts, schema evolution, retries, ordering, replay, and DLQ behavior, also use [qa-contract-testing](../qa-contract-testing/SKILL.md).
 
 2. **Configure Canonical Metadata in `requirements/REQ-xxx-*.md`**:
    `tools/qa` enforces strict metadata rules (`missing-ui-coverage`, `missing-xss-coverage`). Configure the requirement header based on the API scope:
@@ -123,7 +126,7 @@ Follow the patterns in [references/playwright-api-patterns.md](references/playwr
 
 5. **Code Size Budget & Proactive Modular Splitting (Workspace Rule 15 — Zero Pre-Commit Overflow)**:
    - Pre-commit hooks enforce both hard line ceilings and the **80% warning zone** (blocking any newly created file or file with added tests/functions once it reaches $\ge 80\%$):
-     - **API Spec files (`*.spec.ts`, `*.test.ts` — role `test`)**: Hard ceiling $\le 800$ lines | **80% warning zone $\ge 640$ lines** $\to$ keep each spec **$< 600$ lines**. For full 8-dimension API suites, proactively split into multiple focused specs (`<resource>.contract.spec.ts`, `<resource>.auth-bola.spec.ts`, `<resource>.validation-concurrency.spec.ts`), keeping `{ tag: '@REQ-xxx' }` on `test.describe` and `TC-xxx - AC-yyy` titles so `tools/qa` joins 100% of coverage.
+     - **API Spec files (`*.spec.ts`, `*.test.ts` — role `test`)**: Hard ceiling $\le 800$ lines | **80% warning zone $\ge 640$ lines**. Keep each new or expanded spec **$< 600$ lines** as required by the canonical workspace instructions. For full 8-dimension API suites, proactively split into focused specs (`<resource>.contract.spec.ts`, `<resource>.auth-bola.spec.ts`, `<resource>.validation-concurrency.spec.ts`), keeping `{ tag: '@REQ-xxx' }` on `test.describe` and `TC-xxx - AC-yyy` titles so `tools/qa` joins 100% of coverage.
      - **`ApiClient`, Domain API Wrappers, Fixtures, Support & Data inside `tests/` (role `module`)**: Hard ceiling $\le 250$ lines | **80% warning zone $\ge 200$ lines** $\to$ keep each file **$< 190$ lines** (split `ApiClient` by domain resource; move large JSON schemas/payloads into `.json` files or focused `tests/data/*.ts` modules). Files outside `tests/` have stricter ceilings (`service` $\le 200$ / warning $160$; `utils`/`helpers` $\le 150$ / warning $120$).
      - Keep single lines $\le 500$ chars (use `'x'.repeat(n)` for boundary payloads), average non-empty line length $\le 100$ chars, and never commit `*.ai-test.*` or `*.scratch.*` filenames.
 
@@ -152,4 +155,4 @@ After creating or updating requirements, test cases, or API specs, run the verif
    npm run qa:check
    npm test
    ```
-   *(Must result in 0 `blocker` and 0 `major` findings, all created/edited files strictly within code-size budgets, clean Hub/Project boundary, and 100% passing unit tests. In external repos without `tools/qa`, run `python D:/_Master_process/master.py audit <repo> --changed-only` and verify line counts against the 80% thresholds).*
+   *(Must result in 0 `blocker` and 0 `major` findings, all created/edited files strictly within code-size budgets, clean Hub/Project boundary, and 100% passing unit tests. In external repos without `tools/qa`, use the repository's documented audit tool if available. If an organization-specific audit script is configured, resolve its actual location from the environment or project configuration rather than assuming a fixed drive path. If no audit tool is available, report that limitation and verify changed-file limits manually.)*

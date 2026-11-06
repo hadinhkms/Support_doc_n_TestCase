@@ -15,6 +15,17 @@ mọi test case trong checklist đều có trạng thái, và mọi lỗ hổng 
 test case mới. Không có checklist thì skill này không áp dụng — dùng
 [qa-system-testing](../qa-system-testing/SKILL.md) Pha 02 để thiết kế test case trước.
 
+## Bước 0 — Kiểm tra phạm vi và công cụ
+
+- Tìm workspace/repository root và đọc `AGENTS.md` cùng
+  `.github/copilot-instructions.md` tại repo đích trước khi sửa requirement, test
+  case hoặc Playwright spec.
+- Với requirement có sẵn, chạy `npm run qa:impact -- <REQ-id>` và
+  `npm run qa:gaps` từ root trước khi sửa test artifacts. Nếu repo không có các
+  script này, ghi rõ là không khả dụng và làm theo quy trình được repo đích tài liệu
+  hóa; không giả định có bản Hub ở một đường dẫn máy cố định.
+- Khi thực thi checklist mà không sửa artifacts, không cần chạy các analyzer này.
+
 ## Bước 1 — Xác định checklist của task
 
 Tìm checklist theo thứ tự, dừng ở nguồn đầu tiên có dữ liệu (một task có thể có nhiều nguồn,
@@ -88,7 +99,12 @@ Requirement im lặng về hành vi → không tự bịa Expected result: tạo
   | TC-045 | FAIL | evidence/BUG-03.png | BUG-03 — [Bổ sung 2026-10-30] |
   ```
   Không ghi chữ `Có`/`manual` trong bảng kết quả (công cụ truy vết đọc hai giá trị này).
-- Chạy `node scripts/qa-trace.js` sau khi sửa; không được phát sinh finding mới.
+- Sau khi sửa test case hoặc traceability, chạy `npm run qa:matrix` rồi
+  `npm run qa:check` tại root nếu các script có sẵn; không được phát sinh finding
+  mới mức `major` trở lên.
+- Nếu có sửa Playwright spec, chạy `npm run verify` trong thư mục Playwright của
+  repo đích trước; sau đó chạy matrix/check ở root. Chạy thêm `npm test` khi thay
+  đổi ảnh hưởng tooling và lệnh test runtime phù hợp khi môi trường sẵn sàng.
 
 ### Jira issue
 Ghi lên Jira là thao tác ra bên ngoài: nếu yêu cầu của user chưa nói rõ "cập nhật Jira", hiển thị

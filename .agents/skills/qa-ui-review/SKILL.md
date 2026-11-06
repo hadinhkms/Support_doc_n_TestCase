@@ -9,7 +9,9 @@ description: >-
 
 # UI/UX Frontend Review
 
-> **Live Source + Built-in Fallback:** Nếu trên máy tồn tại `D:/_QA_Test_Automation/.agents/skills/qa-ui-review/`, ưu tiên đọc `SKILL.md` và `references/ui-review-rubric.md` trực tiếp từ `D:/_QA_Test_Automation/.agents/skills/qa-ui-review/` để lấy bản mới nhất; nếu không có trên máy, sử dụng ngay bản tích hợp sẵn tại thư mục hiện tại.
+Use the skill copy selected in the current workspace. When reviewing an application
+in another repository, follow that repository's local QA instructions; do not assume
+the Hub is installed at a fixed machine path.
 
 Review the application UI with evidence proportional to the conclusion. This QA
 workspace may contain only tests and Page Objects: identify the actual application
@@ -77,7 +79,7 @@ and retain Not verified. Checkpoints never replace mandatory reruns or final gat
 
 ## Scope and sources
 
-- Read [AGENTS.md](../../../AGENTS.md) and `.github/copilot-instructions.md` (or fallback to `D:/_QA_Test_Automation/.github/copilot-instructions.md` when invoked from another project) first. They are
+- Read the target repository's `AGENTS.md` and `.github/copilot-instructions.md` first. They are
   the authority for test authoring, traceability, and confirmed-bug evidence.
 - Establish the requested pages/components, available source, running environment,
   supported browsers/devices, design references, and whether changes are requested.
@@ -148,7 +150,7 @@ Keep **classification**, **severity**, and **confidence** separate:
 - Review-only requests produce findings, not rewrites. When fixes are authorized,
   prefer the smallest compatible patch; preserve component contracts, accessibility,
   localization, and project conventions. Do not add libraries just to satisfy a rubric.
-- After spec or helper edits, enforce workspace Rule 15 code-size budgets (`*.spec.ts` $< 640/800$ lines; Page Objects, Fixtures, Support, Data, and `*.setup.ts` $< 200/250$ lines; single line $\le 500$ chars; avg line length $\le 100$ chars; no `*.ai-test.*`/`*.scratch.*`), run `npm run verify` in `playwright/`, relevant runtime tests when available, and `npm run qa:limits -- --strict` + matrix/check commands required by the workspace (or `python D:/_Master_process/master.py audit <repo> --changed-only` in external repos). Split any file breaching the limit before finishing. Report static checks separately from runtime results and any unresolved findings.
+- After spec or helper edits, enforce workspace Rule 15 code-size budgets (spec ceiling 800 lines with the 640-line warning point; keep new or expanded specs below 600 lines per the canonical workspace instructions; Page Objects, Fixtures, Support, Data, and `*.setup.ts` ceiling 250 lines with the 200-line warning point; single line $\le 500$ chars; avg line length $\le 100$ chars; no `*.ai-test.*`/`*.scratch.*`). Run `npm run verify` in `playwright/`, relevant runtime tests when available, and the root matrix/check commands required by the target workspace. In external repos, use a documented audit tool if available; resolve organization-specific script paths from environment/configuration rather than assuming a fixed drive. If no audit tool exists, report that limitation and verify changed-file limits manually. Split any file breaching the limit before finishing. Report static checks separately from runtime results and any unresolved findings.
 
 ## Report
 

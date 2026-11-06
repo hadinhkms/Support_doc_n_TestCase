@@ -84,7 +84,7 @@ Nếu task có checklist test case (`test-cases/REQ-xxx-*.md`, Jira issue hoặc
 ---
 
 ### Bước 5: Chạy Cổng Kiểm Chứng Cuối & Tự Review Giới Hạn Code (Final Quality & Modularity Gates)
-Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, bắt buộc tự kiểm tra giới hạn kích thước code (Rule 15: `*.spec.ts` $< 640/800$ dòng; Page Object / Fixture / Support / Data / `ApiClient` trong `tests/` $< 200/250$ dòng; Service ngoài `tests/` $< 160/200$; Utils ngoài `tests/` $< 120/150$; dòng đơn $\le 500$ ký tự, trung bình dòng $\le 100$ ký tự, không để file `.ai-test.`/`.scratch.`) và chạy tuần tự:
+Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, bắt buộc tự kiểm tra giới hạn kích thước code (Rule 15: spec có trần 800 dòng, vùng vàng từ 640 và spec mới/được bổ sung giữ dưới 600; Page Object / Fixture / Support / Data / `ApiClient` trong `tests/` có trần 250, vùng vàng từ 200; Service ngoài `tests/` có trần 200, vùng vàng từ 160; Utils ngoài `tests/` có trần 150, vùng vàng từ 120; dòng đơn $\le 500$ ký tự, trung bình dòng $\le 100$ ký tự, không để file `.ai-test.`/`.scratch.`) và chạy tuần tự:
 1. Trong `playwright/`: `npm run verify` (đảm bảo pass TypeScript, ESLint `max-lines`/`max-len`, `limits` và `playwright test --list`).
 2. Ở thư mục gốc:
    ```bash
@@ -93,5 +93,5 @@ Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, b
    npm run qa:check
    npm test
    ```
-   *(Với dự án ngoài workspace chưa có `tools/qa`, chạy `python D:/_Master_process/master.py audit <repo> --changed-only` kèm đếm số dòng các file vừa sửa; nếu chạm vùng vàng $\ge 80\%$ khi thêm logic/test mới thì phải tự tách file và verify lại ngay trước khi trả lời).*
+   *(Với dự án ngoài workspace chưa có `tools/qa`, dùng audit tool đã được repo hoặc môi trường cấu hình. Tìm đường dẫn từ cấu hình/environment, không giả định một ổ đĩa cố định. Nếu không có audit tool, kiểm tra giới hạn dòng của file thay đổi thủ công và ghi rõ giới hạn xác minh; nếu chạm vùng vàng khi thêm logic/test mới thì phải tự tách file và verify lại trước khi trả lời).*
 3. Nếu vừa sửa lỗi hoặc bổ sung kiến thức kiểm thử mới, cân nhắc chạy `npm run qa:learn` theo quy trình của [qa-logic-gaps](../../qa-logic-gaps/SKILL.md) để lưu lại bài học vào Knowledge Base của dự án.

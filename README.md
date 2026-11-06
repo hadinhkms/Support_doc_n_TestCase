@@ -35,8 +35,10 @@ Workspace tích hợp các bộ kỹ năng chuyên sâu cho AI Coding & QA Agent
 | [`qa-system-testing`](.agents/skills/qa-system-testing/SKILL.md) | **Điều phối kiểm thử hệ thống đa tầng & Multi-portal** qua 3 pha:<br>• `Workflow 01`: Review PRD/SRS/API Spec, bắt lỗ hổng phân quyền liên cổng (`RBAC`/`BOLA`), State Machine & Webhook.<br>• `Workflow 02`: Thiết kế Test Matrix phân tầng **Test Pyramid (70/20/10)** và chuẩn hóa `REQ -> AC -> TC`.<br>• `Workflow 03`: Kiểm thử E2E Diff-aware (`git diff`) & đối soát đa điểm (`UI + API + Database`). |
 | [`qa-logic-gaps`](.agents/skills/qa-logic-gaps/SKILL.md) | Rà soát lỗ hổng độ phủ `REQ <-> AC <-> TC <-> Spec`, phát hiện assertion yếu (`PA-xx`), bẫy nghiệp vụ (`DH-xx`) và vận hành **Selective Learning** (`npm run qa:learn`). |
 | [`qa-api-testing`](.agents/skills/qa-api-testing/SKILL.md) | Thiết kế & tự động hóa kiểm thử API chuyên sâu (`APIRequestContext`, OWASP API Top 10: BOLA/IDOR, BFLA, Mass Assignment, Race Condition `Promise.all`, Read-After-Write/Reject). |
+| [`qa-contract-testing`](.agents/skills/qa-contract-testing/SKILL.md) | Kiểm thử contract giữa producer/consumer bất đồng bộ: schema evolution, ordering, retry/idempotency, DLQ, replay và eventual consistency. |
 | [`qa-ui-review`](.agents/skills/qa-ui-review/SKILL.md) | Review mã nguồn Frontend và giao diện thực tế theo Rubric 15 nhóm (Layout, Mobile, A11y, Interaction, Async state). |
 | [`qa-tracking-analytics`](.agents/skills/qa-tracking-analytics/SKILL.md) | Review tracking req/tracking plan Mixpanel: đề xuất event cần bắn theo flow (chạy flow thật nếu đã build, dùng REQ/Figma nếu chưa), checklist `TR-xx` (naming, timing, identity, PII), và xác định report khai thác được (Funnel, Retention, Flows, Breakdown). |
+| [`qa-test-execution`](.agents/skills/qa-test-execution/SKILL.md) | Thực thi checklist, ghi trạng thái kèm bằng chứng, tìm và bổ sung test case còn thiếu, rồi chạy các gate QA phù hợp. |
 
 ## Review UI/UX của ứng dụng
 
