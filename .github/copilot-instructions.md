@@ -40,6 +40,18 @@ Khi người dùng yêu cầu viết test script hoặc test cases trong workspa
       - **Mật độ dòng & Vệ sinh file**: Không có dòng đơn nào $> 500$ ký tự (`maxLineLength: 500` — dùng `'x'.repeat(n)` cho chuỗi biên dài); độ dài trung bình dòng không rỗng $\le 100$ ký tự cho file $\ge 50$ dòng (`maxAvgLineLength: 100` — cấm dồn code lên 1 dòng để lách trần số dòng); dung lượng file $\le 150\text{ KB}$; tuyệt đối không đặt tên file chính thức chứa `.ai-test.` hoặc `.scratch.` (bị chặn là `JUNK` lúc commit).
     - **Bắt buộc tự review limit trước khi bàn giao**: Trước khi kết thúc câu trả lời sau khi tạo/sửa bất kỳ script, Page Object, fixture hay helper nào, AI bắt buộc chạy `npm run qa:limits -- --strict` (đã tích hợp trong `npm run qa:check` và `playwright` `npm run verify`; với dự án ngoài workspace chưa có `tools/qa`, chạy `python <Master Process>/master.py audit <repo> --changed-only` (lấy đường dẫn Master Process từ cấu hình/biến môi trường, không giả định ổ đĩa cố định) kèm kiểm tra số dòng $< 80\%$ trần). Phát hiện file vượt trần hoặc thêm logic trong vùng vàng $\ge 80\%$ thì **AI phải tự bóc tách file và verify lại ngay lập tức**, không bao giờ để người dùng phải chỉnh sửa lại trước khi `git commit`.
 
+## Đọc ticket (Jira / Confluence)
+
+Mọi lúc đọc ticket làm đầu vào (viết requirement, test case, script, review, thực thi checklist):
+
+- **Đọc toàn bộ comment, không chỉ description.** Jira: gọi `getJiraIssue` có trường `comment`
+  và lật hết các trang (`startAt`/`maxResults`) đến khi số comment đã đọc bằng `total`.
+  Confluence: đọc cả footer comment lẫn inline comment và các reply con.
+- Đọc thêm attachment/link liên quan được nhắc trong comment nếu nó đổi phạm vi hoặc AC.
+- Comment mâu thuẫn với description → **comment mới hơn được ưu tiên**, nhưng phải ghi rõ chỗ
+  thay đổi (ai, ngày, nội dung) trong requirement/test case; chưa rõ cái nào là chốt thì hỏi user.
+- Không đọc được hết (lỗi quyền, bị cắt, hết trang) → nói rõ cho user, không coi như đã đọc đủ.
+
 ## Thực thi checklist test case
 
 Khi test chuyên sâu một task đã có checklist test case (`test-cases/`, Jira issue hoặc tài liệu
