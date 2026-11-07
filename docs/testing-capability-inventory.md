@@ -33,7 +33,7 @@
 | **CAP-11** | Performance & Workload | `Proposed` | *Chưa triển khai mã nguồn* (Phase 4) | `own` / `tools` | Cần spike k6 adapter và chốt SLO với SRE |
 | **CAP-12** | Consumer-Driven Contract | `Partial` | `playwright/tests/support/api-guards.ts:40` | `seed` / `support` | Đã có schema validator; chưa có CDC broker/Pact |
 | **CAP-13** | Evidence Manifest & Receipt | `Partial` | `playwright/tests/support/evidence.ts:91` | `seed` / `support` | Đã có ảnh/log; chưa có manifest schema 5 chiều |
-| **CAP-14** | Independent Bug Reproduce | `Partial` | `.github/copilot-instructions.md:28` (Rule 14) | `ship` (Policy) | Quy tắc 3 bước đã định nghĩa; chưa có runner recipe |
+| **CAP-14** | Independent Bug Reproduce | `Partial` | `.github/copilot-instructions.md:29` (Rule 14) | `ship` (Policy) | Quy tắc 3 bước đã định nghĩa; chưa có runner recipe |
 
 ---
 
@@ -47,5 +47,5 @@
    - `playwright/tests/{pages, data, auth, a11y}`: Nghiệp vụ riêng của từng sản phẩm (`own`), Hub không ghi đè.
 3. **Quy tắc không phình mã (Rule 15)**:
    - File module hạ tầng trong `playwright/tests/support` giữ trần $\le 250$ dòng, vùng vàng $\ge 200$ dòng.
-   - Khi Plan 16 bổ sung `evidence-contract` hoặc adapter mới, bắt buộc tách file độc lập dưới 190 dòng.
+   - Khi Plan 16 bổ sung `evidence-contract` hoặc adapter mới, bắt buộc tách file độc lập dưới 200 dòng (vùng vàng role `module`).
 

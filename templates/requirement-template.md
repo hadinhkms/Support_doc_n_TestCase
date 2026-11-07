@@ -120,5 +120,5 @@ Thay đổi lớn -> tăng version, thêm dòng ở bảng trên và rà lại c
 
 ## Related artifacts
 
-- Test cases: `test-cases/<feature>.md`
+- Test cases: `test-cases/REQ-XXX-<slug>.md`
 - Automation: `playwright/tests/<domain>/<feature>.spec.ts`

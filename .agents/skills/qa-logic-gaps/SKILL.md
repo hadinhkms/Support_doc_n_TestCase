@@ -39,8 +39,8 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
 3. **Load Effective Knowledge Base (Shared `ship` + Project `own` Overlay)**:
    - Read the Selective Learning policy and shared catalogs (relative to this skill directory):
      - [references/SELECTIVE-LEARNING-POLICY.md](references/SELECTIVE-LEARNING-POLICY.md)
-     - [references/defect-heuristics-catalog.md](references/defect-heuristics-catalog.md) & [references/bug-hunting-heuristics.md](references/bug-hunting-heuristics.md) (`DH-01`..`DH-06`)
-     - [references/playwright-antipatterns-catalog.md](references/playwright-antipatterns-catalog.md) & [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md) (`PA-01`..`PA-04`)
+     - [references/defect-heuristics-catalog.md](references/defect-heuristics-catalog.md) (`DH-01`..`DH-06`) và [references/playwright-antipatterns-catalog.md](references/playwright-antipatterns-catalog.md) (`PA-01`..`PA-04`): **catalog chuẩn duy nhất** mà `tools/qa/lib/learner.js` đọc; mã `DH-xx`/`PA-xx` khi trích dẫn luôn theo hai file này.
+     - Hướng dẫn áp dụng ở tầng spec (helper + rule tĩnh; mã trong đó **không** phải mã chuẩn): [references/bug-hunting-heuristics.md](references/bug-hunting-heuristics.md), [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md).
    - Resolve and inspect the project-local overlay from the **repository root** and `qa.config.json` (`<testCasesDir>/_learning/knowledge.json`, defaulting to `test-cases/_learning/knowledge.json` — never resolve `<testCasesDir>` relative to the skill folder), or run `node tools/qa learn --json` to inspect `catalogStats` (`shared`, `project`, `effective`).
    - **Handling Overlay State**:
      - If `<testCasesDir>/_learning/knowledge.json` does not exist yet, treat the project overlay as empty (valid state) and audit using the shared catalogs.
@@ -60,16 +60,16 @@ Read the target `requirements/REQ-xxx-*.md` and `test-cases/REQ-xxx-*.md` files,
    - Does every positive flow have corresponding negative and alternative flows?
 
 2. **State Transition & Lifecycle Integrity (`State & Concurrency`)**
-   - Are invalid state transitions tested? (e.g., submitting an already-submitted form, acting on a locked/deleted/expired entity, using browser Back/Forward after state change or logout, session expiration mid-flow — see `DH-01`, `DH-05`).
-   - Are idempotency and concurrency edge cases considered (e.g., double-clicking Submit / `Double-submit protection`, parallel requests at rate-limit/lockout boundaries — see `DH-02`)?
+   - Are invalid state transitions tested? (e.g., submitting an already-submitted form, acting on a locked/deleted/expired entity, using browser Back/Forward after state change or logout, session expiration mid-flow — see `DH-02`).
+   - Are idempotency and concurrency edge cases considered (e.g., double-clicking Submit / `Double-submit protection`, parallel requests at rate-limit/lockout boundaries — see `DH-01`)?
 
 3. **Field Validation — Equivalence Partitioning (EP) & Boundary Value Analysis (BVA) (`Data & BVA`)**
    - **Text Inputs**: Empty string, whitespace-only (`"   "`), leading/trailing whitespace normalization (`DH-03`), `minlength - 1`, `minlength`, `maxlength`, `maxlength + 1` (verify truncation or validation error).
-   - **Numeric Inputs**: Alphabetic (`abc`), special chars (`!@#`), mixed paste (`12abc34`), negative numbers, decimals (when integer-only), and boundaries (`min - 1`, `min`, `max`, `max + 1`).
+   - **Numeric Inputs**: Alphabetic (`abc`), special chars (`!@#`), mixed paste (`12abc34`), negative numbers, decimals (when integer-only), and boundaries (`min - 1`, `min`, `max`, `max + 1`) — see `DH-04`.
 
 4. **Security, Role & Page Exposure Matrix (`Security & Access`)**
-   - **Page Exposure**: If `Page exposure` is `public` or `customer` and user input / query params are rendered back to the UI, verify XSS test coverage (`Type: Security`, tag `@security`). If `admin/internal`, verify the exemption reason is documented in `Coverage notes`.
-   - **Access Control & Enumeration**: Unauthenticated access to protected routes, horizontal/vertical privilege escalation, and consistent generic error responses across authentication failure modes to prevent account enumeration (`DH-04`).
+   - **Page Exposure**: If `Page exposure` is `public` or `customer` and user input / query params are rendered back to the UI, verify XSS test coverage (`Type: Security`, tag `@security` — see `DH-05`). If `admin/internal`, verify the exemption reason is documented in `Coverage notes`.
+   - **Access Control & Enumeration**: Unauthenticated access to protected routes, horizontal/vertical privilege escalation, and consistent generic error responses across authentication failure modes to prevent account enumeration.
 
 5. **Error Handling, Resilience & Recovery (`Resilience & Recovery`)**
    - How does the system behave when the backend returns `4xx` / `5xx`, network times out, or user retries after a failed submission? Is non-sensitive user input preserved on validation error while sensitive fields (passwords/OTP) are cleared (`DH-06`)?
@@ -87,27 +87,27 @@ Read the target `requirements/REQ-xxx-*.md` and `test-cases/REQ-xxx-*.md` files,
 ### Step 3: Semantic Playwright Spec Audit (`test-cases/` $\leftrightarrow$ `playwright/tests/`)
 Inspect the corresponding `.spec.ts` files and Page Objects (`playwright/tests/pages/`), cross-referencing active `PA-xx` / `PPA-xxx` antipatterns across the **5 Deep Audit Dimensions** (`persistence`, `boundary`, `idempotency`, `ui-geometry/a11y/responsive`, `xss`):
 
-1. **Weak or Superficial Assertions (`Superficial Assertion` — `PA-01`, `PA-04`)**
-   - Flag tests that only assert `toHaveURL(...)` / `toHaveTitle(...)` (`PA-01`) or existence-only matchers (`toBeVisible`, `toBeAttached`, `toBeDefined`, `toBeTruthy`, `not.toBeNull`, `toHaveCount` — `weak-existence-assertion` / `PA-04`) without proving business data or calling verified helpers.
+1. **Weak or Superficial Assertions (`Superficial Assertion` — `PA-01`, `PA-02`)**
+   - Flag tests that only assert `toHaveURL(...)` / `toHaveTitle(...)` (`PA-01`), visibility on a generic container instead of the field-bound message (`PA-02`), or existence-only matchers (`toBeVisible`, `toBeAttached`, `toBeDefined`, `toBeTruthy`, `not.toBeNull`, `toHaveCount`) without proving business data or calling verified helpers. The static rule `weak-existence-assertion` only catches `toBeDefined`/`toBeTruthy`; the rest is a semantic review.
 
 2. **Step & Expectation Mismatch / Missing Negative Side-Effect Checks (`Negative Side Effects` — `PA-04`)**
    - In negative/error or double-submit test cases, verify the spec asserts both the error message **and** the absence of unintended mutations (`expectBoundaryRejected`, `expectIdempotentSubmit`).
 
-3. **Isolation, Async Timing & Selector Resilience (`Async & Timing`, `Parallel Isolation`, `Selector Fragility` — `PA-02`, `PA-03`)**
-   - Check for shared mutable test accounts/data across parallel workers (`fullyParallel` — `PA-03`) and ensure every `expect(...)` and verified async helper has `await` (`PA-02`).
+3. **Isolation, Async Timing & Selector Resilience (`Async & Timing`, `Parallel Isolation`, `Selector Fragility` — `PA-03`)**
+   - Check for shared mutable test accounts/data across parallel workers (`fullyParallel` — `PA-03`) and ensure every `expect(...)` and verified async helper has `await` (static rule `assertion-thieu-await`).
 
 #### 3.4. Symptom-to-Helper Mapping (`ui-checks.ts` & `deep-guards.ts`)
 | Triệu chứng lỗi (Bug Symptom) | Capability Tag | Helper bắt buộc (`playwright/tests/support/`) |
 |---|---|---|
 | Tràn khung ngang trên Desktop/Mobile | `ui-geometry` | `expectNoHorizontalScroll(page)` (`ui-checks.ts`) |
-| Cắt cụt chữ (`scrollWidth > clientWidth`) không có `title` | `ui-geometry` | `expectNoTextOverflow(page, rootLocator)` (`ui-checks.ts`) |
-| Nút bấm bị sticky header/toast/modal đè tâm điểm | `ui-geometry` | `expectNotOccluded(page, targetLocator)` (`ui-checks.ts`) |
-| Nút/input/link thiếu tên tiếp cận (`accessibleName`) | `a11y` | `expectInteractiveA11y(page, rootLocator)` (`ui-checks.ts`) |
+| Cắt cụt chữ (`scrollWidth > clientWidth`) không có `title` | `ui-geometry` | `expectNoTextOverflow(rootLocator)` (`ui-checks.ts`; tham số 1 là `Page \| Locator`, tham số 2 là chuỗi selector) |
+| Nút bấm bị sticky header/toast/modal đè tâm điểm | `ui-geometry` | `expectNotOccluded(targetLocator)` (`ui-box-checks.ts`, re-export qua `ui-checks.ts`) |
+| Nút/input/link thiếu tên tiếp cận (`accessibleName`) | `a11y` | `expectInteractiveA11y(rootLocator)` (`ui-checks.ts`) |
 | Vỡ layout khi đổi qua Desktop / Tablet / Mobile | `responsive` | `expectResponsiveIntegrity(page, { requiredLocators, optionalLocators })` (`ui-checks.ts`) |
-| Double-click gửi 2+ request `POST`/`PUT`/`PATCH`/`DELETE` | `idempotency` | `expectIdempotentSubmit(page, { submitLocator, urlPattern })` (`deep-guards.ts`) |
-| Payload `<script>` / `onerror` thực thi hoặc lọt vào DOM sink | `xss` | `expectSafeXssRender(page, { inputLocator, submitLocator, sinkLocator })` (`deep-guards.ts`) |
-| Optimistic UI mất dữ liệu sau khi `page.reload()` | `persistence` | `expectStatePersistence(page, { act, verify })` (`deep-guards.ts`) |
-| Giá trị biên / rỗng / quá dài vẫn bắn request thành công | `boundary` | `expectBoundaryRejected(page, { inputLocator, submitLocator, errorLocator, invalidValues })` (`deep-guards.ts`) |
+| Double-click gửi 2+ request `POST`/`PUT`/`PATCH`/`DELETE` | `idempotency` | `expectIdempotentSubmit(page, trigger, urlPattern)` (`deep-guards.ts`; `trigger` là Locator hoặc hàm async) |
+| Payload `<script>` / `onerror` thực thi hoặc lọt vào DOM sink | `xss` | `expectSafeXssRender(page, inputAction, { sinkLocator })` (`deep-guards.ts`; `inputAction(payload)` nhập và submit payload) |
+| Optimistic UI mất dữ liệu sau khi `page.reload()` | `persistence` | `expectStatePersistence(page, assertFn)` (`deep-guards.ts`; `assertFn` chạy trước và sau reload) |
+| Giá trị biên / rỗng / quá dài vẫn bắn request thành công | `boundary` | `expectBoundaryRejected(page, trigger, errorLocator, { forbidMutationRequest, mutationUrlPattern })` (`deep-guards.ts`) |
 | Lỗi 500/rớt mạng làm treo nút Submit hoặc mất chữ vừa nhập | `resilience` | `expectNetworkFaultRecovery(page, trigger, { urlPattern, errorLocator, submitButton, preservedInputs })` (`deep-guards.ts`) |
 | Mở 2 tab cùng sửa bản ghi bị ghi đè âm thầm hoặc rò phiên | `concurrency` | `expectMultiTabConcurrency(page, { setupBothTabs, tabAAction, tabBConflictingAction, verifyConflictOrIsolation })` (`deep-guards.ts`) |
 
@@ -156,7 +156,7 @@ If the user asks to fix the discovered Logic Gaps:
 1. Update `requirements/REQ-xxx-*.md` (add missing ACs, rules, or `Open questions`).
 2. Update `test-cases/REQ-xxx-*.md` (add missing `TC-xxx` rows and update the `Traceability` table).
 3. Implement or strengthen Playwright tests in `playwright/tests/` (ensure `@REQ-xxx` on `test.describe`, title `TC-xxx - AC-yyy <description>`, and priority tag `@p0`..`@p3`).
-   - **Respect Code Size Budgets Before Adding Tests/Helpers (Workspace Rule 15)**: The spec ceiling is 800 lines and its 80% warning zone starts at 640; keep each new or expanded spec below 600 lines as required by the canonical workspace instructions. A Page Object / Fixture / Support / Data / `ApiClient` file inside `tests/` has a 250-line ceiling and a 200-line warning point; outside `tests/`, `service` has a 200-line ceiling / 160-line warning point and `utils` has a 150-line ceiling / 120-line warning point. If adding remediation tests or methods would reach the applicable threshold, proactively split into a companion spec (e.g., `<feature>.validation.spec.ts` or `<feature>.security.spec.ts` carrying `{ tag: '@REQ-xxx' }`) or sub-Page Object first, keep lines $\le 500$ chars and average line length $\le 100$ chars, and never use `*.ai-test.*` / `*.scratch.*` filenames.
+   - **Respect Code Size Budgets Before Adding Tests/Helpers (Workspace Rule 15)**: The spec ceiling is 800 lines and its 80% warning zone starts at 640; keep each new or expanded spec below 640 lines. A Page Object / Fixture / Support / Data / `ApiClient` file inside `tests/` has a 250-line ceiling and a 200-line warning point; outside `tests/`, `service` has a 200-line ceiling / 160-line warning point and `utils` has a 150-line ceiling / 120-line warning point. If adding remediation tests or methods would reach the applicable threshold, proactively split into a companion spec (e.g., `<feature>.validation.spec.ts` or `<feature>.security.spec.ts` carrying `{ tag: '@REQ-xxx' }`) or sub-Page Object first, keep lines $\le 500$ chars and average line length $\le 100$ chars, and never use `*.ai-test.*` / `*.scratch.*` filenames.
 4. Validate strictly before finishing (and self-split any file flagged by `qa:limits` before handing off):
    - Run `npm run verify` inside `playwright/` (typecheck + ESLint `max-lines`/`max-len` + `limits` + `--list`)
    - Run `npm run qa:matrix` at repository root

@@ -2,6 +2,9 @@
 
 > **Ownership**: `ship` (Hub-owned shared reference for `.agents/skills/qa-api-testing`).  
 > All code patterns below strictly comply with `playwright/eslint.config.mjs` (no `if` conditionals inside `test()`, mandatory `TC-xxx - AC-yyy` titles, `@REQ-xxx` tags, no `waitForTimeout`) and `tools/qa` static analysis (no `weak-existence-assertion`).
+> **ID trong ví dụ là placeholder.** `REQ-002`, `TC-001`… chỉ minh hoạ cấu trúc. Khi viết thật, mã TC
+> mới = mã lớn nhất hiện có trên toàn `test-cases/` + 1 (mã TC duy nhất toàn thư mục, trùng mã bị
+> `qa:gaps` báo `ma-tc-trung` mức major).
 
 ---
 

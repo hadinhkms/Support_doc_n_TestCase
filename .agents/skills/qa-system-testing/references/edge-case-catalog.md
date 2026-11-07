@@ -44,12 +44,12 @@ Tài liệu này tổng hợp các bẫy dữ liệu thực chiến để đối
 
 ## 4. Tương Tranh, Đụng Độ & Trạng Thái Cũ (Concurrency, Race Conditions & Stale State)
 
-- **Double Submit / Rapid Click (`DH-02` / `idempotency`):**
+- **Double Submit / Rapid Click (`DH-01` / `idempotency`):**
   - Nhấn đúp hoặc nhấn Enter liên tiếp vào nút `Submit` / `Thanh toán` / `Duyệt` khi mạng chậm $\to$ phải khóa nút ngay lập tức và chỉ phát sinh **1 request mutating** (`expectIdempotentSubmit`).
 - **Multi-Tab & Multi-Actor Collision (`concurrency`):**
   - User mở 2 tab cùng sửa 1 hồ sơ (Tab 1 lưu trước, Tab 2 lưu đè dữ liệu cũ lên — thiếu `Optimistic Locking` / `version` / `updated_at` check).
   - Hai người dùng cùng抢 (claim) 1 mã giảm giá cuối cùng hoặc 1 suất đặt chỗ cuối cùng tại cùng thời điểm (`Promise.all` race probe).
-- **Stale UI & Back/Forward Cache (`DH-01`, `DH-05`):**
+- **Stale UI & Back/Forward Cache (`DH-02`):**
   - Sau khi đăng xuất (`Logout`) hoặc sau khi hoàn tất thanh toán/nộp đơn, bấm nút `Back` của trình duyệt: có bị gửi lại giao dịch cũ hoặc lộ dữ liệu nhạy cảm từ bộ nhớ đệm không?
 
 ---

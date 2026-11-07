@@ -23,7 +23,7 @@ cd playwright
 npm install
 npx playwright install
 Copy-Item .env.example .env   # rồi điền BASE_URL và tài khoản test
-npm run verify                # typecheck + lint + liệt kê test
+npm run verify                # typecheck + lint + limits + liệt kê test
 ```
 
 `npm run verify` chạy được **không cần ứng dụng thật**. Muốn chạy test thật thì cần `BASE_URL` trỏ tới môi trường đang chạy.
@@ -37,7 +37,7 @@ chỉ các chuẩn và tooling dùng chung mới được cập nhật ngược 
 1. Ghi requirement vào `requirements/<feature-id>-<slug>.md`.
 2. Tách requirement thành acceptance criteria có mã `AC-xxx`.
 3. Phân tích rủi ro và lập test case trong `test-cases/<feature-id>-<slug>.md`.
-4. Gắn traceability `REQ -> AC -> TC -> AUTO`, và cập nhật [ma trận tổng](test-cases/traceability.md).
+4. Gắn traceability `REQ -> AC -> TC -> AUTO`, rồi chạy `npm run qa:matrix` để sinh lại [ma trận tổng](test-cases/traceability.md) (không sửa tay).
 5. Chọn case automation theo tiêu chí trong [docs/automation-strategy.md](docs/automation-strategy.md).
 6. Viết script vào `playwright/tests/<domain>/<feature>.spec.ts`.
 7. Chạy test, lưu evidence khi fail và cập nhật trạng thái. Lỗi sản phẩm → mở issue theo [bug template](.github/ISSUE_TEMPLATE/bug_report.yml); test không ổn định → theo [flaky policy](docs/flaky-test-policy.md).
@@ -81,8 +81,8 @@ Mốc review có thể lưu ở `_Plan_implement/ui-reviews/<scope>.md` kèm rev
 finding và bằng chứng; phải kiểm tra độ còn hiệu lực trước khi dùng lại. Đây là tối ưu
 context AI, không giảm yêu cầu kiểm chứng; chưa có số đo phần trăm tiết kiệm quota.
 
-Skill và rule chung thuộc nhóm `ship`: thay đổi trực tiếp tại repo này cần được đưa
-về Hub trước lần sync kế tiếp để tránh bị ghi đè.
+Skill và rule chung thuộc nhóm `ship` và được sửa **tại repo này** (Hub), rồi mới tới repo
+vệ tinh. Ở repo vệ tinh, không sửa bản `ship` tại chỗ vì lần sync sau sẽ ghi đè.
 
 ## Khi có sẵn test automation
 
@@ -151,7 +151,7 @@ npm run test:cross       # firefox + webkit + mobile-chrome
 npm run test:ui          # chế độ UI
 npm run test:debug       # chế độ debug
 npm run report           # mở HTML report
-npm run verify           # typecheck + lint + test:list (dùng trước khi mở PR)
+npm run verify           # typecheck + lint + limits + test:list (dùng trước khi mở PR)
 ```
 
 ## Traceability analyzer & Tools
@@ -169,7 +169,7 @@ npm run qa:scaffold             # tự động sinh bộ 3 file REQ/TC/Spec ho�
 npm run qa:summary              # tóm tắt chỉ số sức khỏe QA (hỗ trợ --json cho Dashboard)
 npm run qa:fix                  # tự động sửa và chuẩn hoá liên kết truy vết (hỗ trợ --dry-run)
 npm run qa:boundary             # ranh giới Hub <-> project còn khớp không
-npm run qa:check                # boundary + drift + gaps --strict, dùng cho CI gate
+npm run qa:check                # boundary + drift + gaps + limits --strict (CI chưa chạy limits)
 npm run decisions               # quản lý và render nhật ký quyết định kỹ thuật
 ```
 
@@ -191,7 +191,7 @@ Chi tiết và **giới hạn** ở [tools/qa/README.md](tools/qa/README.md).
 
 [`.github/workflows/playwright.yml`](.github/workflows/playwright.yml):
 
-- **PR** → lint + typecheck, rồi chạy `@smoke|@p0` trên chromium, chia 2 shard.
+- **PR** → lint + typecheck, rồi chạy `@smoke|@p0` cộng test của các REQ mà PR đụng tới (trừ `@wip`) trên chromium, chia 2 shard.
 - **Nightly (01:00 ICT)** → chạy đầy đủ trên chromium + firefox + webkit.
 - **Thủ công** → `workflow_dispatch`, nhập tag muốn chạy.
 

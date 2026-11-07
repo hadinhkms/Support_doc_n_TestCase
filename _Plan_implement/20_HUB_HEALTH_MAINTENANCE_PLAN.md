@@ -47,10 +47,12 @@ Vấn đề phát hiện:
 | 2 | [Decision log & tài liệu lệch](plan-20-hub-health-maintenance/phase-2-decisions-and-docs.md) | P1 | 0.5 ngày |
 | 3 | [Tooling tuân thủ Rule 15](plan-20-hub-health-maintenance/phase-3-tools-size-limits.md) | P2 | 3–5 ngày |
 | 4 | [Tăng tốc unit test](plan-20-hub-health-maintenance/phase-4-unit-test-speed.md) | P2 | 1–2 ngày |
+| 5 | [Nhất quán rule, skill, template, tool](plan-20-hub-health-maintenance/phase-5-rule-consistency.md) | P1 | 2–3 ngày |
 
 Thứ tự: 0 → 1 → 2 → 3 → 4. Phase 3 và 4 cùng đụng `tools/qa/lib/learner*`, nên làm
 tuần tự (hoặc làm Phase 4 ngay sau khi tách `learner.js` ở Phase 3). Sau Plan 20 mới
-quay lại Plan 19 (onboarding, seed runtime, skills gate, capability).
+quay lại Plan 19 (onboarding, seed runtime, skills gate, capability). Phase 5 (bổ sung
+2026-11-07) làm song song được với Phase 1; Đợt 4 của nó cần owner chốt quyết định.
 
 ## Ngoài phạm vi
 

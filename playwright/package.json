@@ -4,8 +4,8 @@
   "scripts": {
     "test": "playwright test --project=chromium",
     "test:all": "playwright test",
-    "test:smoke": "playwright test --project=chromium --grep @smoke",
-    "test:p0": "playwright test --project=chromium --grep @p0",
+    "test:smoke": "playwright test --project=chromium --grep @smoke --grep-invert @wip",
+    "test:p0": "playwright test --project=chromium --grep @p0 --grep-invert @wip",
     "test:regression": "playwright test --project=chromium --grep-invert @wip",
     "test:a11y": "playwright test --project=chromium --grep @a11y",
     "test:cross": "playwright test --project=firefox --project=webkit --project=mobile-chrome",

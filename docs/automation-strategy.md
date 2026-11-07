@@ -34,7 +34,7 @@ Automation đề xuất khi tổng điểm từ 17/25 hoặc là P0/P1 critical 
 - Dùng `getByRole`, `getByLabel`, `getByTestId`; tránh CSS/XPath phụ thuộc layout.
 - Mỗi test độc lập, không phụ thuộc thứ tự chạy.
 - Tạo dữ liệu bằng API/fixture khi có thể; UI chỉ kiểm chứng UI.
-- Không dùng `waitForTimeout`; chờ theo assertion hoặc trạng thái mạng.
+- Không dùng `waitForTimeout`; chờ theo web-first assertion hoặc `waitForResponse` cho đúng request cần chờ (không dùng `networkidle`, ESLint chặn).
 - Assert cả kết quả chính và side effect quan trọng.
 - Dùng trace/video/screenshot khi retry hoặc failure.
 - Page Object chỉ gom locator và hành vi dùng lại; không che khuất assertion nghiệp vụ.
@@ -46,8 +46,8 @@ Automation đề xuất khi tổng điểm từ 17/25 hoặc là P0/P1 critical 
 
 | Thành phần Automation | Role khi Audit | Trần cứng | Vùng vàng (80%) | Mục tiêu khi viết | Cách phân rã chuẩn |
 |---|---|---|---|---|---|
-| Kịch bản kiểm thử (`*.spec.ts`, `*.test.ts`) | `test` | $\le 800$ dòng | $\ge 640$ dòng | **$< 600$ dòng** | Tách theo nhóm luồng/chiều kiểm thử (`*.happy.spec.ts`, `*.validation.spec.ts`, `*.security.spec.ts`, `*.resilience.spec.ts`), giữ `{ tag: '@REQ-xxx' }` ở `test.describe` |
-| Page Object, Fixture, Support, Data, `ApiClient` trong `tests/`, `*.setup.ts`, `*.config.ts` | `module` | $\le 250$ dòng | $\ge 200$ dòng | **$< 190$ dòng** | Tách POM theo khối UI con (Modal, Form, FilterBar); tách `ApiClient` theo domain; đưa mock data lớn sang `.json` |
+| Kịch bản kiểm thử (`*.spec.ts`, `*.test.ts`) | `test` | $\le 800$ dòng | $\ge 640$ dòng | **$< 640$ dòng** | Tách theo nhóm luồng/chiều kiểm thử (`*.happy.spec.ts`, `*.validation.spec.ts`, `*.security.spec.ts`, `*.resilience.spec.ts`), giữ `{ tag: '@REQ-xxx' }` ở `test.describe` |
+| Page Object, Fixture, Support, Data, `ApiClient` trong `tests/`, `*.setup.ts`, `*.config.ts` | `module` | $\le 250$ dòng | $\ge 200$ dòng | **$< 200$ dòng** | Tách POM theo khối UI con (Modal, Form, FilterBar); tách `ApiClient` theo domain; đưa mock data lớn sang `.json` |
 | Service / API / Client đặt **ngoài** `tests/` | `service` | $\le 200$ dòng | $\ge 160$ dòng | **$< 150$ dòng** | Tách mỗi resource nghiệp vụ một file (`auth.api.ts`, `orders.api.ts`) |
 | Helper / Utils đặt **ngoài** `tests/` | `utils` | $\le 150$ dòng | $\ge 120$ dòng | **$< 115$ dòng** | Phân rã theo miền chức năng, không gom chung kiểu kitchen-sink |
 

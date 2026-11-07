@@ -2,7 +2,7 @@
 
 ## Scope
 
-This matrix extends the existing API security baseline to cover session control, data protection, and evidence handling. It is intended for `REQ-16-P6` and related security acceptance criteria.
+This matrix extends the existing API security baseline to cover session control, data protection, and evidence handling. It is intended for Plan 16 Phase 6 security work and related security acceptance criteria (requirement IDs still use the `REQ-xxx` three-digit format).
 
 ## Coverage matrix
 

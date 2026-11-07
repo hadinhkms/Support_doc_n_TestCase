@@ -84,7 +84,7 @@ Nếu task có checklist test case (`test-cases/REQ-xxx-*.md`, Jira issue hoặc
 ---
 
 ### Bước 5: Chạy Cổng Kiểm Chứng Cuối & Tự Review Giới Hạn Code (Final Quality & Modularity Gates)
-Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, bắt buộc tự kiểm tra giới hạn kích thước code (Rule 15: spec có trần 800 dòng, vùng vàng từ 640 và spec mới/được bổ sung giữ dưới 600; Page Object / Fixture / Support / Data / `ApiClient` trong `tests/` có trần 250, vùng vàng từ 200; Service ngoài `tests/` có trần 200, vùng vàng từ 160; Utils ngoài `tests/` có trần 150, vùng vàng từ 120; dòng đơn $\le 500$ ký tự, trung bình dòng $\le 100$ ký tự, không để file `.ai-test.`/`.scratch.`) và chạy tuần tự:
+Sau khi cập nhật spec, Page Object, fixture, test case hoặc requirement, bắt buộc tự kiểm tra giới hạn kích thước code (Rule 15: spec có trần 800 dòng, vùng vàng từ 640 và spec mới/được bổ sung giữ dưới 640; Page Object / Fixture / Support / Data / `ApiClient` trong `tests/` có trần 250, vùng vàng từ 200; Service ngoài `tests/` có trần 200, vùng vàng từ 160; Utils ngoài `tests/` có trần 150, vùng vàng từ 120; dòng đơn $\le 500$ ký tự, trung bình dòng $\le 100$ ký tự, không để file `.ai-test.`/`.scratch.`) và chạy tuần tự:
 1. Trong `playwright/`: `npm run verify` (đảm bảo pass TypeScript, ESLint `max-lines`/`max-len`, `limits` và `playwright test --list`).
 2. Ở thư mục gốc:
    ```bash

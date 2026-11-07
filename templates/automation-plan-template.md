@@ -12,7 +12,8 @@ Ngưỡng đề xuất automation: tổng từ 17/25, hoặc là P0/P1 critical 
 ## Script contract
 
 - Spec file: `playwright/tests/<domain>/<feature>.spec.ts`
-- Test title: `<TC-ID> - <short title>`
+- Describe tag: `{ tag: '@REQ-XXX' }` trên `test.describe`
+- Test title: `TC-xxx - AC-yyy <short title>`, kèm tag priority `@p0`..`@p3`
 - Setup: <fixture/API/seed>
 - Steps: <numbered user-observable actions>
 - Assertions: <main result + side effects>
@@ -32,5 +33,5 @@ Ngưỡng đề xuất automation: tổng từ 17/25, hoặc là P0/P1 critical 
 - [ ] No real secret/OTP/payment dependency.
 - [ ] Expected result is deterministic.
 - [ ] Test is independent and rerunnable.
-- [ ] Requirement and test case IDs are included in title/tag.
-- [ ] Đã cập nhật `test-cases/traceability.md`.
+- [ ] `@REQ-XXX` tag on `test.describe` and `TC-xxx - AC-yyy` in every test title.
+- [ ] Đã chạy `npm run qa:matrix` (không sửa tay `test-cases/traceability.md`).

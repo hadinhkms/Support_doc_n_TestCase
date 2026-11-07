@@ -6,7 +6,7 @@
 2. **Tạo dữ liệu qua API/fixture, không qua UI.** UI chỉ dùng để kiểm chứng UI. Seed qua UI làm test chậm và fail vì lý do không liên quan.
 3. **Dữ liệu phải duy nhất theo lần chạy.** Dùng `uniqueEmail()` trong `playwright/tests/data/users.ts` thay vì hằng số.
 4. **Cleanup phải idempotent.** Xoá thứ đã bị xoá không được làm fail teardown (xem `ApiClient.deleteUser`).
-5. **Không hard-code credential.** Tất cả đi qua `requireEnv()` — thiếu biến thì fail nhanh kèm hướng dẫn, không chạy tiếp với giá trị giả.
+5. **Không hard-code credential của tài khoản có sẵn.** Tất cả đi qua `requireEnv()` — thiếu biến thì fail nhanh kèm hướng dẫn, không chạy tiếp với giá trị giả.
 
 ## Ba loại dữ liệu
 
@@ -21,7 +21,7 @@
 ```ts
 test('TC-0xx - ...', async ({ api, page }) => {
   const email = uniqueEmail('viewer');
-  const userId = await api.createUser({ email, password: 'Str0ng!Pass', role: 'viewer' });
+  // Mật khẩu dùng một lần cho user vừa seed và bị xoá ở finally, không phải credential thật.
 
   try {
     // ... phần kiểm chứng

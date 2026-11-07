@@ -85,8 +85,12 @@ Requirement im lặng về hành vi → không tự bịa Expected result: tạo
 ## Bước 5 — Ghi kết quả về nguồn
 
 ### `test-cases/REQ-xxx-*.md`
-- Test case mới: thêm dòng vào **Bảng truy vết** đủ cột (TC, AC, Mô tả, Ưu tiên, Automation =
-  `Có`/`manual`, Spec) và mục chi tiết `### TC-zzz` với bảng `| Bước | Thao tác | Kết quả mong đợi |`.
+- Test case mới: thêm dòng vào bảng `## Traceability` **đúng thứ tự cột** của
+  [templates/test-case-template.md](../../../templates/test-case-template.md):
+  `| Requirement | Acceptance criterion | Test case | Automation | Spec | Priority |`, ví dụ
+  `| REQ-047 | AC-003 | TC-112 | No | | P1 |`. Tool đọc theo vị trí cột, dòng không bắt đầu bằng
+  `REQ-xxx` bị bỏ qua. Automation dùng `Yes` / `Candidate` / `No`. Mô tả nằm ở mục chi tiết
+  `### TC-zzz: <mục tiêu>` theo template, với bảng `| Step | Action | Expected result |`.
 - Kết quả: thêm/cập nhật mục `## Kết quả thực thi` ở cuối file, đợt mới nhất nằm trên, giữ lịch sử:
 
   ```markdown
@@ -96,9 +100,11 @@ Requirement im lặng về hành vi → không tự bịa Expected result: tạo
   | Test case | Trạng thái | Bằng chứng | Ghi chú |
   |---|---|---|---|
   | TC-009 | PASS | playwright-report/index.html#... | |
-  | TC-045 | FAIL | evidence/BUG-03.png | BUG-03 — [Bổ sung 2026-10-30] |
+  | TC-045 | FAIL | playwright-report/index.html#... (attachment `BUG-03`) | BUG-03 — [Bổ sung 2026-10-30] |
   ```
-  Không ghi chữ `Có`/`manual` trong bảng kết quả (công cụ truy vết đọc hai giá trị này).
+  Ảnh bug chụp bằng `captureAnnotatedBugEvidence` được đính vào Playwright report; không tự lưu
+  vào thư mục `evidence/` riêng. Không ghi `Yes`/`No`/`Có`/`manual` trong bảng kết quả (công cụ
+  truy vết đọc các giá trị này).
 - Sau khi sửa test case hoặc traceability, chạy `npm run qa:matrix` rồi
   `npm run qa:check` tại root nếu các script có sẵn; không được phát sinh finding
   mới mức `major` trở lên.

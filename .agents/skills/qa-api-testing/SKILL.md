@@ -36,7 +36,7 @@ Load these reference guides when designing test cases or writing Playwright API 
    npm run qa:gaps
    npm run qa:limits
    ```
-   Always read the target repository's `AGENTS.md` and `.github/copilot-instructions.md` before modifying `requirements/`, `test-cases/`, or `playwright/tests/`. In this workspace, Rule 15 sets ceilings of `Util/Helper ≤ 150`, `Service/ApiClient ≤ 200`, `Module/Fixture ≤ 250`, and `Test/Spec ≤ 800`; its 80% warning points are `120/160/200/640`. Keep new or expanded specs below 600 lines as required by the canonical workspace instructions.
+   Always read the target repository's `AGENTS.md` and `.github/copilot-instructions.md` before modifying `requirements/`, `test-cases/`, or `playwright/tests/`. In this workspace, Rule 15 sets ceilings of `Util/Helper ≤ 150` and `Service ≤ 200` (outside `tests/`), `Module ≤ 250` (Page Object, Fixture and `ApiClient` inside `tests/`), and `Test/Spec ≤ 800`; its 80% warning points are `120/160/200/640`. Keep new or expanded files below the warning point.
    For asynchronous producer-consumer contracts, schema evolution, retries, ordering, replay, and DLQ behavior, also use [qa-contract-testing](../qa-contract-testing/SKILL.md).
 
 2. **Configure Canonical Metadata in `requirements/REQ-xxx-*.md`**:
@@ -126,8 +126,8 @@ Follow the patterns in [references/playwright-api-patterns.md](references/playwr
 
 5. **Code Size Budget & Proactive Modular Splitting (Workspace Rule 15 — Zero Pre-Commit Overflow)**:
    - Pre-commit hooks enforce both hard line ceilings and the **80% warning zone** (blocking any newly created file or file with added tests/functions once it reaches $\ge 80\%$):
-     - **API Spec files (`*.spec.ts`, `*.test.ts` — role `test`)**: Hard ceiling $\le 800$ lines | **80% warning zone $\ge 640$ lines**. Keep each new or expanded spec **$< 600$ lines** as required by the canonical workspace instructions. For full 8-dimension API suites, proactively split into focused specs (`<resource>.contract.spec.ts`, `<resource>.auth-bola.spec.ts`, `<resource>.validation-concurrency.spec.ts`), keeping `{ tag: '@REQ-xxx' }` on `test.describe` and `TC-xxx - AC-yyy` titles so `tools/qa` joins 100% of coverage.
-     - **`ApiClient`, Domain API Wrappers, Fixtures, Support & Data inside `tests/` (role `module`)**: Hard ceiling $\le 250$ lines | **80% warning zone $\ge 200$ lines** $\to$ keep each file **$< 190$ lines** (split `ApiClient` by domain resource; move large JSON schemas/payloads into `.json` files or focused `tests/data/*.ts` modules). Files outside `tests/` have stricter ceilings (`service` $\le 200$ / warning $160$; `utils`/`helpers` $\le 150$ / warning $120$).
+     - **API Spec files (`*.spec.ts`, `*.test.ts` — role `test`)**: Hard ceiling $\le 800$ lines | **80% warning zone $\ge 640$ lines**. Keep each new or expanded spec **$< 640$ lines**. For full 8-dimension API suites, proactively split into focused specs (`<resource>.contract.spec.ts`, `<resource>.auth-bola.spec.ts`, `<resource>.validation-concurrency.spec.ts`), keeping `{ tag: '@REQ-xxx' }` on `test.describe` and `TC-xxx - AC-yyy` titles so `tools/qa` joins 100% of coverage.
+     - **`ApiClient`, Domain API Wrappers, Fixtures, Support & Data inside `tests/` (role `module`)**: Hard ceiling $\le 250$ lines | **80% warning zone $\ge 200$ lines** $\to$ keep each file **$< 200$ lines** (split `ApiClient` by domain resource; move large JSON schemas/payloads into `.json` files or focused `tests/data/*.ts` modules). Files outside `tests/` have stricter ceilings (`service` $\le 200$ / warning $160$; `utils`/`helpers` $\le 150$ / warning $120$).
      - Keep single lines $\le 500$ chars (use `'x'.repeat(n)` for boundary payloads), average non-empty line length $\le 100$ chars, and never commit `*.ai-test.*` or `*.scratch.*` filenames.
 
 ---

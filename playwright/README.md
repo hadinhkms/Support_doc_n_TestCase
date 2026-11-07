@@ -13,10 +13,10 @@ Biến môi trường đọc qua `requireEnv()` trong [tests/support/env.ts](tes
 ## Kiểm tra trước khi mở PR
 
 ```powershell
-npm run verify   # tsc --noEmit + eslint + playwright test --list
+npm run verify   # tsc --noEmit + eslint + limits + playwright test --list
 ```
 
-Cả ba bước đều chạy được mà không cần ứng dụng thật.
+Cả bốn bước đều chạy được mà không cần ứng dụng thật.
 
 ## Cách chuyển một test case thành script
 

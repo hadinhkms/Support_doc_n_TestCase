@@ -1,7 +1,9 @@
 # Danh mục Phản mẫu Kiểm thử Playwright (Playwright Anti-Pattern Catalog)
 
-Tài liệu tham chiếu cho skill `qa-logic-gaps` và hệ thống Học Chọn Lọc (`tools/qa/lib/learner.js`).
-Mỗi mục gắn thẻ `<!-- staticRule: ... | coverage: ... -->` để đối chiếu với rule phân tích tĩnh.
+Hướng dẫn áp dụng ở tầng spec cho skill `qa-logic-gaps`: mỗi mục ánh xạ phản mẫu sang rule tĩnh
+(`<!-- staticRule: ... | coverage: ... -->`). `tools/qa/lib/learner.js` **không** đọc file này. Mã
+`[PA-xx]` ở đây chỉ để giữ đúng định dạng catalog, **không** phải mã chuẩn: khi trích dẫn finding,
+dùng mã trong [playwright-antipatterns-catalog.md](playwright-antipatterns-catalog.md).
 
 ---
 

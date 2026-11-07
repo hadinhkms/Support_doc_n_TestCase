@@ -53,7 +53,7 @@ Guard bắt cả trường hợp lồng nhau (`{ src: 'docs/requirements' }`), k
 
 ### 2. Ở project — chặn lúc CI
 
-`npm run qa:boundary --strict` đối chiếu manifest với thực tế và fail khi:
+`npm run qa:boundary -- --strict` (cần `--` để npm chuyển cờ cho tool) đối chiếu manifest với thực tế và fail khi:
 
 | Vấn đề | Nghĩa |
 |---|---|
