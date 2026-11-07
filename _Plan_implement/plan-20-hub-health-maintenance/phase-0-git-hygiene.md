@@ -35,7 +35,7 @@
   `feat/plan-16-phase-1-evidence`.
 - [ ] Sau khi merge: xoá nhánh `chore/gate-fix-node22` và `feat/bug-hunting-phase5-mutation-pilot`
   (local + remote).
-- [ ] Dọn `scratch/` ở gốc — chờ owner quyết (chứa exploration Vieclam24h, không thuộc Hub).
+- [x] Dọn `scratch/` ở gốc — owner duyệt xoá (exploration Vieclam24h, không thuộc Hub).
 
 ## Tiêu chí hoàn thành
 
