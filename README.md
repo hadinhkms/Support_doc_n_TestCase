@@ -55,6 +55,7 @@ Workspace tích hợp các bộ kỹ năng chuyên sâu cho AI Coding & QA Agent
 | [`qa-ui-review`](.agents/skills/qa-ui-review/SKILL.md) | Review mã nguồn Frontend và giao diện thực tế theo Rubric 15 nhóm (Layout, Mobile, A11y, Interaction, Async state). |
 | [`qa-tracking-analytics`](.agents/skills/qa-tracking-analytics/SKILL.md) | Review tracking req/tracking plan Mixpanel: đề xuất event cần bắn theo flow (chạy flow thật nếu đã build, dùng REQ/Figma nếu chưa), checklist `TR-xx` (naming, timing, identity, PII), và xác định report khai thác được (Funnel, Retention, Flows, Breakdown). |
 | [`qa-test-execution`](.agents/skills/qa-test-execution/SKILL.md) | Thực thi checklist, ghi trạng thái kèm bằng chứng, tìm và bổ sung test case còn thiếu, rồi chạy các gate QA phù hợp. |
+| [`qa-exploratory`](.agents/skills/qa-exploratory/SKILL.md) | Kiểm thử thăm dò có cấu trúc để săn lỗi tiềm ẩn ngoài requirement/checklist: charter theo rủi ro, heuristic `SFDPOT`, oracle `FEW HICCUPPS`, tours, session report và chuyển phát hiện thành `BUG`/`Q-xxx`/`TC` mới. |
 
 ## Review UI/UX của ứng dụng
 

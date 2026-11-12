@@ -115,8 +115,8 @@ test('L01: parseCatalogMarkdown hỗ trợ BOM, CRLF, fenced code, comment metad
 
   const parsedDh = parseCatalogMarkdown(REAL_DEFECT_MD, 'DH', 'defect-heuristics-catalog.md');
   const parsedPa = parseCatalogMarkdown(REAL_PA_MD, 'PA', 'playwright-antipatterns-catalog.md');
-  assert.equal(parsedDh.length, 6);
-  assert.equal(parsedPa.length, 4);
+  assert.equal(parsedDh.length, 11);
+  assert.equal(parsedPa.length, 7);
   assert.equal(parsedPa[0].id, 'PA-01');
   assert.equal(parsedPa[0].metadata.staticRule, 'spec-chi-assert-url');
   assert.equal(parsedPa[0].metadata.coverage, 'partial');
@@ -194,8 +194,8 @@ test('L02: loadCatalog trả overlay rỗng hợp lệ khi chưa có file, nhưn
 
   const cat = loadCatalog(dir);
   assert.equal(cat.overlayPresent, false);
-  assert.equal(cat.stats.shared.DH, 6);
-  assert.equal(cat.stats.shared.PA, 4);
+  assert.equal(cat.stats.shared.DH, 11);
+  assert.equal(cat.stats.shared.PA, 7);
   assert.equal(cat.stats.project.active, 0);
   assert.equal(fs.existsSync(path.join(dir, 'test-cases', '_learning')), false);
 
@@ -1243,14 +1243,14 @@ test('L16: Apply chỉ ghi vào Project Overlay (own), giữ nguyên vùng Ship 
   assert.equal(fs.readFileSync(shipDefectPath, 'utf8'), shipDefectBefore);
   assert.equal(fs.readFileSync(shipPaPath, 'utf8'), shipPaBefore);
 
-  // Giả lập Hub sync ghi đè file Shared Catalog (thêm DH-07 vào ship) -> loadCatalog vẫn giữ nguyên PDH-001 của project!
+  // Giả lập Hub sync ghi đè file Shared Catalog (thêm DH-25 vào ship) -> loadCatalog vẫn giữ nguyên PDH-001 của project!
   const updatedShipDefect =
     shipDefectBefore +
-    '\n### [DH-07] Quy tắc mới từ Hub\n- **Category**: Security & Access\n- **Trigger**: Khi gọi API nội bộ.\n- **Failure Mode**: Thiếu kiểm tra role.\n- **Actionable Check**: Kiểm tra mã 403 Forbidden.\n';
+    '\n### [DH-25] Quy tắc mới từ Hub\n- **Category**: Security & Access\n- **Trigger**: Khi gọi API nội bộ.\n- **Failure Mode**: Thiếu kiểm tra role.\n- **Actionable Check**: Kiểm tra mã 403 Forbidden.\n';
   fs.writeFileSync(shipDefectPath, updatedShipDefect, 'utf8');
 
   const reloaded = loadCatalog(dir);
-  assert.equal(reloaded.stats.shared.DH, 7);
+  assert.equal(reloaded.stats.shared.DH, 12);
   assert.equal(reloaded.stats.project.DH, 1);
-  assert.equal(reloaded.stats.effective.DH, 8);
+  assert.equal(reloaded.stats.effective.DH, 13);
 });

@@ -30,3 +30,21 @@
 - **Trigger**: Kiểm thử ca Negative/Security hoặc chống gửi trùng mà hành động phải bị chặn (ví dụ: bấm Submit khi dữ liệu sai hoặc bấm đúp liên tiếp).
 - **Failure Mode**: Test chỉ kiểm tra thông báo lỗi xuất hiện trên UI, nhưng không phát hiện việc Frontend vẫn âm thầm gửi request `POST/PUT` xuống Backend hoặc làm thay đổi trạng thái ngoài ý muốn.
 - **Actionable Check**: Trong các ca từ chối thao tác hoặc chống double-submit, kiểm tra thêm rằng không có request ghi dữ liệu trái phép hoặc chuyển hướng ngầm xảy ra ngoài dự kiến của Test Case.
+
+### [PA-05] Ngủ cứng bằng waitForTimeout thay vì chờ theo điều kiện
+- **Category**: Async & Timing
+- **Trigger**: Spec hoặc Page Object gọi `page.waitForTimeout(ms)`, `setTimeout` hay vòng lặp sleep để chờ render, animation, request hoặc job nền.
+- **Failure Mode**: Chạy nhanh thì thừa thời gian, chạy chậm trên CI/shard thì chưa đủ; test flaky và che mất lỗi race thật của ứng dụng.
+- **Actionable Check**: Thay bằng web-first assertion (`await expect(...).toHaveText(...)`), `waitForResponse` theo URL cụ thể, `expect.poll` có timeout, hoặc `page.clock` cho logic phụ thuộc thời gian.
+
+### [PA-06] Test chỉ kiểm lại dữ liệu mock do chính test dựng lên
+- **Category**: Superficial Assertion
+- **Trigger**: Test dùng `page.route(...)`/fixture để giả response rồi assert đúng giá trị vừa giả, trong khi Test Case yêu cầu kiểm hành vi thật của backend.
+- **Failure Mode**: Test luôn PASS dù backend trả sai schema, sai quyền hoặc sai dữ liệu, vì nó chỉ chứng minh UI hiển thị lại mock.
+- **Actionable Check**: Đối chiếu cột `Expected` của Test Case: nếu cần chứng minh hành vi backend thì phải có ít nhất một test gọi API thật (read-after-write); mock chỉ dùng cho ca lỗi mạng/5xx khó tạo.
+
+### [PA-07] Selector bám theo cấu trúc DOM hoặc class sinh tự động
+- **Category**: Selector Fragility
+- **Trigger**: Locator dùng `nth-child`, `nth()`, XPath tuyệt đối, chuỗi CSS dài hoặc class do CSS-in-JS/bundler sinh ra (`.css-1x2y3z`).
+- **Failure Mode**: Đổi bố cục nhỏ là test vỡ (false negative), hoặc tệ hơn trỏ nhầm sang phần tử khác cùng vị trí và vẫn PASS (false positive).
+- **Actionable Check**: Dùng `getByRole`/`getByLabel`/`getByTestId` theo `docs/selector-convention.md`; nếu buộc dùng `nth()` thì neo trong vùng chứa có ngữ nghĩa và assert nội dung phần tử.

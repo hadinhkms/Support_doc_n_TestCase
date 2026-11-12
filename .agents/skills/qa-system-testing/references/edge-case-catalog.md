@@ -1,6 +1,6 @@
 # Danh Mục Bẫy Dữ Liệu & Trường Hợp Biên Hệ Thống (System Edge Case Catalog)
 
-Tài liệu này tổng hợp các bẫy dữ liệu thực chiến để đối chiếu nhanh khi review Requirement (**Pha 01**) và thiết kế Test Case (**Pha 02**), bổ trợ trực tiếp cho `DH-01`..`DH-06` trong skill `qa-logic-gaps` và các payload trong `playwright/tests/support/deep-guards.ts`.
+Tài liệu này tổng hợp các bẫy dữ liệu thực chiến để đối chiếu nhanh khi review Requirement (**Pha 01**) và thiết kế Test Case (**Pha 02**), bổ trợ trực tiếp cho `DH-01`..`DH-11` trong skill `qa-logic-gaps` và các payload trong `playwright/tests/support/deep-guards.ts`.
 
 ---
 
@@ -48,7 +48,7 @@ Tài liệu này tổng hợp các bẫy dữ liệu thực chiến để đối
   - Nhấn đúp hoặc nhấn Enter liên tiếp vào nút `Submit` / `Thanh toán` / `Duyệt` khi mạng chậm $\to$ phải khóa nút ngay lập tức và chỉ phát sinh **1 request mutating** (`expectIdempotentSubmit`).
 - **Multi-Tab & Multi-Actor Collision (`concurrency`):**
   - User mở 2 tab cùng sửa 1 hồ sơ (Tab 1 lưu trước, Tab 2 lưu đè dữ liệu cũ lên — thiếu `Optimistic Locking` / `version` / `updated_at` check).
-  - Hai người dùng cùng抢 (claim) 1 mã giảm giá cuối cùng hoặc 1 suất đặt chỗ cuối cùng tại cùng thời điểm (`Promise.all` race probe).
+  - Hai người dùng cùng giành (claim) 1 mã giảm giá cuối cùng hoặc 1 suất đặt chỗ cuối cùng tại cùng thời điểm (`Promise.all` race probe).
 - **Stale UI & Back/Forward Cache (`DH-02`):**
   - Sau khi đăng xuất (`Logout`) hoặc sau khi hoàn tất thanh toán/nộp đơn, bấm nút `Back` của trình duyệt: có bị gửi lại giao dịch cũ hoặc lộ dữ liệu nhạy cảm từ bộ nhớ đệm không?
 

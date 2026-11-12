@@ -52,6 +52,7 @@ Trước khi sửa đổi bất kỳ file nào trong `requirements/`, `test-case
 | Kiểm thử contract producer-consumer bất đồng bộ (schema evolution, ordering, retry, DLQ, eventual consistency) | [qa-contract-testing](../qa-contract-testing/SKILL.md) |
 | Review mã nguồn Frontend & giao diện thực tế theo Rubric 15 nhóm UI/UX | [qa-ui-review](../qa-ui-review/SKILL.md) |
 | Thực thi checklist test case: mark PASS/FAIL/BLOCKED/N/A/NOT RUN & bổ sung test case thiếu | [qa-test-execution](../qa-test-execution/SKILL.md) |
+| Thăm dò có charter để săn lỗi tiềm ẩn ngoài requirement (SFDPOT, FEW HICCUPPS, tours) | [qa-exploratory](../qa-exploratory/SKILL.md) |
 | Nghiên cứu, tra cứu tri thức QA Skills, AI Testing, Visual/DOM/A11y & SOP | [docs/qa-research-references.md](../../../docs/qa-research-references.md) |
 
 ---

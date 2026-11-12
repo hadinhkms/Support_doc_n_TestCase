@@ -59,6 +59,13 @@ người dùng đưa), dùng [skill qa-test-execution](../.agents/skills/qa-test
 mark trạng thái từng test case (`PASS`/`FAIL`/`BLOCKED`/`N/A`/`NOT RUN`) kèm bằng chứng, bổ sung
 test case còn thiếu vào checklist rồi thực thi luôn. `FAIL` chỉ dùng khi đạt mục 14.
 
+## Kiểm thử thăm dò (exploratory)
+
+Khi người dùng muốn test thăm dò, bug bash, săn lỗi tiềm ẩn hoặc tính năng chưa có/ít test case,
+dùng [skill qa-exploratory](../.agents/skills/qa-exploratory/SKILL.md): mỗi session có charter,
+ghi rõ oracle bị vi phạm cho từng phát hiện, và chỉ gắn `BUG` khi đạt mục 14. Requirement im lặng
+thì mở `Q-xxx`, không tự bịa Expected result.
+
 ## Review mã frontend và UI/UX
 
 Khi người dùng yêu cầu review UI/UX hoặc mã frontend của ứng dụng được kiểm thử, dùng

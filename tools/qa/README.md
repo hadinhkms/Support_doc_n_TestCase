@@ -173,7 +173,7 @@ node tools/qa learn --apply --review=test-cases/_learning/review.json --dry-run 
 
 | Thành phần | Đường dẫn mặc định | Phân loại | Quyền của `learn` |
 |---|---|---|---|
-| Policy & Shared Catalog | `.agents/skills/qa-logic-gaps/references/*.md` | `ship` | **Chỉ đọc (Read-Only)** — Hub sở hữu (6 seed `DH-01`..`DH-06`, 4 seed `PA-01`..`PA-04`) |
+| Policy & Shared Catalog | `.agents/skills/qa-logic-gaps/references/*.md` | `ship` | **Chỉ đọc (Read-Only)** — Hub sở hữu (11 seed `DH-01`..`DH-11`, 7 seed `PA-01`..`PA-07`) |
 | Project Knowledge Overlay | `<testCasesDir>/_learning/knowledge.json` | `own` | Ghi nguyên tử khi `--apply` thành công (mã `PDH-001`.., `PPA-001`..) |
 | Review Artifact | `<testCasesDir>/_learning/review.json` | `own` | Ghi mới (`wx`) khi có `--output`; người/agent duyệt trước khi `--apply` |
 | Lock File | `<testCasesDir>/_learning/knowledge.lock` | `own` (tạm) | Khoá độc quyền trong lúc `--apply`, tự xoá trong `finally`, không commit |

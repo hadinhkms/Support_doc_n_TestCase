@@ -5,6 +5,22 @@ rule tĩnh (`<!-- staticRule: ... | coverage: ... -->`). `tools/qa/lib/learner.j
 này. Mã `[DH-xx]` ở đây chỉ để giữ đúng định dạng catalog, **không** phải mã chuẩn: khi trích dẫn
 finding, dùng mã trong [defect-heuristics-catalog.md](defect-heuristics-catalog.md).
 
+> ⚠️ **Mã trùng tên nhưng khác nghĩa.** Mã trong file này (giữ tiền tố `DH` vì
+> `tools/scaffold/scaffold.test.js` parse theo định dạng catalog) **không trùng nghĩa** với mã chuẩn.
+> Luôn tra bảng dưới trước khi trích dẫn; cột "Mã chuẩn" là mã duy nhất được dùng trong báo cáo.
+
+| Mục trong file này | Chủ đề | Mã chuẩn để trích dẫn |
+|---|---|---|
+| DH-01 | Idempotency & double-submit | `DH-01` |
+| DH-02 | BVA, khoảng trắng, Unicode | `DH-03` (khoảng trắng), `DH-04` (biên số học) |
+| DH-03 | Bền vững sau reload | `DH-11` |
+| DH-04 | UI geometry & a11y | Chưa có mã chuẩn — trích dẫn helper + capability `ui-geometry`/`a11y` |
+| DH-05 | XSS & injection sinks | `DH-05` |
+| DH-06 | Lỗi ngầm console/pageerror/5xx | Chưa có mã chuẩn — trích dẫn `runtimeTrap` |
+
+Category của mục DH-04 dưới đây là `Resilience & Recovery` chỉ vì enum `DH` hiện chưa có nhóm UI;
+đừng suy ra rằng lỗi hình học là lỗi phục hồi.
+
 ---
 
 ### [DH-01] Chống gửi trùng và thao tác lặp (Idempotency & Double-Submit)

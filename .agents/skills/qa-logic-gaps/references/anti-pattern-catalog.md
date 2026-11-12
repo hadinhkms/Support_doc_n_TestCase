@@ -5,6 +5,15 @@ Hướng dẫn áp dụng ở tầng spec cho skill `qa-logic-gaps`: mỗi mục
 `[PA-xx]` ở đây chỉ để giữ đúng định dạng catalog, **không** phải mã chuẩn: khi trích dẫn finding,
 dùng mã trong [playwright-antipatterns-catalog.md](playwright-antipatterns-catalog.md).
 
+> ⚠️ **Mã trùng tên nhưng khác nghĩa.** Tra bảng dưới trước khi trích dẫn; chỉ dùng cột "Mã chuẩn".
+
+| Mục trong file này | Chủ đề | Mã chuẩn để trích dẫn |
+|---|---|---|
+| PA-01 | Chỉ assert URL/title | `PA-01` |
+| PA-02 | Ngủ cứng / thiếu `await` | `PA-05` (ngủ cứng); thiếu `await` → rule tĩnh `assertion-thieu-await` |
+| PA-03 | Dùng chung state, phụ thuộc thứ tự | `PA-03` |
+| PA-04 | Assert tồn tại bề mặt | `PA-01`/`PA-02` (ngữ nghĩa) + rule tĩnh `weak-existence-assertion` |
+
 ---
 
 ### [PA-01] Chỉ kiểm tra URL hoặc tiêu đề trang (URL/Title-Only Assertion)

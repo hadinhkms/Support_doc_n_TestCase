@@ -39,7 +39,7 @@ For PRD/SRS/System Design review & Test Pyramid generation, use [qa-system-testi
 3. **Load Effective Knowledge Base (Shared `ship` + Project `own` Overlay)**:
    - Read the Selective Learning policy and shared catalogs (relative to this skill directory):
      - [references/SELECTIVE-LEARNING-POLICY.md](references/SELECTIVE-LEARNING-POLICY.md)
-     - [references/defect-heuristics-catalog.md](references/defect-heuristics-catalog.md) (`DH-01`..`DH-06`) và [references/playwright-antipatterns-catalog.md](references/playwright-antipatterns-catalog.md) (`PA-01`..`PA-04`): **catalog chuẩn duy nhất** mà `tools/qa/lib/learner.js` đọc; mã `DH-xx`/`PA-xx` khi trích dẫn luôn theo hai file này.
+     - [references/defect-heuristics-catalog.md](references/defect-heuristics-catalog.md) (`DH-01`..`DH-11`) và [references/playwright-antipatterns-catalog.md](references/playwright-antipatterns-catalog.md) (`PA-01`..`PA-07`): **catalog chuẩn duy nhất** mà `tools/qa/lib/learner.js` đọc; mã `DH-xx`/`PA-xx` khi trích dẫn luôn theo hai file này.
      - Hướng dẫn áp dụng ở tầng spec (helper + rule tĩnh; mã trong đó **không** phải mã chuẩn): [references/bug-hunting-heuristics.md](references/bug-hunting-heuristics.md), [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md).
    - Resolve and inspect the project-local overlay from the **repository root** and `qa.config.json` (`<testCasesDir>/_learning/knowledge.json`, defaulting to `test-cases/_learning/knowledge.json` — never resolve `<testCasesDir>` relative to the skill folder), or run `node tools/qa learn --json` to inspect `catalogStats` (`shared`, `project`, `effective`).
    - **Handling Overlay State**:

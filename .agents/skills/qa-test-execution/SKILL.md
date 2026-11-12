@@ -72,6 +72,9 @@ vi thực tế quan sát được khi thực thi. Tối thiểu soát các nhóm
 - Desktop và mobile web (hai test case riêng), dữ liệu bền vững sau reload.
 - Hồi quy quanh phần code/bug vừa sửa.
 
+Sau khi chạy hết checklist, nếu còn thời gian hoặc vùng rủi ro cao chưa được phủ, chạy thêm một
+session thăm dò theo [qa-exploratory](../qa-exploratory/SKILL.md) cho phần nằm ngoài checklist.
+
 Requirement im lặng về hành vi → không tự bịa Expected result: tạo test case với Expected result
 "Cần xác nhận" và mở câu hỏi `Q-xxx`.
 

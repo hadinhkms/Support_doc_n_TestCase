@@ -41,3 +41,33 @@
 - **Trigger**: Form đăng nhập, đăng ký, hoặc form nhập liệu nhiều trường có gửi request xác thực/lưu trữ lên Backend.
 - **Failure Mode**: Khi gửi form thất bại do lỗi validation hoặc lỗi server (`4xx`/`5xx`), toàn bộ các trường hợp lệ mà người dùng đã nhập bị xóa trắng (reset) gây mất dữ liệu.
 - **Actionable Check**: Kiểm tra cột `Expected` của các Test Case Negative/Error có xác nhận giữ nguyên dữ liệu đã nhập ở các trường không nhạy cảm sau khi báo lỗi hay không (trừ trường mật khẩu nếu requirement quy định xóa).
+
+### [DH-07] Chuyển trạng thái không hợp lệ qua API trực tiếp hoặc deep link dù UI đã ẩn nút
+- **Category**: State & Concurrency
+- **Trigger**: Thực thể có vòng đời nhiều trạng thái (Draft, Pending, Approved, Completed, Cancelled, Deleted) và UI ẩn/disable nút theo trạng thái.
+- **Failure Mode**: Chỉ UI chặn thao tác; gọi API trực tiếp, mở bookmark/deep link hoặc dùng tab cũ vẫn hủy được đơn đã hoàn tất, duyệt lại bản ghi đã từ chối, hoặc sửa bản ghi đã xóa mềm.
+- **Actionable Check**: Kiểm tra requirement có bảng chuyển trạng thái (state transition table) và test case cho từng cặp chuyển trạng thái bị cấm, thực hiện qua API hoặc URL trực tiếp, kỳ vọng `409`/`422`/`404` và trạng thái không đổi.
+
+### [DH-08] Thu hồi quyền hoặc khóa tài khoản không có hiệu lực với phiên đang mở
+- **Category**: Security & Access
+- **Trigger**: Tính năng đổi vai trò, khóa tài khoản, xóa thành viên khỏi tổ chức, đổi mật khẩu hoặc thu hồi token.
+- **Failure Mode**: Phiên/JWT đã cấp trước đó ở trình duyệt hoặc thiết bị khác vẫn thao tác được với quyền cũ cho tới khi token hết hạn.
+- **Actionable Check**: Kiểm tra có test case mở sẵn phiên ở context thứ hai, thu hồi quyền ở context thứ nhất, rồi xác nhận request kế tiếp của phiên cũ bị `401`/`403` và không ghi được dữ liệu.
+
+### [DH-09] Cache, search index hoặc bộ đếm không cập nhật sau khi dữ liệu nguồn thay đổi
+- **Category**: Resilience & Recovery
+- **Trigger**: Màn hình danh sách, tìm kiếm, dashboard, badge đếm hoặc trang công khai đọc dữ liệu qua cache/CDN/search index/counter.
+- **Failure Mode**: Sau khi tạo, sửa, ẩn hoặc xóa bản ghi, danh sách/tìm kiếm/bộ đếm vẫn trả dữ liệu cũ; bấm vào bản ghi đã xóa bị `404`/`500`, hoặc tổng số lệch với danh sách chi tiết.
+- **Actionable Check**: Kiểm tra test case có bước đọc lại qua mọi kênh hiển thị (danh sách, tìm kiếm, chi tiết, bộ đếm, portal khác) sau mỗi thao tác ghi, với SLA đồng bộ được requirement quy định rõ.
+
+### [DH-10] Ranh giới ngày giờ, múi giờ và giờ mùa hè làm lệch bộ lọc, hạn chót hoặc lịch chạy
+- **Category**: Data & BVA
+- **Trigger**: Bộ lọc theo ngày, hạn chót, voucher/OTP hết hạn, báo cáo theo ngày/tháng, cron/batch job hoặc người dùng ở nhiều múi giờ.
+- **Failure Mode**: Bản ghi tạo lúc 23:30 giờ địa phương rơi sang ngày khác theo UTC, ngày chuyển giờ mùa hè bị lặp/mất 1 giờ, cuối tháng/năm nhuận bị tính sai, hoặc job chạy hai lần/bỏ lần.
+- **Actionable Check**: Kiểm tra requirement nói rõ múi giờ chuẩn và test case có mốc 23:59/00:00, cuối tháng, 29/02, ngày đổi giờ mùa hè; tua giờ bằng `page.clock` thay vì chờ thật.
+
+### [DH-11] Giao diện báo thành công nhưng dữ liệu không thực sự được lưu (Optimistic UI)
+- **Category**: State & Concurrency
+- **Trigger**: Thao tác cập nhật hiển thị ngay trên giao diện (toggle, kéo thả, sửa inline, lưu cấu hình) trước khi backend xác nhận.
+- **Failure Mode**: UI hiện "Đã lưu" từ state cục bộ; API thực chất lỗi hoặc lưu thiếu trường, sau khi tải lại trang dữ liệu quay về giá trị cũ mà không có thông báo lỗi.
+- **Actionable Check**: Kiểm tra test case có bước tải lại trang hoặc đọc lại qua API sau khi lưu (`expectStatePersistence`) và có ca API lỗi để xác nhận UI hoàn tác và báo lỗi.
