@@ -139,6 +139,7 @@ Follow the patterns in [references/playwright-api-patterns.md](references/playwr
      - **Rule Out Test Faults First**: Verify the failure is not caused by a test script bug (wrong endpoint path, stale token, polluted DB state from a previous run, missing `await`, or wrong Content-Type header in the test). If the test is wrong, fix the test and re-run — never report it as an application bug.
      - **Reproducibility Verification**: Re-run the isolated API call or Playwright spec (`npx playwright test <spec> --repeat-each=3`) to confirm the issue still occurs on re-check. Only report a **Confirmed Bug (`BUG-xx`)** when it reproduces consistently with identical HTTP status, response payload, and state mutation (or via a `Promise.all` race probe for concurrency bugs).
      - **Dual Proof**: Attach both the exact request/response telemetry (`method`, `url`, `payload`, `status`, `response body`, Read-After-Write/Reject check) and the backend source `file:line` root cause (when backend code is in scope).
+     - **Voice**: Write `BUG-xx` reports and comments following the workspace rule "Giọng văn khi viết comment, bug, report" in `.github/copilot-instructions.md` (direct, no hedging, no guessing, no filler or flattery, no AI boilerplate).
 
 After creating or updating requirements, test cases, or API specs, run the verification pipeline in order (and **immediately split any file violating hard ceilings or the 80% warning zone before finishing**):
 

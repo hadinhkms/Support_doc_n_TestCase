@@ -4,7 +4,8 @@ description: >-
   Review frontend UI source and rendered behavior for layout, responsive, mobile,
   accessibility, interaction, and async-state defects. Use for UI/UX code audits
   or visual reviews of an application under test. For requirement-to-test coverage
-  and Playwright assertion quality, use qa-logic-gaps instead.
+  and Playwright assertion quality, use qa-logic-gaps instead. For end-user
+  evaluation of designs and flows (persona walkthroughs), use qa-user-perspective.
 ---
 
 # UI/UX Frontend Review
@@ -154,7 +155,7 @@ Keep **classification**, **severity**, and **confidence** separate:
 
 ## Report
 
-Write in the user's language. Keep these three parts, omitting empty findings rather
+Write in the user's language, following the workspace rule "Giọng văn khi viết comment, bug, report" in `.github/copilot-instructions.md` (direct, no hedging, no guessing, no filler or flattery, no AI boilerplate). Keep these three parts, omitting empty findings rather
 than filling a quota:
 
 1. **Scope and scorecard**: Quick/Full and reason, comparison base and current source

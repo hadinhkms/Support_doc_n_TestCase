@@ -52,6 +52,40 @@ Mọi lúc đọc ticket làm đầu vào (viết requirement, test case, script
   thay đổi (ai, ngày, nội dung) trong requirement/test case; chưa rõ cái nào là chốt thì hỏi user.
 - Không đọc được hết (lỗi quyền, bị cắt, hết trang) → nói rõ cho user, không coi như đã đọc đủ.
 
+## Giọng văn khi viết comment, bug, report
+
+Áp cho mọi chữ gửi tới người khác: comment Jira/Confluence/Figma, bug report, comment tổng hợp
+đợt chạy, câu hỏi `Q-xxx`, report review. Viết như người trong team nói với nhau: thẳng, rõ,
+trung tính. Template/bảng giữ nguyên cấu trúc, rule này áp cho phần chữ.
+
+- **Vào thẳng sự việc**: màn/bước/endpoint nào, hệ thống đang làm gì. Không mào đầu, không tóm
+  lại ở cuối. Câu ngắn, từ thường ngày, một comment một ý.
+- **Không nước đôi**: có bằng chứng thì khẳng định; chưa có thì hỏi một câu cụ thể. Mỗi vấn đề
+  một đề xuất kèm lý do trong một câu, không "A hoặc B", không "tuỳ team". Cần PO/BA chọn thì
+  ghi `Q-xxx` và nói rõ phương án khuyên dùng.
+- **Không cảm tính**: mô tả hành vi quan sát được và hệ quả; không "tưởng", "cảm giác", "ai
+  ngờ", "hơi khó chịu".
+- **Không sến**: bỏ "nhé", "nha", "ạ" thừa, "hy vọng góp ý hữu ích", "mong team xem xét", câu
+  cảm thán, emoji. Câu cuối là đề xuất hoặc câu hỏi.
+- **Không văn máy**: bỏ "Tôi nhận thấy rằng...", "Qua quá trình kiểm thử, có thể thấy...",
+  "nâng cao trải nghiệm", "liền mạch", "trực quan", "đáng kể"; bỏ in đậm/tiêu đề/gạch đầu
+  dòng dày đặc cho một ý nhỏ. Người dùng được gì thì nói cụ thể ("không phải nhập lại email").
+- Xưng hô theo cách team đang dùng; không rõ thì không xưng, viết câu chủ động. Mã
+  (`BUG-xx`, `UXF-xx`, `TC-xxx`) đặt cuối câu hoặc trong cột riêng, không mở đầu bằng mã.
+
+Ví dụ — văn AI: "**Vấn đề:** Tôi nhận thấy rằng nút 'Tiếp tục' tại bước 3 có thể gây nhầm lẫn
+đáng kể. **Đề xuất:** Nhằm nâng cao trải nghiệm, nên cân nhắc đổi nhãn hoặc thêm màn xác nhận.
+Hy vọng góp ý này hữu ích!" → viết lại: "Bước 3: nút ghi `Tiếp tục` nhưng bấm là gửi đơn luôn,
+không có màn xác nhận, sau đó không sửa được đơn. Đổi nhãn thành `Gửi đơn` để người dùng biết
+bấm là gửi. (UXF-02)"
+
+Comment tổng hợp đợt chạy: "Chạy 42 TC trên staging build `a1b2c3d`: 38 PASS, 2 FAIL, 2 BLOCKED.
+FAIL: TC-045 (BUG-03, lưu nháp mất dữ liệu khi đổi tab), TC-051 (BUG-04). BLOCKED: TC-060,
+TC-061, chưa có tài khoản role Approver."
+
+Rule này chỉ về giọng văn, không nới yêu cầu bằng chứng (mục 14, Bối cảnh nghiệp vụ, nguyên văn
+chữ trên UI).
+
 ## Thực thi checklist test case
 
 Khi test chuyên sâu một task đã có checklist test case (`test-cases/`, Jira issue hoặc tài liệu
@@ -65,6 +99,16 @@ Khi người dùng muốn test thăm dò, bug bash, săn lỗi tiềm ẩn hoặ
 dùng [skill qa-exploratory](../.agents/skills/qa-exploratory/SKILL.md): mỗi session có charter,
 ghi rõ oracle bị vi phạm cho từng phát hiện, và chỉ gắn `BUG` khi đạt mục 14. Requirement im lặng
 thì mở `Q-xxx`, không tự bịa Expected result.
+
+## Đánh giá từ góc nhìn người dùng
+
+Khi người dùng muốn đặt mình vào vai người dùng cuối để review design hoặc flow (Figma, bản build,
+mô tả trong REQ), dùng [skill qa-user-perspective](../.agents/skills/qa-user-perspective/SKILL.md).
+Skill chỉ đưa ra quan điểm đánh giá và đề xuất, mỗi nhận định gắn bằng chứng quan sát được;
+không viết test case/spec. Requirement chưa chi tiết thì đưa **Expected đề xuất** (`EXP-xx`) để
+PO/BA duyệt. Phù hợp mục 2: `EXP` chỉ vào requirement dưới dạng assumption trong `Open questions`,
+thành AC/expected chính thức khi PO/BA đồng ý. Hành vi sai spec gặp khi đánh giá thì chuyển sang
+quy trình báo bug (mục 14), skill này không gắn nhãn `BUG`.
 
 ## Review mã frontend và UI/UX
 

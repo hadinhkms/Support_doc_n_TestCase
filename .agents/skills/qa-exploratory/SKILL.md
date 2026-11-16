@@ -29,6 +29,7 @@ dùng oracle để phán đoán khi không có Expected result. Kết quả khô
 | Rà độ phủ REQ/AC/TC/spec và assertion yếu | [qa-logic-gaps](../qa-logic-gaps/SKILL.md) |
 | Đào sâu API, OWASP API | [qa-api-testing](../qa-api-testing/SKILL.md) |
 | Review giao diện theo rubric | [qa-ui-review](../qa-ui-review/SKILL.md) |
+| Đánh giá design/flow theo persona, đề xuất cách làm phù hợp người dùng cuối | [qa-user-perspective](../qa-user-perspective/SKILL.md) |
 
 Skill này cần **bản build chạy được** (môi trường test, local, staging). Không có bản build thì
 chỉ làm được bước 1 (charter) và chuyển phần còn lại cho `qa-system-testing` Pha 01.
@@ -96,7 +97,8 @@ heuristic phù hợp charter; không cố chạy hết.
 Dùng [templates/session-report.md](templates/session-report.md). Bắt buộc có: charter, thời
 lượng, môi trường/build, tỉ lệ thời gian (thiết lập / thăm dò / điều tra bug), danh sách phát
 hiện đã phân loại, **vùng đã phủ và chưa phủ**, charter đề xuất tiếp theo. Không viết "không
-còn bug" — chỉ viết những gì đã thử và chưa thử.
+còn bug" — chỉ viết những gì đã thử và chưa thử. Bug, comment và report viết theo
+mục "Giọng văn khi viết comment, bug, report" trong `.github/copilot-instructions.md`.
 
 ## Bước 5 — Chuyển hóa (khi người dùng yêu cầu sửa artifact)
 

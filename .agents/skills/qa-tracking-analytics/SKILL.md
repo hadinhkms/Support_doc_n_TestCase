@@ -92,6 +92,7 @@ Dùng [templates/tracking-review-report.md](templates/tracking-review-report.md)
   workspace rules), `TR-REC` (đề xuất) và `Q-xxx` (câu hỏi cho PO/dev).
 - Chưa chạy hoặc chưa query được thì ghi `Not verified`, không kết luận tracking đúng.
 - Không tự bịa expected behavior khi req im lặng.
+- Report và comment viết theo mục "Giọng văn khi viết comment, bug, report" trong `.github/copilot-instructions.md`.
 
 ## Step 6: Chuyển thành test (khi user yêu cầu)
 

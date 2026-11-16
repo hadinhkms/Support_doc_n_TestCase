@@ -126,6 +126,7 @@ Before reporting any application defect (`BUG-xx`) discovered during deep testin
 3. **Require Dual Evidence & Clear Bug Presentation**:
    - Every reported `BUG-xx` must include: (a) concrete runtime proof (`runtimeTrap` log, HTTP status/response body, or DOM geometry measurement) **and** (b) exact application source location (`file:line`) when source code is accessible, or a minimal reproducible `Steps to Reproduce` / `curl` command.
    - **Wording & Visual Focus**: Write bug descriptions in plain, concise, easy-to-visualize language. Title the business scenario field strictly **`Bối cảnh nghiệp vụ`** (never use meta-titles like *"Giải thích dễ hiểu cho Dev"*). Whenever attaching a UI screenshot (`Visual Evidence`), **always draw a red highlight box around the defective element** (e.g., via `captureAnnotatedBugEvidence` in `playwright/tests/support/evidence.ts`) so the reader immediately sees where to focus.
+   - **Voice**: Bug reports and comments follow the workspace rule "Giọng văn khi viết comment, bug, report" in `.github/copilot-instructions.md` (direct, no hedging, no guessing, no filler or flattery, no AI boilerplate).
 
 Present the findings clearly grouped by severity. Whenever a gap corresponds to a catalog entry, **cite the Knowledge ID (`DH-xx`, `PA-xx`, `PDH-xxx`, `PPA-xxx`) alongside concrete `REQ/AC/TC` or `spec:line` evidence**:
 

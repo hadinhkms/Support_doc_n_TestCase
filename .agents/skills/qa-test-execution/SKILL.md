@@ -125,6 +125,7 @@ bản xem trước (trạng thái từng item + test case bổ sung) và chờ u
 - Sửa description phải giữ nguyên toàn bộ nội dung ADF khác (đọc → sửa đúng node → ghi lại).
   Checklist nằm trong custom field không sửa được qua API → đăng comment tổng hợp kết quả thay vì sửa.
 - Luôn đăng 1 comment tóm tắt đợt chạy: số PASS/FAIL/BLOCKED/N/A/NOT RUN, danh sách BUG, môi trường.
+  Comment viết theo mục "Giọng văn khi viết comment, bug, report" trong `.github/copilot-instructions.md`.
 
 ## Bước 6 — Báo cáo
 

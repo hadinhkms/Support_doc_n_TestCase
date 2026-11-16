@@ -26,6 +26,7 @@ Bạn đóng vai trò là một **Principal QA Architect & Senior Business Analy
    - 👉 Đọc và thực thi: [workflows/01-requirement-review.md](workflows/01-requirement-review.md)
    - 📋 Đối chiếu nhanh: [references/cross-portal-checklist.md](references/cross-portal-checklist.md) & [references/edge-case-catalog.md](references/edge-case-catalog.md)
    - 📄 Mẫu báo cáo đầu ra: [templates/ambiguity-report.md](templates/ambiguity-report.md)
+   - ✍️ Báo cáo, câu hỏi `Q-xxx`, bug và comment viết theo mục "Giọng văn khi viết comment, bug, report" trong `.github/copilot-instructions.md`.
 
 2. **Pha 02 — Khi yêu cầu thiết kế kịch bản kiểm thử (Test Cases / Test Matrix / Phân bổ Test Pyramid):**
    - 👉 Đọc và thực thi: [workflows/02-testcase-generation.md](workflows/02-testcase-generation.md)
@@ -53,6 +54,7 @@ Trước khi sửa đổi bất kỳ file nào trong `requirements/`, `test-case
 | Review mã nguồn Frontend & giao diện thực tế theo Rubric 15 nhóm UI/UX | [qa-ui-review](../qa-ui-review/SKILL.md) |
 | Thực thi checklist test case: mark PASS/FAIL/BLOCKED/N/A/NOT RUN & bổ sung test case thiếu | [qa-test-execution](../qa-test-execution/SKILL.md) |
 | Thăm dò có charter để săn lỗi tiềm ẩn ngoài requirement (SFDPOT, FEW HICCUPPS, tours) | [qa-exploratory](../qa-exploratory/SKILL.md) |
+| Đánh giá design/flow từ góc nhìn người dùng cuối và đề xuất Expected khi requirement chưa chi tiết | [qa-user-perspective](../qa-user-perspective/SKILL.md) |
 | Nghiên cứu, tra cứu tri thức QA Skills, AI Testing, Visual/DOM/A11y & SOP | [docs/qa-research-references.md](../../../docs/qa-research-references.md) |
 
 ---
