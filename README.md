@@ -56,6 +56,7 @@ Workspace tích hợp các bộ kỹ năng chuyên sâu cho AI Coding & QA Agent
 | [`qa-tracking-analytics`](.agents/skills/qa-tracking-analytics/SKILL.md) | Review tracking req/tracking plan Mixpanel: đề xuất event cần bắn theo flow (chạy flow thật nếu đã build, dùng REQ/Figma nếu chưa), checklist `TR-xx` (naming, timing, identity, PII), và xác định report khai thác được (Funnel, Retention, Flows, Breakdown). |
 | [`qa-test-execution`](.agents/skills/qa-test-execution/SKILL.md) | Thực thi checklist, ghi trạng thái kèm bằng chứng, tìm và bổ sung test case còn thiếu, rồi chạy các gate QA phù hợp. |
 | [`qa-exploratory`](.agents/skills/qa-exploratory/SKILL.md) | Kiểm thử thăm dò có cấu trúc để săn lỗi tiềm ẩn ngoài requirement/checklist: charter theo rủi ro, heuristic `SFDPOT`, oracle `FEW HICCUPPS`, tours, session report và chuyển phát hiện thành `BUG`/`Q-xxx`/`TC` mới. |
+| [`qa-user-perspective`](.agents/skills/qa-user-perspective/SKILL.md) | Đánh giá **design và flow** từ góc nhìn người dùng cuối (build thật, Figma hoặc REQ): chọn persona, đi flow theo mục tiêu, cognitive walkthrough, heuristic Nielsen, checklist design; đưa ra quan điểm `UXF`/`SPEC`/`Q-xxx` và **Expected đề xuất** (`EXP`) khi requirement chưa chi tiết. Không viết test case. |
 
 ## Review UI/UX của ứng dụng
 
