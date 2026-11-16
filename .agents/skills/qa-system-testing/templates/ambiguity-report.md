@@ -25,6 +25,8 @@ Sử dụng mẫu này làm đầu ra chuẩn cho **Workflow 01 (`01-requirement
 ## 2. ⚠️ Edge Cases & Câu Hỏi Làm Rõ (`Open Questions` cho PO / BA / Dev)
 
 > *Nguyên tắc Zero Assumption: Không tự ý suy diễn hành vi khi tài liệu bỏ trống. Các câu hỏi dưới đây cần được xác nhận để đưa vào `requirements/REQ-xxx.md` hoặc `decisions.json`.*
+>
+> *Trước khi gửi: soát từng câu với toàn bộ comment/reply của ticket. Câu đã được trả lời thì bỏ khỏi bảng và đưa câu trả lời (kèm nguồn) vào requirement; trả lời còn thiếu thì trích câu trả lời cũ và chỉ hỏi phần còn thiếu (xem "Đọc ticket" trong `.github/copilot-instructions.md`).*
 
 | Mã câu hỏi | Khía cạnh (Heuristic) | Tình huống biên / Ngoại lệ chưa được định nghĩa | Đề xuất mặc định (Default Proposal) | Người cần chốt |
 | :--- | :--- | :--- | :--- | :--- |

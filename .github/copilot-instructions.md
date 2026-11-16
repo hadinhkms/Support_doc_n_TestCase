@@ -51,6 +51,12 @@ Mọi lúc đọc ticket làm đầu vào (viết requirement, test case, script
 - Comment mâu thuẫn với description → **comment mới hơn được ưu tiên**, nhưng phải ghi rõ chỗ
   thay đổi (ai, ngày, nội dung) trong requirement/test case; chưa rõ cái nào là chốt thì hỏi user.
 - Không đọc được hết (lỗi quyền, bị cắt, hết trang) → nói rõ cho user, không coi như đã đọc đủ.
+- **Trước khi gửi câu hỏi cho PO/BA (`Q-xxx`, Open questions, comment hỏi lại)**: soát từng câu
+  với toàn bộ comment và reply, kể cả câu hỏi của người khác đã được trả lời. Đã có câu trả lời
+  → không hỏi lại, đưa câu trả lời vào requirement/test case kèm nguồn (ai, ngày, link comment).
+  Đã trả lời nhưng còn thiếu hoặc mâu thuẫn → trích câu trả lời cũ rồi hỏi đúng phần còn thiếu,
+  không hỏi lại từ đầu. Câu đã hỏi mà chưa ai trả lời → nhắc lại trong thread cũ, không mở câu
+  mới. Không gộp hai câu cùng ý trong một đợt hỏi.
 
 ## Giọng văn khi viết comment, bug, report
 
