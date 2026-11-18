@@ -60,8 +60,8 @@ Mọi lúc đọc ticket làm đầu vào (viết requirement, test case, script
 
 ## Giọng văn khi viết comment, bug, report
 
-Áp cho mọi chữ gửi tới người khác: comment Jira/Confluence/Figma, bug report, comment tổng hợp
-đợt chạy, câu hỏi `Q-xxx`, report review. Viết như người trong team nói với nhau: thẳng, rõ,
+Áp cho mọi chữ gửi tới người khác: comment Jira/Confluence/Figma, bug report, description/kết
+quả test case và checklist, comment tổng hợp đợt chạy, câu hỏi `Q-xxx`, report review. Viết như người trong team nói với nhau: thẳng, rõ,
 trung tính. Template/bảng giữ nguyên cấu trúc, rule này áp cho phần chữ.
 
 - **Vào thẳng sự việc**: màn/bước/endpoint nào, hệ thống đang làm gì. Không mào đầu, không tóm
@@ -76,6 +76,9 @@ trung tính. Template/bảng giữ nguyên cấu trúc, rule này áp cho phần
 - **Không văn máy**: bỏ "Tôi nhận thấy rằng...", "Qua quá trình kiểm thử, có thể thấy...",
   "nâng cao trải nghiệm", "liền mạch", "trực quan", "đáng kể"; bỏ in đậm/tiêu đề/gạch đầu
   dòng dày đặc cho một ý nhỏ. Người dùng được gì thì nói cụ thể ("không phải nhập lại email").
+- **Không ký tên, không nhắc AI**: không thêm "(QC, Claude)", "(Claude)", "by AI", "Generated
+  by ..." hay tên agent/model vào description, comment, kết quả chạy. Môi trường ghi thẳng trong
+  câu: "Kết quả 16/11/2026 trên QC: Chưa đạt - ...", không gói vào ngoặc cuối câu.
 - Xưng hô theo cách team đang dùng; không rõ thì không xưng, viết câu chủ động. Mã
   (`BUG-xx`, `UXF-xx`, `TC-xxx`) đặt cuối câu hoặc trong cột riêng, không mở đầu bằng mã.
 
