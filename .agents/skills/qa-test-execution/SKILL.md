@@ -47,7 +47,7 @@ Chỉ dùng đúng bộ trạng thái sau:
 | Trạng thái | Khi nào dùng |
 |---|---|
 | `PASS` | Kết quả thực tế khớp Expected result, có bằng chứng |
-| `FAIL` | Đã qua Rule 14 (loại trừ lỗi script/môi trường, tái hiện ≥ 3 lần) — kèm `BUG-xx` |
+| `FAIL` | Đã qua Rule 14 (loại trừ lỗi script/môi trường, tái hiện ≥ 3 lần) **và Bug Evidence Gate** ([references/bug-evidence-gate.md](references/bug-evidence-gate.md)) — kèm `BUG-xx` |
 | `BLOCKED` | Không thực thi được: thiếu dữ liệu, môi trường lỗi, bị chặn bởi bug khác — ghi rõ lý do |
 | `N/A` | Không áp dụng cho build/nền tảng này — ghi lý do |
 | `NOT RUN` | Chưa chạy (hết thời gian, ngoài phạm vi đợt này) |

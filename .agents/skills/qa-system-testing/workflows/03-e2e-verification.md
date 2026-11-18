@@ -75,6 +75,10 @@ Khi phát hiện một test fail hoặc hành vi bất thường, **bắt buộc
    - **Bằng chứng thực thi:** Log từ `runtimeTrap`, cURL/HTTP status & payload thực tế, kết quả truy vấn DB thực tế so với mong đợi.
    - **Bằng chứng mã nguồn:** Chỉ rõ `file:line` gây lỗi (nếu có quyền đọc source app) hoặc chuỗi `Steps to Reproduce` tối giản.
    - **Bằng chứng hình ảnh (`Visual Evidence`):** Bắt buộc khoanh vùng **khung đỏ** trực tiếp vào vị trí bị sai bằng `captureAnnotatedBugEvidence` trong `playwright/tests/support/evidence.ts`.
+4. **Bước 4.4 — Bug Evidence Gate:** Trước khi viết bug draft, qua đủ 4 cổng trong
+   [bug-evidence-gate.md](../../qa-test-execution/references/bug-evidence-gate.md) (ảnh thắng
+   `innerText`, đối chứng độc lập, Expected có nguồn, phân loại nguyên nhân). Tái hiện 3/3 bằng cùng
+   một phép đo sai không thay được cổng này.
 
 ---
 
